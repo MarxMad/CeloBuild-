@@ -53,6 +53,8 @@ Monorepo generado con **Celo Composer (plantilla MiniPay + Foundry)** para const
 ```bash
 cd lootbox-minipay
 pnpm install          # si el CLI saltó la instalación
+# apps/web/env.sample -> .env para apuntar al servicio de agentes
+cp apps/web/env.sample apps/web/.env && cp apps/agents/env.sample apps/agents/.env
 pnpm dev              # lanza apps web/contratos en paralelo
 ```
 
@@ -107,7 +109,7 @@ Próximos pasos inmediatos:
 ## Integración MiniPay
 
 - **MiniPay Tool API**: `RewardDistributor` usará un backend firmado que ejecuta micropagos (push) o genera deep-links de claim (pull).  
-- **Experiencia MiniPay**: componentes en `apps/web` mostrarán campañas activas, historial y botones “Claim”.  
+- **Experiencia MiniPay**: la home (`apps/web`) incluye un formulario que invoca `/api/lootbox`, el cual reenvía la petición al servicio Python (`AGENT_SERVICE_URL`). Esto sirve como superficie de prueba antes de integrar MiniPay Frames reales.  
 - **Notificaciones**: el agente puede llamar a MiniPay para enviar anuncios cuando una nueva campaña se abre o cuando quedan pocos loot boxes.
 
 ---
