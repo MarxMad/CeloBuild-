@@ -94,7 +94,7 @@ uvicorn src.main:app --reload --port 8001
 ## Contratos Foundry previstos
 
 1. **`LootBoxVault`** – Custodia fondos cUSD/cEUR, define campañas, distribuye ERC20/cNFT en batch, soporta roles (`AGENT_ROLE`, `TREASURY_ROLE`).  
-2. **`LootBoxMinter`** – ERC721/ERC1155 modular; metadata refleja la conversación trending, soporte para loot “soulbound” y rarezas.  
+2. **`LootBoxMinter`** – ERC721 soulbound-ready basado en OpenZeppelin. Permite configurar campañas, acuñar lotes con metadata dinámica y bloquear transferencias por token.  
 3. **`LootAccessRegistry`** – Historial de reclamos, cooldown y reglas reputacionales. Expone `canClaim(address, campaignId)` y eventos para el agente.  
 4. **`ChannelSemaphoreVerifier` (opcional)** – Mantiene Merkle roots por canal Farcaster y verifica pruebas ZK para pertenencia privada.
 
