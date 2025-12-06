@@ -37,7 +37,9 @@ contract LootAccessRegistryTest is Test {
     }
 
     function testOnlyReporterGuard() public {
+        vm.prank(address(0xDEAD)); // Random address
         vm.expectRevert(LootAccessRegistry.NotReporter.selector);
         registry.recordParticipation(campaignId, participant, 1);
     }
 }
+

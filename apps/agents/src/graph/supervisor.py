@@ -50,3 +50,4 @@ class SupervisorOrchestrator:
         thread_id = payload.get("thread_id") or self.trend_watcher.build_thread_id(payload)
         return RunResult(thread_id=thread_id, summary=summary)
 
+

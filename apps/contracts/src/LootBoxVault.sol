@@ -128,3 +128,4 @@ contract LootBoxVault {
         return campaign;
     }
 }
+

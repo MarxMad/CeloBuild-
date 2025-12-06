@@ -5,8 +5,7 @@ import { Loader2, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { AgentRunResponse, LootboxEventPayload } from "@/lib/lootbox";
-import { DEFAULT_EVENT } from "@/lib/lootbox";
+import { DEFAULT_EVENT, type AgentRunResponse, type LootboxEventPayload } from "@/lib/lootbox";
 
 type FormState = {
   frameId: string;
@@ -123,4 +122,5 @@ export function TrendingCampaignForm() {
     </Card>
   );
 }
+
 

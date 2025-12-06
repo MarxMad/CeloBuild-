@@ -16,3 +16,4 @@ export const DEFAULT_EVENT: LootboxEventPayload = {
   trendScore: 0.93,
 };
 
+

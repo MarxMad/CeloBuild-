@@ -19,3 +19,4 @@ class CeloToolbox:
 
         return self.web3.eth.get_balance(address)
 
+

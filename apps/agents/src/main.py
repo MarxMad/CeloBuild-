@@ -37,3 +37,4 @@ def run_cli() -> None:
     sample_event = LootboxEvent(frame_id="sample", channel_id="test", trend_score=0.91)
     asyncio.run(supervisor.run(sample_event.model_dump()))
 
+

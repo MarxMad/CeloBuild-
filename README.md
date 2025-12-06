@@ -1,125 +1,150 @@
-# Agente de Loot Box Social (MiniPay + Foundry + Multi-Agentes)
+# 🎁 Loot Box Social (Celo + MiniPay + Multi-Agentes)
 
-Monorepo generado con **Celo Composer (plantilla MiniPay + Foundry)** para construir un agente que detecta conversaciones trending en Farcaster y reparte recompensas sorpresa (micropagos y cNFTs) vía MiniPay. El proyecto incorpora un servicio multiagente inspirado en el [example-multi-agent-system](https://github.com/celo-org/example-multi-agent-system).
-
----
-
-## Visión
-
-- **Detección social:** un agente `TrendWatcher` monitorea frames y canales Farcaster; cuando un tema supera cierto umbral, abre una campaña “loot box”.
-- **Elegibilidad híbrida:** `EligibilityAgent` cruza actividad social con participación on-chain (contratos Foundry) y, opcionalmente, pruebas ZK que preservan privacidad.
-- **Distribución MiniPay:** `RewardDistributor` coordina micropagos y minteo de cNFTs mediante el MiniPay Tool y contratos `LootBoxVault`/`LootBoxMinter`.
-- **Experiencia móvil:** MiniPay sirve de wallet y superficie UX para canjear, confirmar o compartir los drops.
+Una plataforma descentralizada que combina el poder de la **Inteligencia Artificial** con la velocidad de **Celo** para crear campañas de recompensas automáticas ("Loot Boxes") basadas en tendencias sociales de Farcaster.
 
 ---
 
-## Arquitectura (alto nivel)
+## 🌟 Visión
 
-1. **apps/web** – Frontend Next.js 14 preparado para MiniPay (RainbowKit + shadcn/ui).
-2. **apps/contracts** – Entorno Foundry (añadiremos contratos `LootBoxVault`, `LootBoxMinter`, `LootAccessRegistry`, `ChannelSemaphoreVerifier`).
-3. **apps/agents** – Nuevo servicio Python (LangGraph + LangChain) con supervisor, agentes especializados y herramientas (Farcaster, Celo, MiniPay).
-4. **PNPM Workspace + Turborepo** – Orquesta pipelines JS; el servicio Python vive fuera de PNPM pero dentro del monorepo para compartir CI/CD.
+El objetivo es gamificar la interacción en comunidades Web3. Cuando un tema se vuelve viral en Farcaster, nuestro sistema de agentes autónomos entra en acción:
 
----
+1.  **Detecta** la tendencia (TrendWatcher).
+2.  **Identifica** a los usuarios más valiosos y activos (Eligibility).
+3.  **Recompensa** instantáneamente con micropagos (cUSD) o NFTs coleccionables directamente en su wallet MiniPay.
 
-## Roadmap por fases
-
-1. **Fundación (completo)**  
-   - Crear monorepo con plantilla MiniPay + Foundry.  
-   - Añadir carpeta `apps/agents` y dependencias base de LangGraph.
-
-2. **Contratos Foundry (en curso)**  
-   - Diseñar/interfaces de `LootBoxVault`, `LootBoxMinter`, `LootAccessRegistry`.  
-   - Añadir scripts `forge script` para deploy a Alfajores y pruebas `forge test`.
-
-3. **Servicio multiagente**  
-   - Completar lógica de cada agente, conectar herramientas reales (Warpcast, Tavily, MiniPay Tool).  
-   - Persistencia de threads y memoria usando LangGraph + storage (p. ej. Redis).
-
-4. **Integración MiniPay y frontend**  
-   - Crear componentes en `apps/web` para listar campañas, mostrar estado de reclamos y disparar pruebas ZK.  
-   - Exponer API Gateway que conecte web ↔ agentes ↔ contratos.
-
-5. **Observabilidad y hardening**  
-   - Métricas Prometheus/Grafana, logging estructurado, colas de reintentos.  
-   - Auditorías de contratos y límites anti-bots (cooldowns, verificación reputacional).
+Todo esto ocurre de forma transparente y verificable on-chain, con una experiencia de usuario "invisible" gracias a MiniPay.
 
 ---
 
-## Puesta en marcha
+## 🏗 Arquitectura del Sistema
 
-### 1. Monorepo JS
+El proyecto es un Monorepo que integra tres componentes principales:
+
+### 1. 🤖 Servicio Multi-Agente (Python / LangGraph)
+El "cerebro" de la operación. Orquesta un pipeline de agentes especializados:
+*   **`TrendWatcherAgent`**: Escanea Farcaster (Warpcast) buscando frames y casts virales.
+*   **`EligibilityAgent`**: Aplica filtros de reputación (ej. antigüedad, POAPs) y verifica si el usuario ya participó (consultando la blockchain).
+*   **`RewardDistributorAgent`**: Ejecuta la distribución de premios. Interactúa con la API de MiniPay para micropagos y con los contratos inteligentes para mintear NFTs.
+
+### 2. 📜 Contratos Inteligentes (Solidity / Foundry)
+La capa de seguridad y liquidación en Celo (Alfajores/Sepolia):
+*   **`LootBoxVault`**: Bóveda segura que custodia el presupuesto (cUSD/CELO) de las campañas.
+*   **`LootAccessRegistry`**: Registro on-chain que evita el "doble gasto" de recompensas (cooldowns, historial).
+*   **`LootBoxMinter`**: Contrato ERC721 optimizado para emitir NFTs conmemorativos de cada campaña.
+
+### 3. 📱 Frontend & MiniPay (Next.js 14)
+La interfaz de usuario optimizada para móviles:
+*   Integrada nativamente con **MiniPay Wallet** (injected provider).
+*   Permite a los administradores simular campañas manualmente.
+*   Muestra a los usuarios su historial de victorias y saldo en tiempo real.
+
+---
+
+## 🚀 Tecnologías Clave
+
+*   **Blockchain**: Celo (Compatible EVM, Mobile-first).
+*   **Framework de Agentes**: LangGraph + LangChain (Python).
+*   **Smart Contracts**: Foundry (Test, Script, Deploy).
+*   **Frontend**: Next.js, TailwindCSS, RainbowKit, Wagmi.
+*   **Social**: Farcaster (Warpcast API).
+
+---
+
+## 🛠 Puesta en Marcha (Local)
+
+Sigue estos pasos para levantar todo el entorno de desarrollo en tu máquina.
+
+### Prerrequisitos
+*   Node.js 18+ y PNPM.
+*   Python 3.11+.
+*   Foundry (Forge/Cast).
+
+### 1. Configuración Inicial
+Clona el repo e instala dependencias del workspace JS:
 
 ```bash
-cd lootbox-minipay
-pnpm install          # si el CLI saltó la instalación
-# apps/web/env.sample -> .env para apuntar al servicio de agentes
-cp apps/web/env.sample apps/web/.env && cp apps/agents/env.sample apps/agents/.env
-pnpm dev              # lanza apps web/contratos en paralelo
+pnpm install
 ```
 
-### 2. Foundry
-
-```bash
-cd apps/contracts
-forge install         # instala deps (si falló durante el scaffolding)
-forge test
-```
-
-### 3. Servicio multiagente
+### 2. Levantar el Servicio de Agentes (Backend)
+Este servicio corre en el puerto `8001`.
 
 ```bash
 cd apps/agents
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
-cp env.sample .env    # completa claves (Gemini, Tavily, Farcaster, MiniPay)
+
+# Copia y configura las variables de entorno (puedes usar los valores mock por defecto)
+cp env.sample .env
+
+# Inicia el servidor con recarga automática
 uvicorn src.main:app --reload --port 8001
+```
+
+> **Nota**: El servicio incluye un "Mock Mode". Si no tienes API keys reales de Farcaster, usará datos simulados para que puedas probar el flujo completo.
+
+### 3. Levantar el Frontend (Web)
+La aplicación web corre en el puerto `3000`.
+
+```bash
+# En una nueva terminal, desde la raíz del proyecto
+cd apps/web
+cp env.sample .env
+pnpm dev
+```
+
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
+
+### 4. (Opcional) Compilar y Probar Contratos
+Si deseas modificar la lógica on-chain:
+
+```bash
+cd apps/contracts
+forge install
+forge test    # Ejecuta la suite de pruebas (incluye Fuzz testing)
+forge build
 ```
 
 ---
 
-## Detalle del sistema multiagente (`apps/agents`)
+## 🧪 Probando el Flujo (Demo)
 
-| Componente | Rol | Herramientas |
-| --- | --- | --- |
-| `TrendWatcherAgent` | Analiza frames trending (Warpcast + Tavily) y genera contexto de campaña | Farcaster API, búsqueda contextual |
-| `EligibilityAgent` | Cruza actividad social, on-chain y pruebas ZK para decidir receptores | Celo RPC, contratos Foundry, ZK (Semaphore) |
-| `RewardDistributorAgent` | Orquesta micropagos y cNFTs, escribe eventos on-chain | MiniPay Tool API, Web3 |
-| `SupervisorOrchestrator` | Hilo principal (LangGraph) que encadena agentes, mantiene thread_id | LangGraph, memoria persistente |
-
-`apps/agents/src` ya incluye esqueletos de clases y herramientas (`tools/celo.py`, `tools/farcaster.py`, `tools/minipay.py`) para empezar a conectar APIs reales.
+1.  Asegúrate de tener el **Backend (Agents)** y el **Frontend (Web)** corriendo.
+2.  Ve a `http://localhost:3000`.
+3.  En la sección **"Prueba el pipeline multiagente"**, verás un formulario precargado.
+4.  Haz clic en **"Ejecutar agente"**.
+5.  Verás cómo el frontend se comunica con el servicio Python, el cual simula la detección de una tendencia, selecciona ganadores y "envía" los pagos (verás los logs en la terminal de Python).
 
 ---
 
-## Contratos Foundry previstos
+## 📂 Estructura del Proyecto
 
-1. **`LootBoxVault`** – Custodia fondos cUSD/cEUR, define campañas, distribuye ERC20/cNFT en batch, soporta roles (`AGENT_ROLE`, `TREASURY_ROLE`).  
-2. **`LootBoxMinter`** – ERC721 soulbound-ready basado en OpenZeppelin. Permite configurar campañas, acuñar lotes con metadata dinámica y bloquear transferencias por token.  
-3. **`LootAccessRegistry`** – Historial de reclamos, cooldown y reglas reputacionales. Expone `canClaim(address, campaignId)` y eventos para el agente.  
-4. **`ChannelSemaphoreVerifier` (opcional)** – Mantiene Merkle roots por canal Farcaster y verifica pruebas ZK para pertenencia privada.
-
-Próximos pasos inmediatos:
-
-- Modelar storage y eventos de `LootBoxVault`.  
-- Añadir pruebas unitarias/grupales (fuzz) que simulen campañas con cientos de usuarios.  
-- Escribir script `script/LootBoxDeployer.s.sol` para automatizar despliegues.
+```
+lootbox-minipay/
+├── apps/
+│   ├── agents/       # Servicio Python (LangGraph)
+│   │   ├── src/
+│   │   │   ├── graph/    # Lógica de los agentes (TrendWatcher, Eligibility...)
+│   │   │   ├── tools/    # Integraciones (Farcaster, MiniPay, Celo)
+│   │   │   └── main.py   # Entrypoint FastAPI
+│   │
+│   ├── contracts/    # Smart Contracts (Foundry)
+│   │   ├── src/          # .sol files (Vault, Registry, Minter)
+│   │   ├── test/         # Tests unitarios y fuzzing
+│   │   └── script/       # Scripts de despliegue
+│   │
+│   └── web/          # Frontend (Next.js)
+│       ├── src/app/      # Rutas y API Proxy
+│       └── components/   # UI Components (shadcn/ui)
+│
+└── packages/         # Librerías compartidas (si aplica)
+```
 
 ---
 
-## Integración MiniPay
+## 🔮 Próximos Pasos
 
-- **MiniPay Tool API**: `RewardDistributor` usará un backend firmado que ejecuta micropagos (push) o genera deep-links de claim (pull).  
-- **Experiencia MiniPay**: la home (`apps/web`) incluye un formulario que invoca `/api/lootbox`, el cual reenvía la petición al servicio Python (`AGENT_SERVICE_URL`). Esto sirve como superficie de prueba antes de integrar MiniPay Frames reales.  
-- **Notificaciones**: el agente puede llamar a MiniPay para enviar anuncios cuando una nueva campaña se abre o cuando quedan pocos loot boxes.
-
----
-
-## Checklist / Backlog inmediato
-
-- [ ] Esquematizar contratos (`LootBoxVault`, `LootAccessRegistry`) y generar stubs en `apps/contracts/src`.  
-- [ ] Conectar `TrendWatcherAgent` con Warpcast (frames endpoint) y añadir un mock service para desarrollo offline.  
-- [ ] Implementar `MiniPayToolbox.send_micropayment` con autenticación y manejo de errores.  
-- [ ] Crear endpoints en `apps/web` que consulten el servicio multiagente y muestren campañas.  
-- [ ] Añadir pruebas unitarias para cada agente y pipeline E2E básico.
-
-Con esta guía ya tienes el plan detallado y el scaffolding inicial tanto del monorepo MiniPay como del sistema multiagente. Continúa completando cada fase siguiendo el roadmap. ¡Vamos! 🚀
+*   [ ] **Despliegue en Testnet**: Enviar los contratos a Celo Sepolia una vez la wallet tenga fondos.
+*   [ ] **Producción**: Conectar las API keys reales de Farcaster y MiniPay.
+*   [ ] **ZK Proofs**: Integrar Semaphore para validación de identidad privada.
