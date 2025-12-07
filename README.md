@@ -39,6 +39,85 @@ La capa de seguridad y liquidación, actualmente desplegada en **Celo Sepolia**:
 | **LootAccessRegistry** | `0x4f7aA310c1f90e435f292f5D9bA07cb102409990` |
 | **LootBoxMinter** | `0x28A499Be43D2e9720E129725e052781746e59D1D` |
 
+### 📊 Flujo del Sistema
+
+```mermaid
+graph TD
+    User((👤 Usuario))
+    subgraph "📱 Frontend (MiniApp)"
+        UI[Next.js UI]
+        Wallet[MiniPay Wallet]
+    end
+    
+    subgraph "🤖 Backend (Agentes)"
+        API[FastAPI Endpoint]
+        Trend[TrendWatcher Agent]
+        Elig[Eligibility Agent]
+        Dist[RewardDistributor Agent]
+    end
+    
+    subgraph "🌐 External Services"
+        Neynar[Neynar / Farcaster API]
+        Celo[Celo Blockchain]
+    end
+
+    User -->|1. Activa| UI
+    UI -->|2. Conecta| Wallet
+    UI -->|3. Solicita Recompensa| API
+    
+    API -->|4. Inicia Pipeline| Trend
+    Trend -->|5. Busca Tendencias| Neynar
+    Neynar -- Returns Casts --> Trend
+    
+    Trend -->|6. Datos Virales| Elig
+    Elig -->|7. Verifica Usuario| Celo
+    Celo -- History Check --> Elig
+    
+    Elig -->|8. Usuario Válido| Dist
+    Dist -->|9. Mintea NFT| Celo
+    Celo -- Tx Hash --> Dist
+    
+    Dist -->|10. Confirma| UI
+    UI -->|11. Muestra Premio| User
+```
+
+### 🔄 Pipeline de Agentes (LangGraph)
+
+```mermaid
+stateDiagram-v2
+    [*] --> TrendWatcher: Start Event
+    
+    state TrendWatcher {
+        [*] --> FetchCasts
+        FetchCasts --> AnalyzeViralScore
+        AnalyzeViralScore --> [*]
+    }
+    
+    TrendWatcher --> Eligibility: Trend Found
+    
+    state Eligibility {
+        [*] --> CheckReputation
+        CheckReputation --> CheckOnChainHistory
+        CheckOnChainHistory --> [*]
+    }
+    
+    Eligibility --> RewardDistributor: User Eligible
+    Eligibility --> End: Not Eligible
+    
+    state RewardDistributor {
+        [*] --> PrepareTx
+        PrepareTx --> SignTx
+        SignTx --> BroadcastToCelo
+        BroadcastToCelo --> [*]
+    }
+    
+    RewardDistributor --> End: Success
+    
+    state End {
+        [*] --> ReturnResult
+    }
+```
+
 ### 3. 📱 Frontend & MiniPay (Next.js 14)
 La interfaz de usuario optimizada para móviles (MiniApp):
 *   **Live Monitor**: Visualización 3D en tiempo real de los agentes.
