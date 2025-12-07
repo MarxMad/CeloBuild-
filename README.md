@@ -195,6 +195,33 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
 ---
 
+## ☁️ Despliegue en Producción (Vercel)
+
+Esta aplicación está optimizada para desplegarse en **Vercel** (Frontend) y **Railway/Render** (Backend Python).
+
+### Desplegando el Frontend (Apps/Web)
+
+1.  Ve al [Dashboard de Vercel](https://vercel.com/new).
+2.  Importa tu repositorio de GitHub.
+3.  **Configuración del Proyecto:**
+    *   **Root Directory:** Selecciona `apps/web` (haz clic en Edit).
+    *   **Framework Preset:** Next.js (se detecta automático).
+    *   **Environment Variables:** Añade las siguientes:
+        *   `NEXT_PUBLIC_WC_PROJECT_ID`: Tu ID de WalletConnect.
+        *   `AGENT_SERVICE_URL`: La URL donde desplegaste el backend (ej. `https://mi-backend-agents.railway.app`) o `http://localhost:8001` si estás probando localmente.
+
+### Desplegando el Backend (Apps/Agents)
+
+El backend requiere un entorno Python. Recomendamos usar **Railway**:
+
+1.  Crea un nuevo servicio desde GitHub repo.
+2.  **Root Directory:** `apps/agents`.
+3.  **Build Command:** `pip install -e .`
+4.  **Start Command:** `uvicorn src.main:app --host 0.0.0.0 --port $PORT`
+5.  Configura las variables de entorno (`CELO_PRIVATE_KEY`, `NEYNAR_API_KEY`, etc.).
+
+---
+
 ## 🔮 Próximos Pasos
 
 *   [x] **Despliegue en Testnet**: Contratos activos en Celo Sepolia.

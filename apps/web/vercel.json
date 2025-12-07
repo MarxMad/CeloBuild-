@@ -1,0 +1,30 @@
+{
+  "crons": [],
+  "headers": [
+    {
+      "source": "/manifest.json",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        }
+      ]
+    },
+    {
+      "source": "/.well-known/farcaster.json",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ],
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && pnpm build --filter=web",
+  "installCommand": "cd ../.. && pnpm install"
+}
