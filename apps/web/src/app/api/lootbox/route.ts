@@ -20,6 +20,7 @@ export async function POST(request: Request) {
         trend_score: payload.trendScore,
         thread_id: payload.threadId,
         target_address: payload.targetAddress,
+        reward_type: payload.rewardType,
       }),
     });
 
@@ -33,3 +34,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
+

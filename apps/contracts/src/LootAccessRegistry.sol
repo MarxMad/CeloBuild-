@@ -26,12 +26,14 @@ contract LootAccessRegistry {
     mapping(bytes32 => Rule) public campaignRules;
     mapping(bytes32 => mapping(address => ClaimData)) private claims;
     mapping(bytes32 => mapping(address => Participation)) private participations;
+    mapping(bytes32 => mapping(address => uint256)) private xpBalances;
 
     event OwnershipTransferred(address indexed oldOwner, address indexed newOwner);
     event ReporterUpdated(address indexed reporter, bool allowed);
     event CampaignRuleConfigured(bytes32 indexed campaignId, uint64 cooldownSeconds);
     event ParticipationRecorded(bytes32 indexed campaignId, address indexed participant, uint64 weight);
     event ClaimRecorded(bytes32 indexed campaignId, address indexed participant, uint64 timestamp);
+    event XpGranted(bytes32 indexed campaignId, address indexed participant, uint32 amount, uint256 newBalance);
 
     error NotOwner();
     error NotReporter();
@@ -83,6 +85,15 @@ contract LootAccessRegistry {
         emit ClaimRecorded(campaignId, participant, data.lastClaimAt);
     }
 
+    function grantXp(bytes32 campaignId, address participant, uint32 amount) external onlyReporter {
+        if (!campaignRules[campaignId].exists) revert CampaignNotConfigured();
+        require(participant != address(0), "participant zero");
+        require(amount > 0, "amount zero");
+        uint256 newBalance = xpBalances[campaignId][participant] + amount;
+        xpBalances[campaignId][participant] = newBalance;
+        emit XpGranted(campaignId, participant, amount, newBalance);
+    }
+
     function canClaim(bytes32 campaignId, address participant) public view returns (bool) {
         Rule memory rule = campaignRules[campaignId];
         if (!rule.exists) revert CampaignNotConfigured();
@@ -97,5 +108,10 @@ contract LootAccessRegistry {
     function getClaimData(bytes32 campaignId, address participant) external view returns (ClaimData memory) {
         return claims[campaignId][participant];
     }
+
+    function getXpBalance(bytes32 campaignId, address participant) external view returns (uint256) {
+        return xpBalances[campaignId][participant];
+    }
 }
+
 

@@ -4,12 +4,21 @@ import './globals.css';
 
 import { Navbar } from '@/components/navbar';
 import { WalletProvider } from "@/components/wallet-provider"
+import { FarcasterProvider } from "@/components/farcaster-provider";
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'lootbox-minipay',
-  description: 'Agente Loot Box Social',
+  title: 'Premio.xyz',
+  description: 'Agente Loot Box Social en Celo',
+  manifest: '/manifest.json',
+  other: {
+    "fc:frame": "vNext",
+    "fc:frame:image": "https://premio.xyz/og.png", // Reemplazar con URL real en prod
+    "fc:frame:button:1": "Lanzar App",
+    "fc:frame:button:1:action": "link", 
+    "fc:frame:button:1:target": "https://premio.xyz", // Reemplazar con URL real
+  }
 };
 
 export default function RootLayout({
@@ -22,12 +31,14 @@ export default function RootLayout({
       <body className={inter.className}>
         {/* Navbar is included on all pages */}
         <div className="relative flex min-h-screen flex-col">
-          <WalletProvider>
-            <Navbar />
-            <main className="flex-1">
-              {children}
-            </main>
-          </WalletProvider>
+          <FarcasterProvider>
+            <WalletProvider>
+              <Navbar />
+              <main className="flex-1">
+                {children}
+              </main>
+            </WalletProvider>
+          </FarcasterProvider>
         </div>
       </body>
     </html>

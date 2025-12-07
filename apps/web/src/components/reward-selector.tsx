@@ -13,29 +13,29 @@ type RewardOption = {
 };
 
 const OPTIONS: RewardOption[] = [
-  { 
-    id: "nft", 
-    title: "Rare NFT", 
-    value: "Gen 1 Badge", 
-    icon: Box, 
+  {
+    id: "nft",
+    title: "Rare NFT",
+    value: "Gen 1 Badge",
+    icon: Box,
     color: "text-purple-400",
-    bg: "bg-purple-500/10 border-purple-500/20"
+    bg: "bg-purple-500/10 border-purple-500/20",
   },
-  { 
-    id: "token", 
-    title: "cUSD Drop", 
-    value: "$0.50 cUSD", 
-    icon: Coins, 
+  {
+    id: "cusd",
+    title: "cUSD Drop",
+    value: "$0.50 cUSD",
+    icon: Coins,
     color: "text-green-400",
-    bg: "bg-green-500/10 border-green-500/20"
+    bg: "bg-green-500/10 border-green-500/20",
   },
-  { 
-    id: "xp", 
-    title: "Reputation", 
-    value: "+100 XP", 
-    icon: Crown, 
+  {
+    id: "xp",
+    title: "Reputation",
+    value: "+100 XP",
+    icon: Crown,
     color: "text-yellow-400",
-    bg: "bg-yellow-500/10 border-yellow-500/20"
+    bg: "bg-yellow-500/10 border-yellow-500/20",
   },
 ];
 

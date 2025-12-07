@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Loader2, Send, Wallet, ExternalLink, Box, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,25 @@ export function TrendingCampaignForm() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AgentRunResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const getRewardDisplay = (type?: AgentRunResponse["reward_type"]) => {
+    switch (type) {
+      case "cusd":
+        return {
+          title: "MiniPay enviado",
+          subtitle: "Revisa tu balance cUSD en MiniPay.",
+        };
+      case "xp":
+        return {
+          title: "+XP on-chain",
+          subtitle: "Tu reputación fue actualizada en el registro.",
+        };
+      default:
+        return {
+          title: "¡Loot NFT minteado!",
+          subtitle: "NFT coleccionable enviado a tu wallet.",
+        };
+    }
+  };
 
   // Trigger analysis animation first
   const handleStartAnalysis = (e: React.FormEvent) => {
@@ -47,7 +66,7 @@ export function TrendingCampaignForm() {
     setShowRewards(true);
   };
 
-  const handleRewardSelect = async (rewardId: string) => {
+  const handleRewardSelect = async (rewardId: LootboxEventPayload["rewardType"]) => {
     setShowRewards(false);
     setLoading(true); 
     setResult(null);
@@ -62,7 +81,7 @@ export function TrendingCampaignForm() {
       channelId: "global",
       trendScore: 0,
       targetAddress: address || undefined,
-      // rewardType: rewardId <-- Esto se enviará al backend
+      rewardType: rewardId ?? "nft",
     };
 
     try {
@@ -81,6 +100,14 @@ export function TrendingCampaignForm() {
       setLoading(false);
     }
   };
+
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null; // Avoid hydration mismatch
 
   return (
     <div className="space-y-6 relative">
@@ -139,23 +166,25 @@ export function TrendingCampaignForm() {
         {result && (
           <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
              {/* Success Card */}
-             {result.tx_hash && (
+             {result && (
                 <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 flex flex-col gap-4">
                     <div className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
                              <Box className="h-6 w-6" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-lg text-foreground">¡Loot Enviado!</h4>
-                            <p className="text-xs text-muted-foreground">NFT minteado y transferido.</p>
+                            <h4 className="font-bold text-lg text-foreground">{getRewardDisplay(result.reward_type).title}</h4>
+                            <p className="text-xs text-muted-foreground">{getRewardDisplay(result.reward_type).subtitle}</p>
                         </div>
                     </div>
-                    <Button variant="outline" className="w-full border-green-500/30 hover:bg-green-500/10 text-green-600 dark:text-green-400" asChild>
-                        <Link href={result.explorer_url || "#"} target="_blank">
-                            Ver Transacción
-                            <ExternalLink className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
+                    {result.explorer_url && (
+                      <Button variant="outline" className="w-full border-green-500/30 hover:bg-green-500/10 text-green-600 dark:text-green-400" asChild>
+                          <Link href={result.explorer_url} target="_blank">
+                              Ver Transacción
+                              <ExternalLink className="ml-2 h-4 w-4" />
+                          </Link>
+                      </Button>
+                    )}
                 </div>
              )}
 
@@ -184,3 +213,4 @@ export function TrendingCampaignForm() {
     </div>
   );
 }
+

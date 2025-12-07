@@ -106,3 +106,6 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+
+# Agent runtime data
+apps/agents/src/data/

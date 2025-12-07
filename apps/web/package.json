@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@farcaster/miniapp-sdk": "^0.2.1",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-slot": "^1.0.2",
     "@rainbow-me/rainbowkit": "^2.0.0",
@@ -24,7 +25,8 @@
     "tailwind-merge": "^2.0.0",
     "three": "^0.181.2",
     "viem": "^2.0.0",
-    "wagmi": "^2.0.0"
+    "wagmi": "^2.0.0",
+    "@celo/abis": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.8.0",

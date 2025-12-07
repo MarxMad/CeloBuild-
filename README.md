@@ -24,7 +24,8 @@ El proyecto es un Monorepo que integra tres componentes principales:
 El "cerebro" de la operación. Orquesta un pipeline de agentes especializados:
 *   **`TrendWatcherAgent`**: Escanea Farcaster (via Neynar) buscando conversaciones virales reales en tiempo real.
 *   **`EligibilityAgent`**: Aplica filtros de reputación y verifica si el usuario ya participó.
-*   **`RewardDistributorAgent`**: Ejecuta la distribución de premios. Firma transacciones reales en **Celo Sepolia** para mintear NFTs.
+*   **`RewardDistributorAgent`**: Ejecuta la distribución de premios. Firma transacciones reales en **Celo Sepolia** para mintear NFTs, asigna XP on-chain y dispara micropagos MiniPay/cUSD según la recompensa elegida.
+*   **`LeaderboardStore`**: Guarda históricamente los ganadores (puntaje, recompensa y hash) para exponerlos al frontend y al leaderboard de la MiniApp.
 
 ### 2. 📜 Contratos Inteligentes (Solidity / Foundry)
 La capa de seguridad y liquidación, actualmente desplegada en **Celo Sepolia**:
@@ -74,7 +75,7 @@ graph TD
     Celo -- History Check --> Elig
     
     Elig -->|8. Usuario Válido| Dist
-    Dist -->|9. Mintea NFT| Celo
+    Dist -->|9. Mintea NFT / MiniPay / XP| Celo
     Celo -- Tx Hash --> Dist
     
     Dist -->|10. Confirma| UI
@@ -121,7 +122,7 @@ stateDiagram-v2
 ### 3. 📱 Frontend & MiniPay (Next.js 14)
 La interfaz de usuario optimizada para móviles (MiniApp):
 *   **Live Monitor**: Visualización 3D en tiempo real de los agentes.
-*   **Leaderboard**: Tabla de clasificación y tendencias activas.
+*   **Leaderboard Dinámico**: Consumido directamente desde los agentes (`/api/lootbox/leaderboard`) para mostrar tendencias, XP acumulado y ganadores reales.
 *   **Reward Selector**: Interfaz gamificada para reclamar premios.
 *   **Dark Mode**: Estética "Sci-Fi/Tech" optimizada para pantallas OLED.
 
@@ -164,7 +165,8 @@ pip install -e ".[dev]"
 
 # Copia y configura las variables de entorno
 cp env.sample .env
-# IMPORTANTE: Asegúrate de poner tu NEYNAR_API_KEY y CELO_PRIVATE_KEY en .env
+# IMPORTANTE: Asegúrate de poner tu NEYNAR_API_KEY, CELO_PRIVATE_KEY,
+# MINIPAY_PROJECT_SECRET, XP_REWARD_AMOUNT y direcciones de los contratos en .env
 
 # Inicia el servidor con recarga automática
 uvicorn src.main:app --reload --port 8001
@@ -191,7 +193,8 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 3.  Conecta tu Wallet (Celo Sepolia).
 4.  Haz clic en **"Activar Recompensas"**.
 5.  Observa el **Live Monitor** analizando Farcaster en tiempo real.
-6.  Elige tu premio y espera la confirmación de la transacción.
+6.  Elige tu premio (NFT, XP o cUSD) y espera la confirmación correspondiente.
+7.  Verifica los ganadores y temas activos en el leaderboard (datos en vivo).
 
 ---
 
@@ -224,10 +227,55 @@ Esta aplicación está optimizada para desplegarse en **Vercel** (Frontend) y **
 
 ---
 
+## 💡 MiniPay: Wallet vs Tool API
+
+**IMPORTANTE:** Hay dos formas de usar MiniPay en este proyecto, y son diferentes:
+
+### 1. MiniPay como Wallet (Frontend) ✅ **NO requiere PROJECT_ID**
+
+Cuando el usuario abre tu MiniApp dentro de la app **MiniPay** (Android/iOS), MiniPay inyecta automáticamente `window.ethereum`. **NO necesitas** `MINIPAY_PROJECT_ID` para esto.
+
+- El usuario se conecta automáticamente
+- Puede firmar transacciones (mintear NFTs, recibir XP)
+- Solo necesitas detectar `window.ethereum.isMiniPay` y ocultar el botón "Conectar Wallet"
+
+**Para probar:** Instala la app MiniPay, activa Developer Mode → Use Testnet, y carga tu URL (usa `ngrok` para localhost).
+
+### 2. MiniPay Tool API (Backend) ⚠️ **OPCIONAL - requiere PROJECT_SECRET**
+
+El `MINIPAY_PROJECT_ID` y `MINIPAY_PROJECT_SECRET` son para usar la **API de MiniPay Tool** que permite enviar micropagos programáticamente desde el backend cuando el usuario elige "cUSD Drop".
+
+**Si NO tienes acceso a esta API:**
+- El sistema automáticamente usa el contrato `LootBoxVault` como alternativa
+- Distribuye cUSD directamente desde el contrato (más gas, pero funciona sin API)
+- Solo necesitas tener fondos cUSD en el `LootBoxVault` y configurar la campaña
+
+**Si SÍ tienes acceso:**
+- Configura `MINIPAY_PROJECT_ID` y `MINIPAY_PROJECT_SECRET` en `.env`
+- El sistema usará la API de MiniPay Tool (más rápido, menos gas)
+
+**Resumen:**
+- **Frontend (wallet)**: No necesitas PROJECT_ID, solo detectar `window.ethereum.isMiniPay`
+- **Backend (drops)**: PROJECT_SECRET es opcional; si no lo tienes, usa `LootBoxVault`
+
+---
+
 ## 🔮 Próximos Pasos
 
 *   [x] **Despliegue en Testnet**: Contratos activos en Celo Sepolia.
 *   [x] **Integración Real**: Agentes conectados a Neynar API y firmando transacciones reales.
-*   [x] **UX/UI Pro**: Rebranding a Premio.xyz, Dark Mode y Animaciones 3D.
+*   [x] **UX/UI Pro**: Rebranding a Premio.xyz, Dark Mode, Animaciones 3D y leaderboard vivo.
 *   [ ] **Mainnet Launch**: Despliegue en Celo Mainnet.
 *   [ ] **ZK Proofs**: Integrar Semaphore para privacidad.
+
+---
+
+## 📡 API Pública
+
+El backend FastAPI expone endpoints listos para producción:
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| `GET` | `/healthz` | Verificación de estado. |
+| `POST` | `/api/lootbox/run` | Ejecuta el pipeline completo (detecta tendencia, puntúa usuarios y reparte el loot). Respeta `reward_type` = `nft`/`cusd`/`xp`. |
+| `GET` | `/api/lootbox/leaderboard?limit=5` | Devuelve los últimos ganadores y tendencias activas consumidos por el frontend. |

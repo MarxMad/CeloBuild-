@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Zap, Info, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,25 @@ import { Instructions } from "@/components/instructions";
 import { AgentVis } from "@/components/agent-vis";
 import { Leaderboard } from "@/components/leaderboard";
 import { cn } from "@/lib/utils";
+import { sdk } from "@farcaster/miniapp-sdk";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"app" | "guide">("app");
+
+  // Asegurar que ready() se llama cuando el contenido está completamente renderizado
+  useEffect(() => {
+    const ensureReady = async () => {
+      try {
+        // Esperar un momento para que todo el contenido esté renderizado
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        await sdk.actions.ready();
+      } catch (error) {
+        // Ignorar si no estamos en contexto de MiniApp
+      }
+    };
+
+    ensureReady();
+  }, []);
 
   return (
     <main className="flex-1 bg-background min-h-screen pb-20">

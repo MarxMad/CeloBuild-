@@ -41,5 +41,18 @@ contract LootAccessRegistryTest is Test {
         vm.expectRevert(LootAccessRegistry.NotReporter.selector);
         registry.recordParticipation(campaignId, participant, 1);
     }
+
+    function testGrantXp() public {
+        vm.prank(reporter);
+        registry.grantXp(campaignId, participant, 50);
+
+        uint256 balance = registry.getXpBalance(campaignId, participant);
+        assertEq(balance, 50);
+
+        vm.prank(reporter);
+        registry.grantXp(campaignId, participant, 25);
+        assertEq(registry.getXpBalance(campaignId, participant), 75);
+    }
 }
+
 

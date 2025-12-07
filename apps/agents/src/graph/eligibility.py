@@ -4,54 +4,170 @@ import logging
 from typing import Any
 
 from ..config import Settings
+from ..tools.celo import CeloToolbox
+from ..tools.farcaster import FarcasterToolbox
 
 logger = logging.getLogger(__name__)
+
 
 class EligibilityAgent:
     """Valida participación on-chain y filtros sociales."""
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        self.farcaster = FarcasterToolbox(
+            base_url=settings.farcaster_hub_api,
+            api_token=settings.farcaster_api_token,
+            neynar_key=settings.neynar_api_key,
+        )
+        self.celo_tool = CeloToolbox(rpc_url=settings.celo_rpc_url, private_key=settings.celo_private_key)
 
     async def handle(self, context: dict[str, Any]) -> dict[str, Any]:
-        """Evalúa reglas básicas mientras se integra la lógica real."""
+        """Evalúa usuarios analizando su participación en tendencias globales."""
 
-        # Check if a manual target was provided in the payload
+        campaign_id = f"{context.get('frame_id', 'global')}-loot"
+        trend_score = context.get("trend_score", 0.0)
+        cast_hash = context.get("cast_hash")
+        topic_tags = context.get("topic_tags", [])
+
         manual_target = context.get("target_address")
-        
-        if manual_target:
-             recipients = [manual_target]
-             logger.info(f"Usando objetivo manual para demo: {manual_target}")
-        
-        # Si venimos de la prueba manual sin target específico (donde trend_watcher devuelve stats completos)
-        elif "stats" in context:
-            # Simulamos que los "active_users" son candidatos potenciales
-            logger.info("Generando candidatos desde stats del frame...")
-            active_users = context["stats"].get("active_users", 0)
-            # Usamos direcciones dummy válidas para evitar errores de ENS/Checksum
-            # Estas son direcciones generadas aleatoriamente para propósitos de demo
-            dummy_addresses = [
-                "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-                "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-                "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-                "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
-                "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
-            ]
-            recipients = dummy_addresses[:min(active_users, 5)]
-        else:
-             recipients = context.get("candidates", ["0x70997970C51812dc3A010C7d01b50e0d17dc79C8"])
+        allow_manual = bool(self.settings.allow_manual_target and manual_target)
 
-        # Lógica simple de filtrado basada en trend_score
-        trend_score = context.get("trend_score", 0)
-        filtered = recipients[:1] if trend_score < 0.5 else recipients
-        
-        logger.info(f"Elegibilidad: {len(recipients)} candidatos -> {len(filtered)} seleccionados (Score: {trend_score})")
+        rankings: list[dict[str, Any]] = []
+
+        # Analizar participación en la tendencia global
+        if cast_hash:
+            participants = await self.farcaster.fetch_cast_engagement(cast_hash, limit=100)
+            
+            for participant in participants:
+                try:
+                    checksum = self.celo_tool.checksum(participant["custody_address"])
+                    user_fid = participant.get("fid")
+                except (ValueError, KeyError):
+                    continue
+
+                # Analizar participación detallada del usuario en esta tendencia
+                participation_data = await self.farcaster.analyze_user_participation_in_trend(
+                    user_fid=user_fid,
+                    cast_hash=cast_hash,
+                    topic_tags=topic_tags,
+                )
+
+                # Calcular score usando ponderaciones configuradas
+                score = self._score_user_advanced(
+                    participant=participant,
+                    trend_score=trend_score,
+                    participation_data=participation_data,
+                )
+
+                rankings.append(
+                    {
+                        "fid": user_fid,
+                        "username": participant.get("username"),
+                        "address": checksum,
+                        "score": score,
+                        "reasons": participant.get("reasons", []),
+                        "follower_count": participant.get("follower_count", 0),
+                        "power_badge": participant.get("power_badge", False),
+                        "participation": participation_data,
+                    }
+                )
+
+        fallback_manual = manual_target and (allow_manual or not rankings)
+        if fallback_manual:
+            try:
+                manual_address = self.celo_tool.checksum(manual_target)  # type: ignore[arg-type]
+            except ValueError:
+                logger.warning("Dirección manual inválida: %s", manual_target)
+            else:
+                rankings.append(
+                    {
+                        "fid": None,
+                        "username": "manual_override",
+                        "address": manual_address,
+                        "score": max(trend_score * 100, 50.0),
+                        "reasons": ["manual"],
+                        "follower_count": 0,
+                        "power_badge": False,
+                    }
+                )
+
+        rankings.sort(key=lambda user: user["score"], reverse=True)
+        shortlisted: list[dict[str, Any]] = []
+
+        for candidate in rankings:
+            if len(shortlisted) >= self.settings.max_reward_recipients:
+                break
+
+            try:
+                can_claim = self.celo_tool.can_claim(
+                    registry_address=self.settings.registry_address,
+                    campaign_id=campaign_id,
+                    participant=candidate["address"],
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Error consultando LootAccessRegistry: %s", exc)
+                can_claim = True
+
+            if not can_claim:
+                continue
+
+            shortlisted.append(candidate)
+
+        recipients = [entry["address"] for entry in shortlisted]
+
+        logger.info(
+            "Elegibilidad: %s candidatos -> %s seleccionados (score trend=%.2f)",
+            len(rankings),
+            len(shortlisted),
+            trend_score,
+        )
 
         return {
-            "campaign_id": f"{context['frame_id']}-loot",
-            "recipients": filtered,
+            "campaign_id": campaign_id,
+            "recipients": recipients,
+            "rankings": shortlisted,
             "metadata": {
                 "channel_id": context.get("channel_id"),
                 "trend_score": trend_score,
+                "ai_analysis": context.get("ai_analysis"),
+                "topic_tags": context.get("topic_tags"),
+                "cast_hash": cast_hash,
+                "reward_type": context.get("reward_type"),
             },
         }
+
+    def _score_user_advanced(
+        self,
+        participant: dict[str, Any],
+        trend_score: float,
+        participation_data: dict[str, Any],
+    ) -> float:
+        """Calcula score usando ponderaciones configuradas y análisis de participación."""
+        
+        # 1. Componente de trend_score (40% por defecto)
+        trend_component = trend_score * 100 * self.settings.weight_trend_score
+
+        # 2. Componente de followers (20% por defecto)
+        follower_count = participant.get("follower_count", 0)
+        # Normalizar: 1000 followers = 20 puntos máximos
+        follower_score_raw = min(follower_count / 50, 20)  # 1000 followers = 20 puntos
+        follower_component = follower_score_raw * self.settings.weight_follower_count * 5
+
+        # 3. Componente de power badge (15% por defecto)
+        badge_component = 0.0
+        if participant.get("power_badge"):
+            badge_component = 15.0 * self.settings.weight_power_badge
+
+        # 4. Componente de engagement (25% por defecto)
+        # Incluye participación directa + casts relacionados sobre el tema
+        total_engagement = participation_data.get("total_engagement", 0.0)
+        # Normalizar engagement: máximo 25 puntos
+        engagement_normalized = min(total_engagement / 10, 25)  # 10 engagement = 25 puntos
+        engagement_component = engagement_normalized * self.settings.weight_engagement
+
+        # Calcular total
+        total = trend_component + follower_component + badge_component + engagement_component
+        
+        # Asegurar que está en rango 0-100
+        return round(min(max(total, 0.0), 100.0), 2)
