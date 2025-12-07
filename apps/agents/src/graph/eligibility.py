@@ -16,17 +16,30 @@ class EligibilityAgent:
     async def handle(self, context: dict[str, Any]) -> dict[str, Any]:
         """Evalúa reglas básicas mientras se integra la lógica real."""
 
-        # TODO: consultar contratos LootAccessRegistry y pruebas ZK.
+        # Check if a manual target was provided in the payload
+        manual_target = context.get("target_address")
         
-        # Si venimos de la prueba manual (donde trend_watcher devuelve stats completos)
-        if "stats" in context:
+        if manual_target:
+             recipients = [manual_target]
+             logger.info(f"Usando objetivo manual para demo: {manual_target}")
+        
+        # Si venimos de la prueba manual sin target específico (donde trend_watcher devuelve stats completos)
+        elif "stats" in context:
             # Simulamos que los "active_users" son candidatos potenciales
-            # En realidad aquí consultaríamos la API de Farcaster para obtener FIDs/addresses
             logger.info("Generando candidatos desde stats del frame...")
             active_users = context["stats"].get("active_users", 0)
-            recipients = [f"0xUser{i}" for i in range(min(active_users, 5))] # Limitamos a 5 para demo
+            # Usamos direcciones dummy válidas para evitar errores de ENS/Checksum
+            # Estas son direcciones generadas aleatoriamente para propósitos de demo
+            dummy_addresses = [
+                "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+                "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+                "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+                "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+                "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
+            ]
+            recipients = dummy_addresses[:min(active_users, 5)]
         else:
-             recipients = context.get("candidates", ["0xDemo1", "0xDemo2"])
+             recipients = context.get("candidates", ["0x70997970C51812dc3A010C7d01b50e0d17dc79C8"])
 
         # Lógica simple de filtrado basada en trend_score
         trend_score = context.get("trend_score", 0)

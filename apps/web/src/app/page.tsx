@@ -1,83 +1,102 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { Zap, Workflow } from "lucide-react";
+import { Zap, Info, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { UserBalance } from "@/components/user-balance";
 import { TrendingCampaignForm } from "@/components/trending-campaign-form";
+import { Instructions } from "@/components/instructions";
+import { AgentVis } from "@/components/agent-vis";
+import { Leaderboard } from "@/components/leaderboard";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<"app" | "guide">("app");
+
   return (
-    <main className="flex-1">
-      {/* Hero Section */}
-      <section className="relative py-20 lg:py-32">
-        <div className="container px-4 mx-auto max-w-6xl">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 mb-8 text-sm font-medium bg-primary/10 text-primary rounded-full border border-primary/20">
-              <Zap className="h-4 w-4" />
-              Built on Celo + MiniPay
+    <main className="flex-1 bg-background min-h-screen pb-20">
+      {/* Mobile-first Header */}
+      <div className="relative overflow-hidden bg-background/50 pb-8 pt-6 rounded-b-[2.5rem] shadow-2xl border-b border-white/5">
+        <div className="container px-4 mx-auto max-w-md relative z-10">
+          <div className="flex items-center justify-center gap-2 mb-4">
+             <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-wider text-primary">
+               MiniPay Ready
+             </div>
+          </div>
+          
+          <h1 className="text-4xl font-extrabold text-center tracking-tight mb-2 text-white animate-in fade-in slide-in-from-bottom-2 duration-700 drop-shadow-md">
+            Premio.xyz
+            <span className="inline-block ml-2 animate-pulse text-[#FCFF52]"></span>
+          </h1>
+          <p className="text-center text-gray-400 text-sm mb-6">
+            Recompensas virales en Farcaster.
+          </p>
+
+          {/* Agent Vis - Compact for Mobile */}
+          <div className="relative mx-auto w-full h-[180px] mb-4">
+            <AgentVis />
+            <div className="absolute bottom-0 left-0 right-0 text-center text-[10px] text-muted-foreground/60 uppercase tracking-widest">
+               System Online
             </div>
+          </div>
 
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-              Loot boxes sociales para comunidades Farcaster
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-              Detecta conversaciones trending, filtra elegibles on-chain y reparte micropagos/cNFTs en MiniPay con un
-              pipeline multiagente.
-            </p>
+          <UserBalance />
+        </div>
+      </div>
 
-            <UserBalance />
+      {/* Tab Navigation (Segmented Control) */}
+      <div className="container px-4 mx-auto max-w-md mt-6 mb-6">
+        <div className="grid grid-cols-2 p-1 bg-muted rounded-xl">
+          <button
+            onClick={() => setActiveTab("app")}
+            className={cn(
+              "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
+              activeTab === "app" 
+                ? "bg-background text-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <PlayCircle className="w-4 h-4" />
+            Simulador
+          </button>
+          <button
+            onClick={() => setActiveTab("guide")}
+            className={cn(
+              "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
+              activeTab === "guide" 
+                ? "bg-background text-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Info className="w-4 h-4" />
+            Guía
+          </button>
+        </div>
+      </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <Button size="lg" className="px-8 py-3 text-base font-medium" asChild>
+      {/* Main Content Area */}
+      <div className="container px-4 mx-auto max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {activeTab === "app" ? (
+          <div className="space-y-8">
+            <TrendingCampaignForm />
+            
+            <Leaderboard />
+
+            <div className="text-center">
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" asChild>
                 <Link href="https://docs.celo.org/build/build-on-minipay/overview" target="_blank">
-                  Leer docs de MiniPay
+                  Powered by Celo MiniPay
                 </Link>
               </Button>
             </div>
           </div>
-          <TrendingCampaignForm />
-        </div>
-      </section>
-
-      {/* Architecture snapshot */}
-      <section className="py-16 border-t border-border/40 bg-muted/10">
-        <div className="container px-4 mx-auto max-w-6xl grid gap-8 md:grid-cols-2 items-center">
-          <Card className="p-6 space-y-4">
-            <div className="flex items-center gap-3 text-primary">
-              <Workflow className="h-6 w-6" />
-              <p className="uppercase tracking-wide text-xs font-semibold">Pipeline</p>
-            </div>
-            <h2 className="text-2xl font-semibold">Cadena de agentes</h2>
-            <p className="text-muted-foreground">
-              LangGraph coordina TrendWatcher → Eligibility → RewardDistributor. Cada agente consume herramientas
-              dedicadas (Warpcast API, Celo RPC, MiniPay Tool) para decidir campañas, validar reputación y ejecutar
-              recompensas.
-            </p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• TrendWatcher analiza frames y genera `campaignId`</li>
-              <li>• Eligibility consulta `LootAccessRegistry` + señales sociales</li>
-              <li>• RewardDistributor llama al vault y a MiniPay Tool</li>
-            </ul>
-          </Card>
-
-          <div className="space-y-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-2">Contratos Foundry</h3>
-              <p className="text-sm text-muted-foreground">
-                `LootBoxVault` maneja presupuestos ERC20, `LootAccessRegistry` aplica cooldown y reputación. Scripts de
-                deploy (`LootBoxDeployer.s.sol`) listos para Alfajores.
-              </p>
-            </Card>
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-2">Integración MiniPay</h3>
-              <p className="text-sm text-muted-foreground">
-                El frontend expone un endpoint `/api/lootbox` que reenvía eventos al servicio Python. Desde ahí se
-                orquesta MiniPay Tool para notificar y distribuir loot boxes.
-              </p>
-            </Card>
+        ) : (
+          <div className="pb-10">
+            <Instructions />
           </div>
-        </div>
-      </section>
+        )}
+      </div>
     </main>
   );
 }

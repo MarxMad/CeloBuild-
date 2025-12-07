@@ -1,4 +1,4 @@
-# 🎁 Loot Box Social (Celo + MiniPay + Multi-Agentes)
+# 🏆 Premio.xyz (Celo + MiniPay + Multi-Agentes)
 
 Una plataforma descentralizada que combina el poder de la **Inteligencia Artificial** con la velocidad de **Celo** para crear campañas de recompensas automáticas ("Loot Boxes") basadas en tendencias sociales de Farcaster.
 
@@ -8,9 +8,9 @@ Una plataforma descentralizada que combina el poder de la **Inteligencia Artific
 
 El objetivo es gamificar la interacción en comunidades Web3. Cuando un tema se vuelve viral en Farcaster, nuestro sistema de agentes autónomos entra en acción:
 
-1.  **Detecta** la tendencia (TrendWatcher).
+1.  **Detecta** la tendencia real en Farcaster (usando Neynar API).
 2.  **Identifica** a los usuarios más valiosos y activos (Eligibility).
-3.  **Recompensa** instantáneamente con micropagos (cUSD) o NFTs coleccionables directamente en su wallet MiniPay.
+3.  **Recompensa** instantáneamente con NFTs coleccionables directamente en su wallet.
 
 Todo esto ocurre de forma transparente y verificable on-chain, con una experiencia de usuario "invisible" gracias a MiniPay.
 
@@ -22,21 +22,29 @@ El proyecto es un Monorepo que integra tres componentes principales:
 
 ### 1. 🤖 Servicio Multi-Agente (Python / LangGraph)
 El "cerebro" de la operación. Orquesta un pipeline de agentes especializados:
-*   **`TrendWatcherAgent`**: Escanea Farcaster (Warpcast) buscando frames y casts virales.
-*   **`EligibilityAgent`**: Aplica filtros de reputación (ej. antigüedad, POAPs) y verifica si el usuario ya participó (consultando la blockchain).
-*   **`RewardDistributorAgent`**: Ejecuta la distribución de premios. Interactúa con la API de MiniPay para micropagos y con los contratos inteligentes para mintear NFTs.
+*   **`TrendWatcherAgent`**: Escanea Farcaster (via Neynar) buscando conversaciones virales reales en tiempo real.
+*   **`EligibilityAgent`**: Aplica filtros de reputación y verifica si el usuario ya participó.
+*   **`RewardDistributorAgent`**: Ejecuta la distribución de premios. Firma transacciones reales en **Celo Sepolia** para mintear NFTs.
 
 ### 2. 📜 Contratos Inteligentes (Solidity / Foundry)
-La capa de seguridad y liquidación en Celo (Alfajores/Sepolia):
-*   **`LootBoxVault`**: Bóveda segura que custodia el presupuesto (cUSD/CELO) de las campañas.
-*   **`LootAccessRegistry`**: Registro on-chain que evita el "doble gasto" de recompensas (cooldowns, historial).
-*   **`LootBoxMinter`**: Contrato ERC721 optimizado para emitir NFTs conmemorativos de cada campaña.
+La capa de seguridad y liquidación, actualmente desplegada en **Celo Sepolia**:
+*   **`LootBoxVault`**: Bóveda segura que custodia el presupuesto.
+*   **`LootAccessRegistry`**: Registro on-chain que evita el "doble gasto" de recompensas.
+*   **`LootBoxMinter`**: Contrato ERC721 optimizado para emitir NFTs conmemorativos.
+
+#### 📍 Direcciones Desplegadas (Celo Sepolia)
+| Contrato | Dirección |
+|----------|-----------|
+| **LootBoxVault** | `0x4Db514984aAE6A24A05f07c30310050c245b0256` |
+| **LootAccessRegistry** | `0x4f7aA310c1f90e435f292f5D9bA07cb102409990` |
+| **LootBoxMinter** | `0x28A499Be43D2e9720E129725e052781746e59D1D` |
 
 ### 3. 📱 Frontend & MiniPay (Next.js 14)
-La interfaz de usuario optimizada para móviles:
-*   Integrada nativamente con **MiniPay Wallet** (injected provider).
-*   Permite a los administradores simular campañas manualmente.
-*   Muestra a los usuarios su historial de victorias y saldo en tiempo real.
+La interfaz de usuario optimizada para móviles (MiniApp):
+*   **Live Monitor**: Visualización 3D en tiempo real de los agentes.
+*   **Leaderboard**: Tabla de clasificación y tendencias activas.
+*   **Reward Selector**: Interfaz gamificada para reclamar premios.
+*   **Dark Mode**: Estética "Sci-Fi/Tech" optimizada para pantallas OLED.
 
 ---
 
@@ -46,7 +54,7 @@ La interfaz de usuario optimizada para móviles:
 *   **Framework de Agentes**: LangGraph + LangChain (Python).
 *   **Smart Contracts**: Foundry (Test, Script, Deploy).
 *   **Frontend**: Next.js, TailwindCSS, RainbowKit, Wagmi.
-*   **Social**: Farcaster (Warpcast API).
+*   **Social Data**: Farcaster (Neynar API).
 
 ---
 
@@ -75,14 +83,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Copia y configura las variables de entorno (puedes usar los valores mock por defecto)
+# Copia y configura las variables de entorno
 cp env.sample .env
+# IMPORTANTE: Asegúrate de poner tu NEYNAR_API_KEY y CELO_PRIVATE_KEY en .env
 
 # Inicia el servidor con recarga automática
 uvicorn src.main:app --reload --port 8001
 ```
-
-> **Nota**: El servicio incluye un "Mock Mode". Si no tienes API keys reales de Farcaster, usará datos simulados para que puedas probar el flujo completo.
 
 ### 3. Levantar el Frontend (Web)
 La aplicación web corre en el puerto `3000`.
@@ -96,55 +103,23 @@ pnpm dev
 
 Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
-### 4. (Opcional) Compilar y Probar Contratos
-Si deseas modificar la lógica on-chain:
-
-```bash
-cd apps/contracts
-forge install
-forge test    # Ejecuta la suite de pruebas (incluye Fuzz testing)
-forge build
-```
-
 ---
 
 ## 🧪 Probando el Flujo (Demo)
 
-1.  Asegúrate de tener el **Backend (Agents)** y el **Frontend (Web)** corriendo.
+1.  Asegúrate de tener el **Backend** y el **Frontend** corriendo.
 2.  Ve a `http://localhost:3000`.
-3.  En la sección **"Prueba el pipeline multiagente"**, verás un formulario precargado.
-4.  Haz clic en **"Ejecutar agente"**.
-5.  Verás cómo el frontend se comunica con el servicio Python, el cual simula la detección de una tendencia, selecciona ganadores y "envía" los pagos (verás los logs en la terminal de Python).
-
----
-
-## 📂 Estructura del Proyecto
-
-```
-lootbox-minipay/
-├── apps/
-│   ├── agents/       # Servicio Python (LangGraph)
-│   │   ├── src/
-│   │   │   ├── graph/    # Lógica de los agentes (TrendWatcher, Eligibility...)
-│   │   │   ├── tools/    # Integraciones (Farcaster, MiniPay, Celo)
-│   │   │   └── main.py   # Entrypoint FastAPI
-│   │
-│   ├── contracts/    # Smart Contracts (Foundry)
-│   │   ├── src/          # .sol files (Vault, Registry, Minter)
-│   │   ├── test/         # Tests unitarios y fuzzing
-│   │   └── script/       # Scripts de despliegue
-│   │
-│   └── web/          # Frontend (Next.js)
-│       ├── src/app/      # Rutas y API Proxy
-│       └── components/   # UI Components (shadcn/ui)
-│
-└── packages/         # Librerías compartidas (si aplica)
-```
+3.  Conecta tu Wallet (Celo Sepolia).
+4.  Haz clic en **"Activar Recompensas"**.
+5.  Observa el **Live Monitor** analizando Farcaster en tiempo real.
+6.  Elige tu premio y espera la confirmación de la transacción.
 
 ---
 
 ## 🔮 Próximos Pasos
 
-*   [ ] **Despliegue en Testnet**: Enviar los contratos a Celo Sepolia una vez la wallet tenga fondos.
-*   [ ] **Producción**: Conectar las API keys reales de Farcaster y MiniPay.
-*   [ ] **ZK Proofs**: Integrar Semaphore para validación de identidad privada.
+*   [x] **Despliegue en Testnet**: Contratos activos en Celo Sepolia.
+*   [x] **Integración Real**: Agentes conectados a Neynar API y firmando transacciones reales.
+*   [x] **UX/UI Pro**: Rebranding a Premio.xyz, Dark Mode y Animaciones 3D.
+*   [ ] **Mainnet Launch**: Despliegue en Celo Mainnet.
+*   [ ] **ZK Proofs**: Integrar Semaphore para privacidad.

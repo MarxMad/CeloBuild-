@@ -16,7 +16,8 @@ class TrendWatcherAgent:
         self.settings = settings
         self.farcaster = FarcasterToolbox(
             base_url=settings.farcaster_hub_api,
-            api_token=settings.farcaster_api_token
+            api_token=settings.farcaster_api_token,
+            neynar_key=settings.neynar_api_key
         )
 
     async def handle(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -25,10 +26,16 @@ class TrendWatcherAgent:
         # Si nos dan un frame_id específico, analizamos ese.
         frame_id = payload.get("frame_id")
         
+        # Passthrough de parámetros opcionales como target_address
+        base_context = {
+            "target_address": payload.get("target_address")
+        }
+        
         if frame_id:
             logger.info(f"Analizando frame específico: {frame_id}")
             stats = await self.farcaster.fetch_frame_stats(frame_id)
             return {
+                **base_context,
                 "frame_id": frame_id,
                 "channel_id": payload.get("channel_id", "unknown"),
                 "trend_score": self._calculate_score(stats),
@@ -36,19 +43,27 @@ class TrendWatcherAgent:
                 "status": "analyzed"
             }
         
-        # Si no, buscamos trending
-        logger.info("Buscando trending frames...")
-        trending = await self.farcaster.get_trending_frames(limit=1)
+        # Si no, buscamos trending en conversaciones reales
+        logger.info("Analizando conversaciones recientes en Farcaster...")
+        casts = await self.farcaster.fetch_recent_casts(limit=5)
         
-        if not trending:
-            return {"status": "no_trends_found"}
+        if not casts:
+            return {"status": "no_trends_found", **base_context}
             
-        top_trend = trending[0]
+        # Analizamos el cast más viral (simulado como el primero de la lista)
+        top_cast = casts[0]
+        
+        # Calculamos un score basado en sus reacciones
+        reactions = top_cast.get("reactions", {})
+        score = (reactions.get("likes", 0) + reactions.get("recasts", 0) * 2) / 100.0
+        
         return {
-            "frame_id": top_trend["frame_id"],
-            "channel_id": top_trend.get("channel_id", "general"),
-            "trend_score": top_trend.get("trend_score", 0.0),
-            "status": "trend_detected"
+            **base_context,
+            "frame_id": "cast-" + top_cast.get("hash", "")[:8], # ID virtual
+            "channel_id": "global",
+            "trend_score": min(score, 1.0), # Normalizamos a max 1.0
+            "status": "trend_detected",
+            "source_text": top_cast.get("text") # Guardamos el texto para contexto
         }
 
     def _calculate_score(self, stats: dict) -> float:

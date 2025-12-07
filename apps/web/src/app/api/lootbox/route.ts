@@ -19,6 +19,7 @@ export async function POST(request: Request) {
         channel_id: payload.channelId,
         trend_score: payload.trendScore,
         thread_id: payload.threadId,
+        target_address: payload.targetAddress,
       }),
     });
 
@@ -32,5 +33,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
-
-

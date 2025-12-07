@@ -34,31 +34,64 @@ class FarcasterToolbox:
                 "active_users": 300
             }
 
-    async def get_trending_frames(self, limit: int = 5) -> list[dict[str, Any]]:
-        """Busca frames populares recientemente."""
-        headers = {"Authorization": f"Bearer {self.api_token}"} if self.api_token else {}
+    def __init__(self, base_url: str, api_token: str | None = None, neynar_key: str | None = None) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.api_token = api_token
+        self.neynar_key = neynar_key
+
+    async def fetch_recent_casts(self, channel_id: str = "global", limit: int = 10) -> list[dict[str, Any]]:
+        """Busca casts recientes usando Neynar API (Producción)."""
         
-        try:
-            async with httpx.AsyncClient(base_url=self.base_url, headers=headers, timeout=10) as client:
-                # Endpoint hipotetico de Warpcast
-                resp = await client.get("/farcaster-frames/trending", params={"limit": limit})
-                resp.raise_for_status()
-                return resp.json().get("frames", [])
-        except (httpx.RequestError, httpx.HTTPStatusError) as e:
-            logger.warning(f"Fallo al consultar Trending Frames ({e}), usando mock.")
-            return [
-                {
-                    "frame_id": "frame-mock-001",
-                    "url": "https://cool-frame.xyz",
-                    "title": "Super LootBox Drop",
-                    "channel_id": "minipay-devs",
-                    "trend_score": 0.95
-                },
-                {
-                    "frame_id": "frame-mock-002",
-                    "url": "https://survey.xyz",
-                    "title": "Community Survey",
-                    "channel_id": "general",
-                    "trend_score": 0.82
-                }
-            ]
+        # 1. Intentar con Neynar API si tenemos Key
+        if self.neynar_key and self.neynar_key != "NEYNAR_API_DOCS":
+            try:
+                headers = {"accept": "application/json", "api_key": self.neynar_key}
+                # Endpoint para Trending Global (Feed)
+                url = "https://api.neynar.com/v2/farcaster/feed/trending"
+                params = {"limit": limit}
+                
+                async with httpx.AsyncClient(timeout=10) as client:
+                    resp = await client.get(url, headers=headers, params=params)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    
+                    # Normalizar datos de Neynar
+                    return [
+                        {
+                            "hash": cast["hash"],
+                            "text": cast["text"],
+                            "author": {
+                                "username": cast["author"]["username"],
+                                "pfp_url": cast["author"]["pfp_url"]
+                            },
+                            "reactions": {
+                                "likes": cast["reactions"]["likes_count"],
+                                "recasts": cast["reactions"]["recasts_count"]
+                            },
+                            "timestamp": cast["timestamp"]
+                        }
+                        for cast in data.get("casts", [])
+                    ]
+            except Exception as e:
+                logger.error(f"Error Neynar API: {e}")
+                # Fallback abajo...
+
+        # 2. Fallback: Simulación realista si no hay API Key configurada
+        # (Para evitar que la demo rompa si el usuario no tiene key aún)
+        logger.warning("Usando fallback de datos (Sin Neynar Key válida).")
+        return [
+             {
+                "hash": "0xRealMock1",
+                "text": "¡MiniPay está cambiando el juego en Celo! 🟡🚀 #ReFi",
+                "author": {"username": "celo_whale", "pfp_url": "https://i.imgur.com/example.jpg"},
+                "reactions": {"likes": 150, "recasts": 42},
+                "timestamp": "2024-03-20T10:00:00Z"
+            },
+            {
+                "hash": "0xRealMock2",
+                "text": "Construyendo la próxima gran app social en Farcaster frames. 🎩✨",
+                "author": {"username": "builder_bob", "pfp_url": "https://i.imgur.com/example2.jpg"},
+                "reactions": {"likes": 89, "recasts": 12},
+                "timestamp": "2024-03-20T10:05:00Z"
+            }
+        ]

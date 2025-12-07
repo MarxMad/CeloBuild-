@@ -12,6 +12,7 @@ class LootboxEvent(BaseModel):
     channel_id: str
     trend_score: float
     thread_id: str | None = None
+    target_address: str | None = None # Nuevo campo opcional para demo
 
 
 app = FastAPI(title="Lootbox Multi-Agent Service")
@@ -26,7 +27,12 @@ async def run_lootbox(event: LootboxEvent):
         result = await supervisor.run(event.model_dump())
     except Exception as exc:  # pragma: no cover - logging pendiente
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    return {"thread_id": result.thread_id, "summary": result.summary}
+    return {
+        "thread_id": result.thread_id, 
+        "summary": result.summary,
+        "tx_hash": result.tx_hash,
+        "explorer_url": result.explorer_url
+    }
 
 
 def run_cli() -> None:
@@ -36,5 +42,3 @@ def run_cli() -> None:
 
     sample_event = LootboxEvent(frame_id="sample", channel_id="test", trend_score=0.91)
     asyncio.run(supervisor.run(sample_event.model_dump()))
-
-

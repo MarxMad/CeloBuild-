@@ -9,6 +9,19 @@ import { WagmiProvider, createConfig, http, useConnect } from "wagmi";
 import { celo, celoAlfajores } from "wagmi/chains";
 // import { ConnectButton } from "./connect-button";
 
+const celoSepolia = {
+  id: 11142220,
+  name: "Celo Sepolia",
+  nativeCurrency: { name: "Celo", symbol: "CELO", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://forno.celo-sepolia.celo-testnet.org"] },
+  },
+  blockExplorers: {
+    default: { name: "Celo Sepolia Explorer", url: "https://celo-sepolia.blockscout.com" },
+  },
+  testnet: true,
+} as const;
+
 const connectors = connectorsForWallets(
   [
     {
@@ -23,11 +36,12 @@ const connectors = connectorsForWallets(
 );
 
 const wagmiConfig = createConfig({
-  chains: [celo, celoAlfajores],
+  chains: [celo, celoAlfajores, celoSepolia],
   connectors,
   transports: {
     [celo.id]: http(),
     [celoAlfajores.id]: http(),
+    [celoSepolia.id]: http(),
   },
   ssr: true,
 });
