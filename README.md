@@ -212,13 +212,15 @@ Esta aplicación está optimizada para desplegarse en **Vercel** (Frontend) y **
 
 ### Desplegando el Backend (Apps/Agents)
 
-El backend requiere un entorno Python. Recomendamos usar **Railway**:
+¡También puedes desplegar el backend en Vercel! (Serverless Python).
 
-1.  Crea un nuevo servicio desde GitHub repo.
-2.  **Root Directory:** `apps/agents`.
-3.  **Build Command:** `pip install -e .`
-4.  **Start Command:** `uvicorn src.main:app --host 0.0.0.0 --port $PORT`
-5.  Configura las variables de entorno (`CELO_PRIVATE_KEY`, `NEYNAR_API_KEY`, etc.).
+1.  En Vercel, crea un **Nuevo Proyecto** e importa el **mismo repositorio**.
+2.  **Project Name:** `lootbox-agents` (o similar).
+3.  **Root Directory:** `apps/agents`.
+4.  **Framework Preset:** Other (Vercel detectará Python automáticamente).
+5.  **Environment Variables:** Copia el contenido de `apps/agents/.env` a Vercel.
+
+**Nota:** Al ser Serverless, las funciones tienen un tiempo límite de ejecución (10s en plan gratuito). Si los agentes tardan mucho en pensar, considera usar **Railway** o **Render** para evitar timeouts.
 
 ---
 
