@@ -75,8 +75,7 @@ export async function checkCUSDBalance(
   });
 
   const balanceInBigNumber = await stableTokenContract.read.balanceOf([address]);
-  const balanceInWei = balanceInBigNumber.toString();
-  const balanceInEthers = formatEther(balanceInWei);
+  const balanceInEthers = formatEther(balanceInBigNumber);
 
   return balanceInEthers;
 }
@@ -128,7 +127,7 @@ export async function estimateGasInCELO(
 
   return await publicClient.estimateGas({
     ...transaction,
-    feeCurrency: "",
+    // feeCurrency no se especifica para usar CELO nativo
   });
 }
 
@@ -173,12 +172,9 @@ export async function estimateGasPriceInCELO(
     transport: http(),
   });
 
-  const gasPrice = await publicClient.request({
-    method: "eth_gasPrice",
-    params: [],
-  });
+  const gasPrice = await publicClient.getGasPrice();
 
-  return BigInt(gasPrice);
+  return gasPrice;
 }
 
 /**
@@ -197,10 +193,15 @@ export async function estimateGasPriceInCUSD(
     transport: http(),
   });
 
+  // Para cUSD, usamos el método request con el tipo correcto
   const gasPrice = await publicClient.request({
     method: "eth_gasPrice",
-    params: [cUSDAddress],
-  });
+    params: [cUSDAddress as `0x${string}`],
+  } as any) as string; // Type assertion necesario para feeCurrency en Celo
+
+  if (!gasPrice || typeof gasPrice !== "string") {
+    throw new Error("Failed to get gas price");
+  }
 
   return BigInt(gasPrice);
 }

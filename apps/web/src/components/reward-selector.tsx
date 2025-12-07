@@ -2,9 +2,12 @@
 
 import { Box, Coins, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { LootboxEventPayload } from "@/lib/lootbox";
+
+type RewardType = NonNullable<LootboxEventPayload["rewardType"]>;
 
 type RewardOption = {
-  id: string;
+  id: RewardType;
   title: string;
   value: string;
   icon: any;
@@ -37,9 +40,13 @@ const OPTIONS: RewardOption[] = [
     color: "text-yellow-400",
     bg: "bg-yellow-500/10 border-yellow-500/20",
   },
-];
+] as const;
 
-export function RewardSelector({ onSelect }: { onSelect: (id: string) => void }) {
+export function RewardSelector({ 
+  onSelect 
+}: { 
+  onSelect: (id: RewardType) => void | Promise<void> 
+}) {
   return (
     <div className="space-y-6 animate-in fade-in zoom-in duration-500 max-w-sm w-full">
       <div className="text-center space-y-2">
