@@ -106,8 +106,44 @@ class EligibilityAgent:
                     participant=candidate["address"],
                 )
             except Exception as exc:  # noqa: BLE001
-                logger.warning("Error consultando LootAccessRegistry: %s", exc)
-                can_claim = True
+                error_str = str(exc)
+                # Si la campaña no está configurada (error 0x050aad92), intentar con demo-campaign
+                if "0x050aad92" in error_str or "CampaignNotConfigured" in error_str:
+                    if campaign_id != "demo-campaign":
+                        logger.warning(
+                            "Campaña %s no configurada en LootAccessRegistry. "
+                            "Verificando con 'demo-campaign' como fallback...",
+                            campaign_id
+                        )
+                        try:
+                            can_claim = self.celo_tool.can_claim(
+                                registry_address=self.settings.registry_address,
+                                campaign_id="demo-campaign",
+                                participant=candidate["address"],
+                            )
+                            # Si funciona con demo-campaign, actualizar el campaign_id para esta ejecución
+                            campaign_id = "demo-campaign"
+                        except Exception as fallback_exc:  # noqa: BLE001
+                            logger.warning(
+                                "Error consultando LootAccessRegistry incluso con 'demo-campaign' (asumiendo que puede reclamar): %s",
+                                fallback_exc
+                            )
+                            can_claim = True
+                    else:
+                        logger.warning(
+                            "Error consultando LootAccessRegistry (asumiendo que puede reclamar): %s. "
+                            "Registry: %s, Campaign: %s",
+                            exc, self.settings.registry_address, campaign_id
+                        )
+                        can_claim = True
+                else:
+                    # Otro tipo de error, asumir que puede reclamar para no bloquear el flujo
+                    logger.warning(
+                        "Error consultando LootAccessRegistry (asumiendo que puede reclamar): %s. "
+                        "Registry: %s, Campaign: %s, Participant: %s",
+                        exc, self.settings.registry_address, campaign_id, candidate["address"]
+                    )
+                    can_claim = True
 
             if not can_claim:
                 continue

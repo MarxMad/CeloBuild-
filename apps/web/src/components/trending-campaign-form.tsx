@@ -31,6 +31,7 @@ export function TrendingCampaignForm() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedRewardType, setSelectedRewardType] = useState<LootboxEventPayload["rewardType"] | null>(null);
   const [result, setResult] = useState<AgentRunResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const getRewardDisplay = (type?: AgentRunResponse["reward_type"]) => {
@@ -68,6 +69,7 @@ export function TrendingCampaignForm() {
 
   const handleRewardSelect = async (rewardId: LootboxEventPayload["rewardType"]) => {
     setShowRewards(false);
+    setSelectedRewardType(rewardId); // Guardar el tipo seleccionado para el loader
     setLoading(true); 
     setResult(null);
     setError(null);
@@ -98,6 +100,7 @@ export function TrendingCampaignForm() {
       setError(err instanceof Error ? err.message : "Error inesperado");
     } finally {
       setLoading(false);
+      setSelectedRewardType(null); // Limpiar después de completar
     }
   };
 
@@ -145,7 +148,11 @@ export function TrendingCampaignForm() {
                 {loading ? (
                 <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Minteando Premio...
+                    {selectedRewardType === "cusd" 
+                      ? "Enviando cUSD..." 
+                      : selectedRewardType === "xp" 
+                      ? "Otorgando XP..." 
+                      : "Minteando Premio..."}
                 </>
                 ) : (
                 <>
@@ -199,7 +206,12 @@ export function TrendingCampaignForm() {
             */}
             
             {/* Reset Button */}
-             <Button variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setResult(null)}>
+             <Button variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => {
+                setResult(null);
+                setSelectedRewardType(null);
+                setShowRewards(false);
+                setIsAnalyzing(false);
+             }}>
                 Reiniciar Proceso
              </Button>
           </div>

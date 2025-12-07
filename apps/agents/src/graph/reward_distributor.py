@@ -39,6 +39,34 @@ class RewardDistributorAgent:
         rankings = eligibility.get("rankings", [])
         metadata = eligibility.get("metadata", {})
         
+        # Si la campaña no es "demo-campaign", intentar configurarla automáticamente
+        # o usar "demo-campaign" como fallback seguro
+        if campaign_id != "demo-campaign":
+            try:
+                # Intentar configurar la campaña en los contratos si no existe
+                # Nota: Esto solo funciona si el agente es owner de los contratos
+                # Si falla, usaremos "demo-campaign" como fallback
+                logger.info("Configurando campaña automáticamente: %s", campaign_id)
+                self.celo_tool.configure_campaign_registry(
+                    registry_address=self.settings.registry_address,
+                    campaign_id=campaign_id,
+                    cooldown_seconds=86400,  # 1 día
+                )
+                self.celo_tool.configure_campaign_minter(
+                    minter_address=self.settings.minter_address,
+                    campaign_id=campaign_id,
+                    base_uri=self.settings.reward_metadata_uri or "ipfs://QmExample/",
+                )
+                logger.info("Campaña %s configurada exitosamente", campaign_id)
+            except Exception as exc:  # noqa: BLE001
+                # Si falla la configuración (agente no es owner), usar demo-campaign
+                logger.warning(
+                    "No se pudo configurar la campaña %s (probablemente el agente no es owner). "
+                    "Usando 'demo-campaign' como fallback. Error: %s",
+                    campaign_id, exc
+                )
+                campaign_id = "demo-campaign"
+        
         # Si reward_type viene del request, usarlo; si no, determinar automáticamente según score
         requested_reward_type = (
             metadata.get("reward_type")
@@ -175,8 +203,10 @@ class RewardDistributorAgent:
                         logger.error("Fallo en micropago MiniPay Tool: %s", exc)
             else:
                 # Opción 2: Usar contrato LootBoxVault directamente (fallback)
+                # Nota: Esto requiere que la campaña esté inicializada en el vault
+                # Si falla, intentamos con "demo-campaign" que ya está configurada
                 try:
-                    logger.info("Usando LootBoxVault para distribuir cUSD (MiniPay Tool no configurado)...")
+                    logger.info("Usando LootBoxVault para distribuir cUSD (campaña: %s)...", campaign_id)
                     tx_hash = self.celo_tool.distribute_cusd(
                         vault_address=self.settings.lootbox_vault_address,
                         campaign_id=campaign_id,
@@ -186,7 +216,38 @@ class RewardDistributorAgent:
                     for address in recipients:
                         micropayments[address] = tx_hash
                 except Exception as exc:  # noqa: BLE001
-                    logger.error("Fallo distribuyendo cUSD desde contrato: %s", exc)
+                    error_str = str(exc)
+                    # Si la campaña no está inicializada, intentar con demo-campaign
+                    if "0x477a3e50" in error_str or "InvalidCampaign" in error_str or "CampaignInactive" in error_str:
+                        if campaign_id != "demo-campaign":
+                            logger.warning(
+                                "Campaña %s no inicializada en LootBoxVault. "
+                                "Intentando con 'demo-campaign' como fallback...",
+                                campaign_id
+                            )
+                            try:
+                                tx_hash = self.celo_tool.distribute_cusd(
+                                    vault_address=self.settings.lootbox_vault_address,
+                                    campaign_id="demo-campaign",
+                                    recipients=recipients,
+                                )
+                                for address in recipients:
+                                    micropayments[address] = tx_hash
+                                logger.info("cUSD distribuido exitosamente usando 'demo-campaign'")
+                            except Exception as fallback_exc:  # noqa: BLE001
+                                logger.error(
+                                    "Fallo distribuyendo cUSD incluso con 'demo-campaign': %s. "
+                                    "Verifica que la campaña esté inicializada en LootBoxVault.",
+                                    fallback_exc
+                                )
+                        else:
+                            logger.error(
+                                "Fallo distribuyendo cUSD desde contrato: %s. "
+                                "Verifica que 'demo-campaign' esté inicializada en LootBoxVault.",
+                                exc
+                            )
+                    else:
+                        logger.error("Fallo distribuyendo cUSD desde contrato: %s", exc)
         else:
             onchain_targets = recipients[: self.settings.max_onchain_rewards]
             for address in onchain_targets:

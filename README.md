@@ -29,16 +29,21 @@ El "cerebro" de la operación. Orquesta un pipeline de agentes especializados:
 
 ### 2. 📜 Contratos Inteligentes (Solidity / Foundry)
 La capa de seguridad y liquidación, actualmente desplegada en **Celo Sepolia**:
-*   **`LootBoxVault`**: Bóveda segura que custodia el presupuesto.
-*   **`LootAccessRegistry`**: Registro on-chain que evita el "doble gasto" de recompensas.
+*   **`LootBoxVault`**: Bóveda segura que custodia el presupuesto y distribuye cUSD.
+*   **`LootAccessRegistry`**: Registro on-chain que evita el "doble gasto" de recompensas y otorga XP.
 *   **`LootBoxMinter`**: Contrato ERC721 optimizado para emitir NFTs conmemorativos.
 
+**🚀 Deployment:** Los contratos se despliegan automáticamente usando el script `apps/contracts/script/DeployAndSetup.s.sol`. Ver [DEPLOYMENT.md](apps/contracts/DEPLOYMENT.md) para más detalles.
+
 #### 📍 Direcciones Desplegadas (Celo Sepolia)
-| Contrato | Dirección |
-|----------|-----------|
-| **LootBoxVault** | `0x4Db514984aAE6A24A05f07c30310050c245b0256` |
-| **LootAccessRegistry** | `0x4f7aA310c1f90e435f292f5D9bA07cb102409990` |
-| **LootBoxMinter** | `0x28A499Be43D2e9720E129725e052781746e59D1D` |
+
+| Contrato | Dirección | Explorer |
+|----------|-----------|----------|
+| **LootBoxVault** | `0xfE5aAb76ec266547418adBdF741e9D36D70AecAA` | [Ver en Blockscout](https://celo-sepolia.blockscout.com/address/0xfE5aAb76ec266547418adBdF741e9D36D70AecAA) |
+| **LootAccessRegistry** | `0x30a364AaA515494fc4dec5D6B2cA4aF81FE8FcA7` | [Ver en Blockscout](https://celo-sepolia.blockscout.com/address/0x30a364AaA515494fc4dec5D6B2cA4aF81FE8FcA7) |
+| **LootBoxMinter** | `0x6C9553371f8c7e9afDE8D7385Ad986Eb5B661A5F` | [Ver en Blockscout](https://celo-sepolia.blockscout.com/address/0x6C9553371f8c7e9afDE8D7385Ad986Eb5B661A5F) |
+
+**Nota:** Estos contratos están desplegados y configurados con los roles necesarios para que el agente pueda distribuir recompensas automáticamente. El usuario **NO necesita firmar transacciones** - todo es automático.
 
 ### 📊 Flujo del Sistema
 

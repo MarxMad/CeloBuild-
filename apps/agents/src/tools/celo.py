@@ -38,22 +38,40 @@ class CeloToolbox:
 
     def can_claim(self, registry_address: str, campaign_id: str, participant: str) -> bool:
         """Consulta el LootAccessRegistry para validar cooldowns."""
-        abi = [
-            {
-                "type": "function",
-                "name": "canClaim",
-                "stateMutability": "view",
-                "inputs": [
-                    {"name": "campaignId", "type": "bytes32"},
-                    {"name": "participant", "type": "address"},
-                ],
-                "outputs": [{"name": "", "type": "bool"}],
-            }
-        ]
-        contract = self.web3.eth.contract(address=registry_address, abi=abi)
-        campaign_bytes = self._campaign_bytes(campaign_id)
-        participant_checksum = self.checksum(participant)
-        return bool(contract.functions.canClaim(campaign_bytes, participant_checksum).call())
+        try:
+            abi = [
+                {
+                    "type": "function",
+                    "name": "canClaim",
+                    "stateMutability": "view",
+                    "inputs": [
+                        {"name": "campaignId", "type": "bytes32"},
+                        {"name": "participant", "type": "address"},
+                    ],
+                    "outputs": [{"name": "", "type": "bool"}],
+                }
+            ]
+            contract = self.web3.eth.contract(address=registry_address, abi=abi)
+            campaign_bytes = self._campaign_bytes(campaign_id)
+            participant_checksum = self.checksum(participant)
+            return bool(contract.functions.canClaim(campaign_bytes, participant_checksum).call())
+        except Exception as exc:  # noqa: BLE001
+            error_str = str(exc)
+            # Decodificar códigos de error comunes
+            if "0x050aad92" in error_str:
+                logger.warning(
+                    "LootAccessRegistry: Error al consultar canClaim. "
+                    "Posibles causas: contrato no desplegado, dirección incorrecta, o función no disponible. "
+                    "Registry: %s, Campaign: %s, Participant: %s",
+                    registry_address, campaign_id, participant
+                )
+            else:
+                logger.warning(
+                    "Error consultando LootAccessRegistry (canClaim): %s. "
+                    "Registry: %s, Campaign: %s",
+                    exc, registry_address, campaign_id
+                )
+            raise
 
     def grant_xp(self, registry_address: str, campaign_id: str, participant: str, amount: int) -> str:
         """Invoca grantXp en el LootAccessRegistry."""
@@ -132,23 +150,47 @@ class CeloToolbox:
         # Construir transacción
         metadata_uri = metadata_uri or "ipfs://QmExample"
         
-        tx = contract.functions.mintBatch(
-            campaign_bytes,
-            [checksum_recipient],
-            [metadata_uri],
-            [False] # Transferible
-        ).build_transaction({
-            "from": self.account.address,
-            "nonce": self.web3.eth.get_transaction_count(self.account.address),
-            "gasPrice": self.web3.eth.gas_price,
-        })
+        try:
+            tx = contract.functions.mintBatch(
+                campaign_bytes,
+                [checksum_recipient],
+                [metadata_uri],
+                [False] # Transferible
+            ).build_transaction({
+                "from": self.account.address,
+                "nonce": self.web3.eth.get_transaction_count(self.account.address),
+                "gasPrice": self.web3.eth.gas_price,
+            })
 
-        # Firmar y enviar
-        signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
-        tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-        
-        logger.info(f"NFT mint transaction sent: {tx_hash.hex()}")
-        return tx_hash.hex()
+            # Firmar y enviar
+            signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            
+            logger.info(f"NFT mint transaction sent: {tx_hash.hex()}")
+            return tx_hash.hex()
+        except Exception as exc:  # noqa: BLE001
+            error_str = str(exc)
+            # Decodificar códigos de error comunes
+            if "0x477a3e50" in error_str:
+                logger.error(
+                    "LootBoxMinter: Error al mintear NFT. "
+                    "Posibles causas: contrato no desplegado, dirección incorrecta, falta de permisos (minter role), "
+                    "o campaña no configurada. Minter: %s, Campaign: %s, Recipient: %s",
+                    minter_address, campaign_id, recipient
+                )
+            elif "0x050aad92" in error_str:
+                logger.error(
+                    "LootBoxMinter: Error de acceso o permisos. "
+                    "Verifica que la cuenta tenga el rol 'minter' en el contrato. "
+                    "Minter: %s, Campaign: %s",
+                    minter_address, campaign_id
+                )
+            else:
+                logger.error(
+                    "Error al mintear NFT: %s. Minter: %s, Campaign: %s, Recipient: %s",
+                    exc, minter_address, campaign_id, recipient
+                )
+            raise
 
     def distribute_cusd(
         self,
@@ -192,5 +234,69 @@ class CeloToolbox:
         signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
         tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
         logger.info("cUSD distribution transaction sent: %s", tx_hash.hex())
+        return tx_hash.hex()
+
+    def configure_campaign_registry(self, registry_address: str, campaign_id: str, cooldown_seconds: int = 86400) -> str:
+        """Configura una campaña en LootAccessRegistry si no existe."""
+        if not self.private_key:
+            raise ValueError("Private key requerida para transacciones")
+        
+        abi = [
+            {
+                "type": "function",
+                "name": "configureCampaign",
+                "inputs": [
+                    {"name": "campaignId", "type": "bytes32"},
+                    {"name": "cooldownSeconds", "type": "uint64"},
+                ],
+                "outputs": [],
+                "stateMutability": "nonpayable",
+            }
+        ]
+        
+        contract = self.web3.eth.contract(address=registry_address, abi=abi)
+        campaign_bytes = self._campaign_bytes(campaign_id)
+        
+        tx = contract.functions.configureCampaign(campaign_bytes, cooldown_seconds).build_transaction({
+            "from": self.account.address,
+            "nonce": self.web3.eth.get_transaction_count(self.account.address),
+            "gasPrice": self.web3.eth.gas_price,
+        })
+        
+        signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+        logger.info("Campaign configured in Registry: %s (tx: %s)", campaign_id, tx_hash.hex())
+        return tx_hash.hex()
+
+    def configure_campaign_minter(self, minter_address: str, campaign_id: str, base_uri: str = "ipfs://QmExample/") -> str:
+        """Configura una campaña en LootBoxMinter si no existe."""
+        if not self.private_key:
+            raise ValueError("Private key requerida para transacciones")
+        
+        abi = [
+            {
+                "type": "function",
+                "name": "configureCampaign",
+                "inputs": [
+                    {"name": "campaignId", "type": "bytes32"},
+                    {"name": "baseURI", "type": "string"},
+                ],
+                "outputs": [],
+                "stateMutability": "nonpayable",
+            }
+        ]
+        
+        contract = self.web3.eth.contract(address=minter_address, abi=abi)
+        campaign_bytes = self._campaign_bytes(campaign_id)
+        
+        tx = contract.functions.configureCampaign(campaign_bytes, base_uri).build_transaction({
+            "from": self.account.address,
+            "nonce": self.web3.eth.get_transaction_count(self.account.address),
+            "gasPrice": self.web3.eth.gas_price,
+        })
+        
+        signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+        logger.info("Campaign configured in Minter: %s (tx: %s)", campaign_id, tx_hash.hex())
         return tx_hash.hex()
 
