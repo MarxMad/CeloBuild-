@@ -133,6 +133,9 @@ class RewardDistributorAgent:
                 reward_type = "cusd"
             elif reward_type in {"xp", "reputation"}:
                 reward_type = "xp"
+            elif reward_type == "analysis":
+                logger.info("Modo análisis solicitado. Saltando distribución.")
+                return {"mode": "analysis_only", "tx_hash": None, "campaign_id": campaign_id, "reward_type": "analysis"}
             else:
                 reward_type = "nft"
         else:
