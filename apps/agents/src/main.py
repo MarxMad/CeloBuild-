@@ -111,6 +111,15 @@ async def leaderboard(limit: int = Query(5, ge=1, le=25)) -> dict[str, list[dict
     return {"items": items}
 
 
+@app.get("/api/lootbox/trends")
+async def get_trends(limit: int = Query(10, ge=1, le=50)) -> dict[str, list[dict[str, object]]]:
+    """Devuelve las tendencias detectadas recientemente por TrendWatcherAgent."""
+    # Usar supervisor del scheduler si está disponible, sino el global
+    active_supervisor = scheduler_supervisor or supervisor
+    trends = active_supervisor.trends_store.recent(limit)
+    return {"items": trends}
+
+
 @app.post("/api/lootbox/scan")
 async def trigger_scan():
     """Endpoint para ejecutar un scan manual de tendencias (útil para Vercel Cron Jobs)."""

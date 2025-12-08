@@ -22,27 +22,66 @@ const rewardLabel: Record<string, string> = {
   pending: "Pendiente",
 };
 
+type TrendData = {
+  frame_id?: string;
+  cast_hash?: string;
+  trend_score?: number;
+  source_text?: string;
+  ai_analysis?: string;
+  topic_tags?: string[];
+  channel_id?: string;
+  timestamp?: number;
+};
+
 export function Leaderboard() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [activeTrends, setActiveTrends] = useState<TrendItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
+    const fetchData = async () => {
       try {
-        const resp = await fetch("/api/leaderboard?limit=5", { cache: "no-store" });
-        if (!resp.ok) throw new Error("No se pudo cargar el leaderboard");
-        const data = await resp.json();
-        const items = (data.items ?? []) as LeaderboardEntry[];
-        setEntries(items);
-        setActiveTrends(buildTrendSummary(items));
+        // Fetch leaderboard y trends en paralelo
+        const [leaderboardResp, trendsResp] = await Promise.all([
+          fetch("/api/leaderboard?limit=5", { cache: "no-store" }),
+          fetch("/api/trends?limit=10", { cache: "no-store" }),
+        ]);
+
+        // Procesar leaderboard
+        if (leaderboardResp.ok) {
+          const leaderboardData = await leaderboardResp.json();
+          const items = (leaderboardData.items ?? []) as LeaderboardEntry[];
+          setEntries(items);
+        }
+
+        // Procesar trends
+        if (trendsResp.ok) {
+          const trendsData = await trendsResp.json();
+          const trends = (trendsData.items ?? []) as TrendData[];
+          
+          // Construir tendencias activas desde los trends detectados
+          const trendSummary = buildTrendSummaryFromTrends(trends);
+          if (trendSummary.length > 0) {
+            setActiveTrends(trendSummary);
+          } else {
+            // Fallback: usar topic_tags del leaderboard si no hay trends recientes
+            const leaderboardData = await leaderboardResp.json();
+            const items = (leaderboardData.items ?? []) as LeaderboardEntry[];
+            setActiveTrends(buildTrendSummary(items));
+          }
+        } else {
+          // Fallback: usar leaderboard si trends falla
+          const leaderboardData = await leaderboardResp.json();
+          const items = (leaderboardData.items ?? []) as LeaderboardEntry[];
+          setActiveTrends(buildTrendSummary(items));
+        }
       } catch (error) {
         console.error(error);
       } finally {
         setLoading(false);
       }
     };
-    fetchLeaderboard();
+    fetchData();
   }, []);
 
   return (
@@ -134,6 +173,19 @@ function buildTrendSummary(entries: LeaderboardEntry[]): TrendItem[] {
   const counter = new Map<string, number>();
   entries.forEach((entry) => {
     entry.topic_tags?.forEach((tag) => {
+      counter.set(tag, (counter.get(tag) ?? 0) + 1);
+    });
+  });
+  return Array.from(counter.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([tag, posts]) => ({ tag, posts }));
+}
+
+function buildTrendSummaryFromTrends(trends: TrendData[]): TrendItem[] {
+  const counter = new Map<string, number>();
+  trends.forEach((trend) => {
+    trend.topic_tags?.forEach((tag) => {
       counter.set(tag, (counter.get(tag) ?? 0) + 1);
     });
   });
