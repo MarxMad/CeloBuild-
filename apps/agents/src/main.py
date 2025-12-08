@@ -19,6 +19,7 @@ class LootboxEvent(BaseModel):
     trend_score: float = Field(..., ge=0.0, le=1.0)
     thread_id: str | None = Field(None, max_length=100)
     target_address: str | None = Field(None, max_length=42)  # Campo opcional para demos manuales
+    target_fid: int | None = Field(None, ge=1)  # FID del usuario de Farcaster (si está disponible desde el contexto)
     reward_type: str | None = Field(None, max_length=20)  # Si se proporciona, se usa; si no, los agentes deciden
 
     @field_validator("target_address")

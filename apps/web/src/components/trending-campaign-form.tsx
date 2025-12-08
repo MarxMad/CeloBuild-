@@ -10,6 +10,7 @@ import { DEFAULT_EVENT, type AgentRunResponse, type LootboxEventPayload } from "
 import { useAccount } from "wagmi";
 import { AnalysisOverlay } from "./analysis-overlay";
 import { RewardSelector } from "./reward-selector";
+import { useFarcasterUser } from "./farcaster-provider";
 
 type FormState = {
   frameId: string;
@@ -20,6 +21,7 @@ type FormState = {
 
 export function TrendingCampaignForm() {
   const { address } = useAccount();
+  const farcasterUser = useFarcasterUser();
   const [form, setForm] = useState<FormState>({
     frameId: DEFAULT_EVENT.frameId || "",
     channelId: DEFAULT_EVENT.channelId,
@@ -73,7 +75,8 @@ export function TrendingCampaignForm() {
         frameId: undefined, // El backend generará el frame_id cuando detecte la tendencia
         channelId: "global",
         trendScore: 0,
-        targetAddress: address, // Enviar address para análisis específico
+        targetAddress: address, // Enviar address para recompensa
+        targetFid: farcasterUser.fid || undefined, // Enviar FID si está disponible (más confiable)
         rewardType: undefined, // No especificar aún, solo análisis
       };
       

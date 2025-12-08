@@ -25,6 +25,7 @@ export async function POST(request: Request) {
         trend_score: payload.trendScore,
         thread_id: payload.threadId,
         target_address: payload.targetAddress,
+        target_fid: payload.targetFid,
         reward_type: payload.rewardType,
       }),
     });

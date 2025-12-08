@@ -35,8 +35,92 @@ class EligibilityAgent:
 
         rankings: list[dict[str, Any]] = []
 
-        # PRIORIDAD 1: Si hay target_address, analizar específicamente a ese usuario
-        if target_address:
+        # PRIORIDAD 1: Si hay target_fid, buscar usuario por FID (más confiable que por address)
+        target_fid = context.get("target_fid")
+        if target_fid:
+            try:
+                logger.info("🎯 Analizando usuario específico por FID: %d", target_fid)
+                
+                # Obtener información del usuario de Farcaster por su FID
+                user_info = await self.farcaster.fetch_user_by_fid(target_fid)
+                
+                if user_info and user_info.get("fid"):
+                    user_fid = user_info.get("fid")
+                    username = user_info.get("username", "unknown")
+                    custody_address = user_info.get("custody_address", "").lower()
+                    
+                    logger.info("✅ Usuario encontrado en Farcaster por FID: @%s (FID: %d, Custody: %s, Followers: %d)", 
+                               username, user_fid, custody_address, user_info.get("follower_count", 0))
+                    
+                    # Usar la custody_address del usuario para análisis on-chain
+                    target_checksum = self.celo_tool.checksum(custody_address) if custody_address else None
+                    
+                    # Si hay target_address y no coincide con custody_address, usar target_address para recompensa
+                    if target_address:
+                        target_checksum = self.celo_tool.checksum(target_address)
+                        logger.info("   Usando target_address para recompensa: %s (custody_address del usuario: %s)", 
+                                   target_checksum, custody_address)
+                    
+                    # Analizar participación del usuario en la tendencia (si hay cast_hash)
+                    participation_data = {}
+                    engagement_weight = 0.0
+                    reasons = []
+                    
+                    if cast_hash:
+                        participation_data = await self.farcaster.analyze_user_participation_in_trend(
+                            user_fid, cast_hash, topic_tags or []
+                        )
+                        engagement_weight = participation_data.get("total_engagement", 0.0)
+                        if participation_data.get("directly_participated"):
+                            reasons.append("Participó directamente en el cast viral")
+                        if participation_data.get("related_casts", 0) > 0:
+                            reasons.append(f"Publicó {participation_data.get('related_casts')} casts relacionados")
+                    
+                    # Calcular score del usuario
+                    score = self._score_user_advanced(
+                        trend_score=trend_score,
+                        follower_count=user_info.get("follower_count", 0),
+                        power_badge=user_info.get("power_badge", False),
+                        engagement_weight=engagement_weight,
+                    )
+                    
+                    if target_checksum:
+                        rankings.append(
+                            {
+                                "fid": user_fid,
+                                "username": username,
+                                "address": target_checksum,
+                                "score": score,
+                                "reasons": reasons,
+                                "follower_count": user_info.get("follower_count", 0),
+                                "power_badge": user_info.get("power_badge", False),
+                                "participation": participation_data,
+                            }
+                        )
+                        logger.info(
+                            "📈 Usuario analizado: @%s - Score: %.2f, Followers: %d, Power Badge: %s, Engagement: %.2f",
+                            username,
+                            score,
+                            user_info.get("follower_count", 0),
+                            user_info.get("power_badge", False),
+                            engagement_weight
+                        )
+                else:
+                    # Usuario no encontrado por FID - esto no debería pasar si el FID es válido
+                    logger.warning("❌ Usuario no encontrado en Farcaster para FID: %d", target_fid)
+                    return {
+                        "recipients": [],
+                        "rankings": [],
+                        "eligible": False,
+                        "reason": "user_not_found",
+                        "message": f"Usuario con FID {target_fid} no encontrado en Farcaster.",
+                    }
+            except Exception as exc:  # noqa: BLE001
+                logger.error("❌ Error analizando usuario por FID %d: %s", target_fid, exc, exc_info=True)
+                # Continuar con el flujo normal si falla la búsqueda por FID
+
+        # PRIORIDAD 2: Si hay target_address (y no se encontró por FID), analizar específicamente a ese usuario
+        if target_address and not rankings:
             try:
                 # Normalizar dirección: usar lowercase para buscar en Farcaster
                 # Neynar API requiere lowercase, no checksummed

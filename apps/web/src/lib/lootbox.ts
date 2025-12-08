@@ -4,6 +4,7 @@ export type LootboxEventPayload = {
   trendScore: number;
   threadId?: string;
   targetAddress?: string; // Optional for demo
+  targetFid?: number; // FID del usuario de Farcaster (si está disponible desde el contexto)
   rewardType?: "nft" | "cusd" | "xp";
 };
 
