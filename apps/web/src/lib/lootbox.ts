@@ -34,6 +34,21 @@ export type AgentRunResponse = {
     trend_score?: number;
     topic_tags?: string[];
   };
+  trends?: Array<{
+    frame_id: string;
+    cast_hash?: string;
+    trend_score: number;
+    source_text?: string;
+    ai_analysis?: string;
+    ai_enabled?: boolean;
+    topic_tags?: string[];
+    channel_id?: string;
+    author?: {
+      username?: string;
+      fid?: number;
+      pfp_url?: string;
+    };
+  }>;
   eligible?: boolean | null; // null = no verificado, true/false = resultado
   eligibility_message?: string; // Mensaje explicando por qué no es elegible
 };

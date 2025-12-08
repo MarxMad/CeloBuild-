@@ -415,6 +415,32 @@ export function TrendingCampaignForm() {
                 </div>
               )}
 
+              {/* Otras Tendencias (si hay múltiples) */}
+              {result.trends && result.trends.length > 1 && (
+                <div className="space-y-2 mt-4">
+                  <h5 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Otras Tendencias</h5>
+                  <div className="space-y-2">
+                    {result.trends.slice(1, 5).map((trend, idx) => (
+                      <div key={idx} className="p-2 rounded-lg bg-white/5 border border-white/10 flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold text-foreground truncate">
+                              @{trend.author?.username || "unknown"}
+                            </span>
+                            <span className="text-[9px] font-mono text-muted-foreground ml-auto">
+                              {(trend.trend_score * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground line-clamp-2">
+                            {trend.ai_analysis || trend.source_text}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {result.explorer_url && (
                 <Button variant="outline" className="w-full border-green-500/30 hover:bg-green-500/10 text-green-600 dark:text-green-400" asChild>
                   <Link href={result.explorer_url} target="_blank">
