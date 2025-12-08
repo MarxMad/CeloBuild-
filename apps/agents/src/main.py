@@ -249,6 +249,48 @@ async def healthcheck() -> dict[str, object]:
         }
 
 
+
+@app.get("/api/lootbox/xp/{wallet_address}")
+async def get_xp(wallet_address: str, campaign_id: str = Query(default="demo-campaign")):
+    """
+    Lee el balance de XP de una wallet desde blockchain.
+    
+    Args:
+        wallet_address: Dirección de la wallet del usuario
+        campaign_id: ID de la campaña (default: "demo-campaign")
+    
+    Returns:
+        {"xp": 100, "wallet": "0x...", "campaign_id": "demo-campaign"}
+    """
+    try:
+        from .tools.celo import CeloToolbox
+        
+        # Inicializar CeloToolbox
+        celo_tool = CeloToolbox(
+            rpc_url=settings.celo_rpc_url,
+            private_key=None,  # Solo lectura, no necesita private key
+        )
+        
+        # Leer XP on-chain
+        xp_balance = celo_tool.get_xp_balance(
+            registry_address=settings.registry_address,
+            campaign_id=campaign_id,
+            participant=wallet_address,
+        )
+        
+        return {
+            "xp": xp_balance,
+            "wallet": wallet_address,
+            "campaign_id": campaign_id,
+        }
+    except Exception as exc:
+        logger.error("Error leyendo XP para %s: %s", wallet_address, exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error leyendo XP: {str(exc)}"
+        )
+
+
 @app.get("/api/lootbox/leaderboard")
 async def leaderboard(limit: int = Query(5, ge=1, le=25)) -> dict[str, list[dict[str, object]]]:
     """Devuelve el top de ganadores recientes."""

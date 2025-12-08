@@ -64,51 +64,43 @@ class EligibilityAgent:
                     # Analizar participación del usuario en la tendencia (si hay cast_hash)
                     participation_data = {}
                     engagement_weight = 0.0
-                    reasons = []
+                    username = user_info.get("username")
                     
-                    if cast_hash:
-                        participation_data = await self.farcaster.analyze_user_participation_in_trend(
-                            user_fid, cast_hash, topic_tags or []
-                        )
-                        engagement_weight = participation_data.get("total_engagement", 0.0)
-                        if participation_data.get("directly_participated"):
-                            reasons.append("Participó directamente en el cast viral")
-                        if participation_data.get("related_casts", 0) > 0:
-                            reasons.append(f"Publicó {participation_data.get('related_casts')} casts relacionados")
-                    
-                    # Calcular score del usuario
-                    participant_obj = {
-                        "follower_count": user_info.get("follower_count", 0),
-                        "power_badge": user_info.get("power_badge", False),
-                        "engagement_weight": engagement_weight,
-                    }
-                    score = self._score_user_advanced(
-                        participant=participant_obj,
-                        trend_score=trend_score,
-                        participation_data=participation_data,
+                    # Analizar participación en la tendencia
+                    participation_data = await self.farcaster.analyze_user_participation_in_trend(
+                        target_fid, cast_hash, topic_tags
                     )
                     
-                    if target_checksum:
-                        rankings.append(
-                            {
-                                "fid": user_fid,
-                                "username": username,
-                                "address": target_checksum,
-                                "score": score,
-                                "reasons": reasons,
-                                "follower_count": user_info.get("follower_count", 0),
-                                "power_badge": user_info.get("power_badge", False),
-                                "participation": participation_data,
-                            }
-                        )
-                        logger.info(
-                            "📈 Usuario analizado: @%s - Score: %.2f, Followers: %d, Power Badge: %s, Engagement: %.2f",
-                            username,
-                            score,
-                            user_info.get("follower_count", 0),
-                            user_info.get("power_badge", False),
-                            engagement_weight
-                        )
+                    engagement_weight = participation_data.get("total_engagement", 0.0)
+                    
+                    # Calcular score final
+                    # Base score (por ser usuario válido) + Engagement
+                    score = (trend_score * 100) + (engagement_weight * 10)
+                    
+                    # Bonus por Power Badge
+                    if user_info.get("power_badge"):
+                        score *= 1.2
+                        
+                    rankings.append(
+                        {
+                            "fid": target_fid,
+                            "username": username,
+                            "address": user_info.get("custody_address"),
+                            "score": round(score, 2),
+                            "reasons": ["Usuario verificado por FID", f"Engagement: {engagement_weight}"],
+                            "follower_count": user_info.get("follower_count", 0),
+                            "power_badge": user_info.get("power_badge", False),
+                            "participation": participation_data,
+                        }
+                    )
+                    logger.info(
+                        "📈 Usuario analizado: @%s - Score: %.2f, Followers: %d, Power Badge: %s, Engagement: %.2f",
+                        username,
+                        score,
+                        user_info.get("follower_count", 0),
+                        user_info.get("power_badge", False),
+                        engagement_weight
+                    )
                 else:
                     # Usuario no encontrado por FID - esto no debería pasar si el FID es válido
                     logger.warning("❌ Usuario no encontrado en Farcaster para FID: %d", target_fid)
@@ -141,7 +133,7 @@ class EligibilityAgent:
                             "rankings": [],
                             "eligible": False,
                             "reason": "user_not_found",
-                            "message": f"Usuario con FID {target_fid} no encontrado en Farcaster.",
+                            "message": f"Usuario con FID {target_fid} no encontrado en Farcaster. Verifica tu conexión.",
                         }
             except Exception as exc:  # noqa: BLE001
                 logger.error("❌ Error analizando usuario por FID %d: %s", target_fid, exc, exc_info=True)
@@ -321,7 +313,10 @@ class EligibilityAgent:
                             "rankings": [],
                             "eligible": False,
                             "reason": "user_not_in_farcaster",
-                            "message": f"La wallet {target_checksum if 'target_checksum' in locals() else target_address} no está vinculada a una cuenta de Farcaster. Solo usuarios de Farcaster son elegibles para recompensas.",
+                            "message": (
+                                f"La wallet {target_checksum if 'target_checksum' in locals() else target_address} no está vinculada a una cuenta de Farcaster (Custody Address).\n"
+                                "💡 Si usas una 'Verified Address', asegúrate de abrir la app desde un cliente Farcaster para detectar tu FID automáticamente."
+                            ),
                         }
                 # Para otros errores, retornar mensaje genérico
                 return {

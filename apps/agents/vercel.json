@@ -1,12 +1,15 @@
 {
   "buildCommand": "pip install -r requirements.txt",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index" }
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
   ],
   "crons": [
     {
       "path": "/api/lootbox/scan",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 */6 * * *"
     }
   ]
 }

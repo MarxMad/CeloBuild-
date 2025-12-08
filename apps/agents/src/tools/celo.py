@@ -118,6 +118,32 @@ class CeloToolbox:
         tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
         logger.info("XP grant transaction sent: %s", tx_hash.hex())
         return tx_hash.hex()
+    
+    def get_xp_balance(self, registry_address: str, campaign_id: str, participant: str) -> int:
+        """Lee el balance de XP de un participante desde el contrato LootAccessRegistry."""
+        abi = [
+            {
+                "type": "function",
+                "name": "getXpBalance",
+                "inputs": [
+                    {"name": "campaignId", "type": "bytes32"},
+                    {"name": "participant", "type": "address"},
+                ],
+                "outputs": [{"name": "", "type": "uint256"}],
+                "stateMutability": "view",
+            }
+        ]
+        contract = self.web3.eth.contract(address=registry_address, abi=abi)
+        campaign_bytes = self._campaign_bytes(campaign_id)
+        checksum_participant = self.checksum(participant)
+        
+        try:
+            xp_balance = contract.functions.getXpBalance(campaign_bytes, checksum_participant).call()
+            return int(xp_balance)
+        except Exception as exc:
+            logger.warning("Error leyendo XP balance para %s: %s", participant, exc)
+            return 0
+
 
     def mint_nft(
         self,
