@@ -28,7 +28,7 @@ export function TrendingCampaignForm() {
     trendScore: DEFAULT_EVENT.trendScore,
     targetAddress: "",
   });
-  
+
   // States for the new flow
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
@@ -62,12 +62,12 @@ export function TrendingCampaignForm() {
   const handleStartAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address) return;
-    
+
     setIsAnalyzing(true);
     setError(null);
     setUserAnalysis(null);
     setTrendInfo(null);
-    
+
     try {
       // Ejecutar análisis ANTES de mostrar el selector de recompensas
       // Esto detecta la tendencia y analiza al usuario específico
@@ -79,17 +79,17 @@ export function TrendingCampaignForm() {
         targetFid: farcasterUser.fid || undefined, // Enviar FID si está disponible (más confiable)
         rewardType: undefined, // No especificar aún, solo análisis
       };
-      
+
       const response = await fetch("/api/lootbox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(analysisPayload),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         const errorMessage = errorData?.error || errorData?.detail || "Error en el análisis";
-        
+
         // Detectar errores de configuración
         if (
           errorMessage.includes("Backend no configurado") ||
@@ -108,30 +108,32 @@ export function TrendingCampaignForm() {
             "4. Haz un Redeploy del frontend"
           );
         }
-        
+
         throw new Error(errorMessage);
       }
-      
+
       const analysisResult = await response.json();
       console.log("Análisis completado:", analysisResult);
-      
+
       // Verificar si el usuario es elegible
       if (analysisResult.eligible === false) {
-        // Usuario no es elegible - mostrar mensaje de error
-        setError(analysisResult.eligibility_message || "No eres elegible para recompensas. Solo usuarios de Farcaster pueden recibir recompensas.");
+        // Usuario no es elegible - mostrar mensaje del backend
+        const errorMessage = analysisResult.eligibility_message ||
+          "No eres elegible en este momento. Intenta participar más en Farcaster o tener una cuenta vinculada a tu wallet.";
+        setError(errorMessage);
         setIsAnalyzing(false);
         setUserAnalysis(null);
         setTrendInfo(null);
         return;
       }
-      
+
       // Guardar datos del análisis para mostrar en el RewardSelector
       setUserAnalysis(analysisResult.user_analysis || null);
       setTrendInfo(analysisResult.trend_info || null);
-      
+
       // Cuando el overlay completa, mostrar selector de recompensas con el análisis
       // El AnalysisOverlay se encargará de llamar onAnalysisComplete después de la animación
-      
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error en el análisis");
       setIsAnalyzing(false);
@@ -146,12 +148,12 @@ export function TrendingCampaignForm() {
   const handleRewardSelect = async (rewardId: LootboxEventPayload["rewardType"]) => {
     setShowRewards(false);
     setSelectedRewardType(rewardId); // Guardar el tipo seleccionado para el loader
-    setLoading(true); 
+    setLoading(true);
     setResult(null);
     setError(null);
-    
+
     console.log("Recompensa seleccionada:", rewardId); // Debug
-    
+
     // Aquí es donde mandamos el 'reward_type' al backend para que el contrato sepa qué mintear
     // (A futuro: actualizar contrato para soportar rewardType)
     // No enviar frameId - el backend lo generará automáticamente cuando detecte la tendencia
@@ -172,7 +174,7 @@ export function TrendingCampaignForm() {
       if (!response.ok) {
         const errorData = await response.json();
         const errorMessage = errorData?.error || errorData?.detail || "Error desconocido";
-        
+
         // Detectar errores de configuración
         if (
           errorMessage.includes("Backend no configurado") ||
@@ -191,7 +193,7 @@ export function TrendingCampaignForm() {
             "4. Haz un Redeploy del frontend"
           );
         }
-        
+
         throw new Error(errorMessage);
       }
       setResult(await response.json());
@@ -213,250 +215,249 @@ export function TrendingCampaignForm() {
 
   return (
     <div className="space-y-6 relative">
-        {/* Step 1: Analysis Overlay */}
-        {isAnalyzing && (
-            <AnalysisOverlay onComplete={onAnalysisComplete} />
-        )}
+      {/* Step 1: Analysis Overlay */}
+      {isAnalyzing && (
+        <AnalysisOverlay onComplete={onAnalysisComplete} />
+      )}
 
-        {/* Step 2: Reward Selection */}
-        {showRewards && (
-            <div className="fixed inset-0 bg-black/90 z-40 flex items-center justify-center p-6 backdrop-blur-sm">
-                <RewardSelector 
-                  onSelect={handleRewardSelect}
-                  userAnalysis={userAnalysis}
-                  trendInfo={trendInfo}
-                />
+      {/* Step 2: Reward Selection */}
+      {showRewards && (
+        <div className="fixed inset-0 bg-black/90 z-40 flex items-center justify-center p-6 backdrop-blur-sm">
+          <RewardSelector
+            onSelect={handleRewardSelect}
+            userAnalysis={userAnalysis}
+            trendInfo={trendInfo}
+          />
+        </div>
+      )}
+
+      <form className="grid gap-5" onSubmit={handleStartAnalysis}>
+
+        <div className="flex flex-col gap-4 items-center justify-center py-4">
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-[10px] font-bold uppercase tracking-widest animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              Live Monitor
             </div>
+            <h3 className="text-xl font-bold text-white">Agentes Autónomos</h3>
+            <p className="text-xs text-muted-foreground max-w-[280px] mx-auto">
+              El sistema escaneará Farcaster buscando tendencias virales y recompensará automáticamente a tu wallet.
+            </p>
+          </div>
+        </div>
+
+        {/* Only show button if we are not in success state yet */}
+        {!result && (
+          <Button type="submit" disabled={loading || !address} className="w-full h-16 text-lg font-bold shadow-xl shadow-primary/10 rounded-2xl border-t border-white/10 relative overflow-hidden group" size="lg">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-secondary/80 opacity-0 group-hover:opacity-10 transition-opacity" />
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {selectedRewardType === "cusd"
+                  ? "Enviando cUSD..."
+                  : selectedRewardType === "xp"
+                    ? "Otorgando XP..."
+                    : "Minteando Premio..."}
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-5 w-5 animate-pulse" />
+                {address ? "Activar Recompensas" : "Conecta Wallet para Iniciar"}
+              </>
+            )}
+          </Button>
         )}
 
-        <form className="grid gap-5" onSubmit={handleStartAnalysis}>
-          
-          <div className="flex flex-col gap-4 items-center justify-center py-4">
-             <div className="text-center space-y-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-[10px] font-bold uppercase tracking-widest animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    Live Monitor
+        {!address && (
+          <p className="text-center text-[10px] text-red-400 font-medium animate-pulse">
+            * Wallet requerida para recibir premios
+          </p>
+        )}
+      </form>
+
+      {result && (
+        <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* Success Card */}
+          {result && (
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
+                  <Box className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-white">Agentes Autónomos</h3>
-                <p className="text-xs text-muted-foreground max-w-[280px] mx-auto">
-                    El sistema escaneará Farcaster buscando tendencias virales y recompensará automáticamente a tu wallet.
-                </p>
-             </div>
-          </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-lg text-foreground">{getRewardDisplay(result.reward_type).title}</h4>
+                  <p className="text-xs text-muted-foreground">{getRewardDisplay(result.reward_type).subtitle}</p>
+                </div>
+              </div>
 
-          {/* Only show button if we are not in success state yet */}
-          {!result && (
-            <Button type="submit" disabled={loading || !address} className="w-full h-16 text-lg font-bold shadow-xl shadow-primary/10 rounded-2xl border-t border-white/10 relative overflow-hidden group" size="lg">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-secondary/80 opacity-0 group-hover:opacity-10 transition-opacity" />
-                {loading ? (
-                <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    {selectedRewardType === "cusd" 
-                      ? "Enviando cUSD..." 
-                      : selectedRewardType === "xp" 
-                      ? "Otorgando XP..." 
-                      : "Minteando Premio..."}
-                </>
-                ) : (
-                <>
-                    <Sparkles className="mr-2 h-5 w-5 animate-pulse" />
-                    {address ? "Activar Recompensas" : "Conecta Wallet para Iniciar"}
-                </>
-                )}
-            </Button>
-          )}
-          
-          {!address && (
-              <p className="text-center text-[10px] text-red-400 font-medium animate-pulse">
-                  * Wallet requerida para recibir premios
-              </p>
-          )}
-        </form>
+              {/* Análisis del Usuario */}
+              {result.user_analysis && (
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-4 h-4 text-[#FCFF52]" />
+                    <h5 className="text-sm font-bold text-foreground">Tu Análisis</h5>
+                  </div>
 
-        {result && (
-          <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             {/* Success Card */}
-             {result && (
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 flex flex-col gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
-                             <Box className="h-6 w-6" />
-                        </div>
-                        <div className="flex-1">
-                            <h4 className="font-bold text-lg text-foreground">{getRewardDisplay(result.reward_type).title}</h4>
-                            <p className="text-xs text-muted-foreground">{getRewardDisplay(result.reward_type).subtitle}</p>
-                        </div>
+                  {/* Username y Score */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">@</span>
+                      <span className="text-sm font-semibold text-foreground">
+                        {result.user_analysis.username || "Usuario"}
+                      </span>
+                      {result.user_analysis.power_badge && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+                          ⭐ Power
+                        </span>
+                      )}
                     </div>
-                    
-                    {/* Análisis del Usuario */}
-                    {result.user_analysis && (
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Sparkles className="w-4 h-4 text-[#FCFF52]" />
-                          <h5 className="text-sm font-bold text-foreground">Tu Análisis</h5>
-                        </div>
-                        
-                        {/* Username y Score */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">@</span>
-                            <span className="text-sm font-semibold text-foreground">
-                              {result.user_analysis.username || "Usuario"}
-                            </span>
-                            {result.user_analysis.power_badge && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
-                                ⭐ Power
-                              </span>
-                            )}
-                          </div>
-                          {result.user_analysis.score !== undefined && (
-                            <div className="text-sm font-mono font-bold text-[#FCFF52]">
-                              {result.user_analysis.score.toFixed(1)} pts
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Stats */}
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          {result.user_analysis.follower_count !== undefined && (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-muted-foreground">Followers:</span>
-                              <span className="font-semibold text-foreground">{result.user_analysis.follower_count}</span>
-                            </div>
-                          )}
-                          {result.user_analysis.participation?.total_engagement !== undefined && (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-muted-foreground">Engagement:</span>
-                              <span className="font-semibold text-foreground">
-                                {result.user_analysis.participation.total_engagement.toFixed(1)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Reasons */}
-                        {result.user_analysis.reasons && result.user_analysis.reasons.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {result.user_analysis.reasons.map((reason, idx) => (
-                              <span
-                                key={idx}
-                                className="text-[9px] px-2 py-0.5 rounded-full bg-[#FCFF52]/10 text-[#FCFF52] border border-[#FCFF52]/20 uppercase"
-                              >
-                                {reason}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Participación */}
-                        {result.user_analysis.participation?.directly_participated && (
-                          <div className="text-[10px] text-green-400 flex items-center gap-1">
-                            <span>✓</span>
-                            <span>Participaste en esta tendencia</span>
-                          </div>
-                        )}
+                    {result.user_analysis.score !== undefined && (
+                      <div className="text-sm font-mono font-bold text-[#FCFF52]">
+                        {result.user_analysis.score.toFixed(1)} pts
                       </div>
                     )}
-                    
-                    {/* Información de la Tendencia */}
-                    {result.trend_info && (
-                      <div className="p-3 rounded-lg bg-white/5 border border-white/10 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="w-3 h-3 text-[#FCFF52]" />
-                          <span className="text-xs font-bold text-[#FCFF52] uppercase">Tendencia Detectada</span>
-                          {result.trend_info.trend_score !== undefined && (
-                            <span className="text-[10px] font-mono text-muted-foreground ml-auto">
-                              {(result.trend_info.trend_score * 100).toFixed(0)}%
-                            </span>
-                          )}
-                        </div>
-                        {result.trend_info.source_text && (
-                          <p className="text-xs text-foreground line-clamp-2">
-                            {result.trend_info.source_text}
-                          </p>
-                        )}
-                        {result.trend_info.ai_analysis && (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] text-muted-foreground italic line-clamp-2">
-                                💡 {result.trend_info.ai_analysis}
-                              </span>
-                              {result.trend_info.ai_enabled !== undefined && (
-                                <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${
-                                  result.trend_info.ai_enabled 
-                                    ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" 
-                                    : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
-                                }`}>
-                                  {result.trend_info.ai_enabled ? "🤖 AI" : "📊 Básico"}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        {result.trend_info.topic_tags && result.trend_info.topic_tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {result.trend_info.topic_tags.slice(0, 3).map((tag) => (
-                              <span
-                                key={tag}
-                                className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/10"
-                              >
-                                #{tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {result.explorer_url && (
-                      <Button variant="outline" className="w-full border-green-500/30 hover:bg-green-500/10 text-green-600 dark:text-green-400" asChild>
-                          <Link href={result.explorer_url} target="_blank">
-                              Ver Transacción
-                              <ExternalLink className="ml-2 h-4 w-4" />
-                          </Link>
-                      </Button>
-                    )}
-                </div>
-             )}
+                  </div>
 
-            {/* Console Output */}
-            {/* Oculto por petición de diseño limpio, descomentar si se requiere debug */}
-            {/* 
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {result.user_analysis.follower_count !== undefined && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Followers:</span>
+                        <span className="font-semibold text-foreground">{result.user_analysis.follower_count}</span>
+                      </div>
+                    )}
+                    {result.user_analysis.participation?.total_engagement !== undefined && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Engagement:</span>
+                        <span className="font-semibold text-foreground">
+                          {result.user_analysis.participation.total_engagement.toFixed(1)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Reasons */}
+                  {result.user_analysis.reasons && result.user_analysis.reasons.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {result.user_analysis.reasons.map((reason, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[9px] px-2 py-0.5 rounded-full bg-[#FCFF52]/10 text-[#FCFF52] border border-[#FCFF52]/20 uppercase"
+                        >
+                          {reason}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Participación */}
+                  {result.user_analysis.participation?.directly_participated && (
+                    <div className="text-[10px] text-green-400 flex items-center gap-1">
+                      <span>✓</span>
+                      <span>Participaste en esta tendencia</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Información de la Tendencia */}
+              {result.trend_info && (
+                <div className="p-3 rounded-lg bg-white/5 border border-white/10 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-3 h-3 text-[#FCFF52]" />
+                    <span className="text-xs font-bold text-[#FCFF52] uppercase">Tendencia Detectada</span>
+                    {result.trend_info.trend_score !== undefined && (
+                      <span className="text-[10px] font-mono text-muted-foreground ml-auto">
+                        {(result.trend_info.trend_score * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                  {result.trend_info.source_text && (
+                    <p className="text-xs text-foreground line-clamp-2">
+                      {result.trend_info.source_text}
+                    </p>
+                  )}
+                  {result.trend_info.ai_analysis && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-muted-foreground italic line-clamp-2">
+                          💡 {result.trend_info.ai_analysis}
+                        </span>
+                        {result.trend_info.ai_enabled !== undefined && (
+                          <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${result.trend_info.ai_enabled
+                              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                              : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
+                            }`}>
+                            {result.trend_info.ai_enabled ? "🤖 AI" : "📊 Básico"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {result.trend_info.topic_tags && result.trend_info.topic_tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {result.trend_info.topic_tags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/10"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {result.explorer_url && (
+                <Button variant="outline" className="w-full border-green-500/30 hover:bg-green-500/10 text-green-600 dark:text-green-400" asChild>
+                  <Link href={result.explorer_url} target="_blank">
+                    Ver Transacción
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Console Output */}
+          {/* Oculto por petición de diseño limpio, descomentar si se requiere debug */}
+          {/* 
             <div className="rounded-xl bg-black/90 p-4 font-mono text-[10px] text-green-400 overflow-x-auto border border-white/10 shadow-inner">
               <p className="mb-2 text-gray-500 border-b border-gray-800 pb-1">System Log</p>
               <p><span className="text-blue-400">Thread:</span> {result.thread_id}</p>
               <div className="mt-2 whitespace-pre-wrap opacity-80">{result.summary}</div>
             </div> 
             */}
-            
-            {/* Reset Button */}
-             <Button variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => {
-                setResult(null);
-                setSelectedRewardType(null);
-                setShowRewards(false);
-                setIsAnalyzing(false);
-             }}>
-                Reiniciar Proceso
-             </Button>
-          </div>
-        )}
 
-        {error && (
-          <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                <span className="text-red-400 text-lg">⚠️</span>
-              </div>
-              <h4 className="font-bold text-base text-red-300">No Eres Elegible</h4>
+          {/* Reset Button */}
+          <Button variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => {
+            setResult(null);
+            setSelectedRewardType(null);
+            setShowRewards(false);
+            setIsAnalyzing(false);
+          }}>
+            Reiniciar Proceso
+          </Button>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
+              <span className="text-red-400 text-lg">⚠️</span>
             </div>
-            <p className="text-sm text-red-400/90 pl-10">
-              {error}
-            </p>
-            <p className="text-xs text-red-400/70 pl-10 mt-2">
-              💡 Para ser elegible, necesitas tener una cuenta de Farcaster vinculada a tu wallet.
-            </p>
+            <h4 className="font-bold text-base text-red-300">No Eres Elegible</h4>
           </div>
-        )}
+          <p className="text-sm text-red-400/90 pl-10">
+            {error}
+          </p>
+          <p className="text-xs text-red-400/70 pl-10 mt-2">
+            💡 Consejo: Vincular una cuenta de Farcaster aumenta tu elegibilidad y score de recompensas.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
