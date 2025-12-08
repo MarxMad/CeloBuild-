@@ -4,8 +4,12 @@
 set -e
 
 # Cargar variables de entorno
+# Buscar en múltiples ubicaciones
 if [ -f .env ]; then
     export $(cat .env | grep -v '^#' | xargs)
+elif [ -f ../agents/.env ]; then
+    # Cargar desde apps/agents/.env si existe
+    export $(cat ../agents/.env | grep -v '^#' | xargs)
 fi
 
 # Variables requeridas
