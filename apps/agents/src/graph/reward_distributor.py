@@ -91,6 +91,8 @@ class RewardDistributorAgent:
                     error_str = str(vault_exc)
                     if "replacement transaction underpriced" in error_str.lower():
                         logger.warning("Transacción pendiente detectada para Vault, continuando...")
+                    elif "already initialized" in error_str.lower() or "0xb4fa3fb3" in error_str:
+                        logger.info("Campaña %s ya está inicializada en LootBoxVault (esto es normal)", campaign_id)
                     else:
                         logger.warning(
                             "No se pudo inicializar campaña en Vault (puede que ya esté inicializada): %s",
