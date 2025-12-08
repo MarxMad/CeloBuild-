@@ -222,19 +222,33 @@ async def healthcheck() -> dict[str, str]:
 @app.get("/api/lootbox/leaderboard")
 async def leaderboard(limit: int = Query(5, ge=1, le=25)) -> dict[str, list[dict[str, object]]]:
     """Devuelve el top de ganadores recientes."""
-    # Usar supervisor del scheduler si está disponible, sino el global
-    active_supervisor = scheduler_supervisor or supervisor
-    items = active_supervisor.leaderboard.top(limit)
-    return {"items": items}
+    try:
+        # Usar supervisor del scheduler si está disponible, sino el global
+        active_supervisor = scheduler_supervisor or supervisor
+        if not active_supervisor:
+            logger.warning("Supervisor no inicializado, retornando leaderboard vacío")
+            return {"items": []}
+        items = active_supervisor.leaderboard.top(limit)
+        return {"items": items}
+    except Exception as exc:
+        logger.error("Error obteniendo leaderboard: %s", exc, exc_info=True)
+        return {"items": []}
 
 
 @app.get("/api/lootbox/trends")
 async def get_trends(limit: int = Query(10, ge=1, le=50)) -> dict[str, list[dict[str, object]]]:
     """Devuelve las tendencias detectadas recientemente por TrendWatcherAgent."""
-    # Usar supervisor del scheduler si está disponible, sino el global
-    active_supervisor = scheduler_supervisor or supervisor
-    trends = active_supervisor.trends_store.recent(limit)
-    return {"items": trends}
+    try:
+        # Usar supervisor del scheduler si está disponible, sino el global
+        active_supervisor = scheduler_supervisor or supervisor
+        if not active_supervisor:
+            logger.warning("Supervisor no inicializado, retornando trends vacío")
+            return {"items": []}
+        trends = active_supervisor.trends_store.recent(limit)
+        return {"items": trends}
+    except Exception as exc:
+        logger.error("Error obteniendo trends: %s", exc, exc_info=True)
+        return {"items": []}
 
 
 @app.post("/api/lootbox/scan")
