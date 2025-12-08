@@ -77,7 +77,7 @@ export function TrendingCampaignForm() {
         trendScore: 0,
         targetAddress: address, // Enviar address para recompensa
         targetFid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined, // Asegurar que sea número
-        rewardType: undefined, // No especificar aún, solo análisis
+        rewardType: "analysis", // Modo análisis: solo verificar elegibilidad sin distribuir
       };
 
       console.log("📤 Enviando análisis:", {
@@ -168,6 +168,7 @@ export function TrendingCampaignForm() {
       channelId: "global",
       trendScore: 0,
       targetAddress: address || undefined,
+      targetFid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined, // IMPORTANTE: Enviar FID también al reclamar
       rewardType: rewardId ?? "nft",
     };
 
