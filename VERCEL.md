@@ -40,7 +40,9 @@
    - **Root Directory**: `lootbox-minipay/apps/web`
    - **Framework Preset**: Next.js (auto-detectado)
 
-2. **Variables de Entorno:**
+2. **Variables de Entorno (CRÍTICO):**
+   
+   Ve a **Settings → Environment Variables** en tu proyecto del frontend y agrega:
    ```
    NEXT_PUBLIC_AGENT_SERVICE_URL=https://celo-build-backend-agents.vercel.app
    AGENT_SERVICE_URL=https://celo-build-backend-agents.vercel.app
@@ -49,9 +51,11 @@
    
    **⚠️ IMPORTANTE:** 
    - URL del backend: `https://celo-build-backend-agents.vercel.app` (sin trailing slash)
-   - Después de agregar las variables, haz un **Redeploy** del frontend para que tome efecto
-   - Si ves el error "DEPLOYMENT_NOT_FOUND" o "Body has already been read", verifica que `AGENT_SERVICE_URL` esté configurado correctamente
+   - **AMBAS variables son necesarias**: `AGENT_SERVICE_URL` y `NEXT_PUBLIC_AGENT_SERVICE_URL`
+   - Después de agregar las variables, haz un **Redeploy** del frontend (Deployments → ⋯ → Redeploy)
+   - Si ves el error "Backend no configurado" o "AGENT_SERVICE_URL", verifica que ambas variables estén configuradas
    - Asegúrate de que la URL no tenga trailing slash (`/`) al final
+   - **Verifica que las variables estén en el entorno correcto** (Production, Preview, Development)
 
 ## 🔧 Troubleshooting
 

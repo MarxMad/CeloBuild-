@@ -5,9 +5,12 @@ const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL ?? process.env.NEXT_PUBL
 
 export async function POST(request: Request) {
   if (!AGENT_SERVICE_URL) {
-    console.error("AGENT_SERVICE_URL no configurado");
+    console.error("AGENT_SERVICE_URL no configurado en el frontend");
     return NextResponse.json(
-      { error: "Backend no configurado. Verifica AGENT_SERVICE_URL en variables de entorno." },
+      { 
+        error: "Backend no configurado. Verifica AGENT_SERVICE_URL en variables de entorno del frontend en Vercel.",
+        detail: "AGENT_SERVICE_URL no está configurada. Ve a Settings → Environment Variables en tu proyecto del frontend en Vercel y agrega: AGENT_SERVICE_URL=https://celo-build-backend-agents.vercel.app"
+      },
       { status: 500 }
     );
   }
