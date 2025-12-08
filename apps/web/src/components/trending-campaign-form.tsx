@@ -21,7 +21,7 @@ type FormState = {
 export function TrendingCampaignForm() {
   const { address } = useAccount();
   const [form, setForm] = useState<FormState>({
-    frameId: DEFAULT_EVENT.frameId,
+    frameId: DEFAULT_EVENT.frameId || "",
     channelId: DEFAULT_EVENT.channelId,
     trendScore: DEFAULT_EVENT.trendScore,
     targetAddress: "",
