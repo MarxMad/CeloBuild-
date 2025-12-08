@@ -211,6 +211,7 @@ async def healthcheck() -> dict[str, object]:
             "LOOTBOX_VAULT_ADDRESS",
             "REGISTRY_ADDRESS",
             "MINTER_ADDRESS",
+            "NEYNAR_API_KEY",
         ]
         
         for var in critical_vars:

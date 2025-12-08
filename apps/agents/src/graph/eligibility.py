@@ -37,7 +37,26 @@ class EligibilityAgent:
 
         # PRIORIDAD 1: Si hay target_fid, buscar usuario por FID (más confiable que por address)
         target_fid = context.get("target_fid")
+        # Asegurar que target_fid sea un entero si viene como string
+        if target_fid is not None:
+            try:
+                target_fid = int(target_fid)
+            except (ValueError, TypeError):
+                logger.warning("⚠️ target_fid inválido recibido: %s", target_fid)
+                target_fid = None
+
         if target_fid:
+            # Verificar configuración de API Key
+            if not self.settings.neynar_api_key:
+                logger.error("❌ NEYNAR_API_KEY no configurada en backend")
+                return {
+                    "recipients": [],
+                    "rankings": [],
+                    "eligible": False,
+                    "reason": "config_error",
+                    "message": "Error de configuración del sistema: Falta API Key de Farcaster en el backend.",
+                }
+
             try:
                 logger.info("🎯 Analizando usuario específico por FID: %d", target_fid)
                 
