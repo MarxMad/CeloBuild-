@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     reward_metadata_uri: str = "ipfs://QmExample"
     default_reward_type: str = "nft"
     
+    # Modo demo: permite usuarios sin Farcaster (solo para demostración)
+    demo_mode: bool = False  # Si True, permite usuarios sin Farcaster con score reducido
+    
     # Scheduler
     auto_scan_on_startup: bool = True
     auto_scan_interval_minutes: int = 30

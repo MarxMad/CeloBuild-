@@ -77,11 +77,15 @@ class EligibilityAgent:
                             reasons.append(f"Publicó {participation_data.get('related_casts')} casts relacionados")
                     
                     # Calcular score del usuario
+                    participant_obj = {
+                        "follower_count": user_info.get("follower_count", 0),
+                        "power_badge": user_info.get("power_badge", False),
+                        "engagement_weight": engagement_weight,
+                    }
                     score = self._score_user_advanced(
+                        participant=participant_obj,
                         trend_score=trend_score,
-                        follower_count=user_info.get("follower_count", 0),
-                        power_badge=user_info.get("power_badge", False),
-                        engagement_weight=engagement_weight,
+                        participation_data=participation_data,
                     )
                     
                     if target_checksum:
@@ -108,13 +112,37 @@ class EligibilityAgent:
                 else:
                     # Usuario no encontrado por FID - esto no debería pasar si el FID es válido
                     logger.warning("❌ Usuario no encontrado en Farcaster para FID: %d", target_fid)
-                    return {
-                        "recipients": [],
-                        "rankings": [],
-                        "eligible": False,
-                        "reason": "user_not_found",
-                        "message": f"Usuario con FID {target_fid} no encontrado en Farcaster.",
-                    }
+                    
+                    # Modo demo: permitir usuarios sin Farcaster con score reducido
+                    if self.settings.demo_mode and target_address:
+                        logger.info("🎭 MODO DEMO: Permitiendo usuario sin Farcaster para demostración")
+                        target_checksum = self.celo_tool.checksum(target_address)
+                        
+                        # Crear usuario demo con score reducido
+                        demo_score = trend_score * 100 * 0.3  # 30% del score normal
+                        rankings.append({
+                            "fid": None,
+                            "username": f"demo-{target_checksum[:8]}",
+                            "address": target_checksum,
+                            "score": round(demo_score, 2),
+                            "reasons": ["Modo demo: usuario sin Farcaster"],
+                            "follower_count": 0,
+                            "power_badge": False,
+                            "participation": {
+                                "directly_participated": False,
+                                "related_casts": [],
+                                "total_engagement": 0.0,
+                            },
+                        })
+                        logger.info("✅ Usuario demo agregado: %s (score: %.2f)", target_checksum, demo_score)
+                    else:
+                        return {
+                            "recipients": [],
+                            "rankings": [],
+                            "eligible": False,
+                            "reason": "user_not_found",
+                            "message": f"Usuario con FID {target_fid} no encontrado en Farcaster.",
+                        }
             except Exception as exc:  # noqa: BLE001
                 logger.error("❌ Error analizando usuario por FID %d: %s", target_fid, exc, exc_info=True)
                 # Continuar con el flujo normal si falla la búsqueda por FID
@@ -214,17 +242,40 @@ class EligibilityAgent:
                         participation_data.get("total_engagement", 0.0)
                     )
                 else:
-                    # Usuario no encontrado en Farcaster - NO ES ELEGIBLE
-                    logger.warning("❌ Usuario no encontrado en Farcaster para address: %s. NO ES ELEGIBLE para recompensas.", target_checksum)
-                    # NO agregar al ranking - el usuario no es elegible
-                    # Retornar un estado especial indicando que no es elegible
-                    return {
-                        "recipients": [],
-                        "rankings": [],
-                        "eligible": False,
-                        "reason": "user_not_in_farcaster",
-                        "message": f"La wallet {target_checksum} no está vinculada a una cuenta de Farcaster. Solo usuarios de Farcaster son elegibles para recompensas.",
-                    }
+                    # Usuario no encontrado en Farcaster
+                    logger.warning("❌ Usuario no encontrado en Farcaster para address: %s", target_checksum)
+                    
+                    # Modo demo: permitir usuarios sin Farcaster con score reducido
+                    if self.settings.demo_mode:
+                        logger.info("🎭 MODO DEMO: Permitiendo usuario sin Farcaster para demostración")
+                        
+                        # Crear usuario demo con score reducido
+                        demo_score = trend_score * 100 * 0.3  # 30% del score normal
+                        rankings.append({
+                            "fid": None,
+                            "username": f"demo-{target_checksum[:8]}",
+                            "address": target_checksum,
+                            "score": round(demo_score, 2),
+                            "reasons": ["Modo demo: usuario sin Farcaster"],
+                            "follower_count": 0,
+                            "power_badge": False,
+                            "participation": {
+                                "directly_participated": False,
+                                "related_casts": [],
+                                "total_engagement": 0.0,
+                            },
+                        })
+                        logger.info("✅ Usuario demo agregado: %s (score: %.2f)", target_checksum, demo_score)
+                    else:
+                        # NO ES ELEGIBLE (modo normal)
+                        logger.warning("   NO ES ELEGIBLE para recompensas (solo usuarios de Farcaster)")
+                        return {
+                            "recipients": [],
+                            "rankings": [],
+                            "eligible": False,
+                            "reason": "user_not_in_farcaster",
+                            "message": f"La wallet {target_checksum} no está vinculada a una cuenta de Farcaster. Solo usuarios de Farcaster son elegibles para recompensas.",
+                        }
             except ValueError as exc:
                 logger.warning("❌ Dirección inválida: %s - %s", target_address, exc)
                 # Retornar error de elegibilidad para dirección inválida
@@ -241,13 +292,34 @@ class EligibilityAgent:
                 error_msg = str(exc)
                 # Si el error contiene "Not Found" o 404, es porque no se encontró en Farcaster
                 if "not found" in error_msg.lower() or "404" in error_msg.lower():
-                    return {
-                        "recipients": [],
-                        "rankings": [],
-                        "eligible": False,
-                        "reason": "user_not_in_farcaster",
-                        "message": f"La wallet {target_checksum if 'target_checksum' in locals() else target_address} no está vinculada a una cuenta de Farcaster. Solo usuarios de Farcaster son elegibles para recompensas.",
-                    }
+                    # Modo demo: permitir usuarios sin Farcaster
+                    if self.settings.demo_mode:
+                        logger.info("🎭 MODO DEMO: Permitiendo usuario sin Farcaster (error 404) para demostración")
+                        target_checksum = self.celo_tool.checksum(target_address)
+                        demo_score = trend_score * 100 * 0.3  # 30% del score normal
+                        rankings.append({
+                            "fid": None,
+                            "username": f"demo-{target_checksum[:8]}",
+                            "address": target_checksum,
+                            "score": round(demo_score, 2),
+                            "reasons": ["Modo demo: usuario sin Farcaster"],
+                            "follower_count": 0,
+                            "power_badge": False,
+                            "participation": {
+                                "directly_participated": False,
+                                "related_casts": [],
+                                "total_engagement": 0.0,
+                            },
+                        })
+                        logger.info("✅ Usuario demo agregado: %s (score: %.2f)", target_checksum, demo_score)
+                    else:
+                        return {
+                            "recipients": [],
+                            "rankings": [],
+                            "eligible": False,
+                            "reason": "user_not_in_farcaster",
+                            "message": f"La wallet {target_checksum if 'target_checksum' in locals() else target_address} no está vinculada a una cuenta de Farcaster. Solo usuarios de Farcaster son elegibles para recompensas.",
+                        }
                 # Para otros errores, retornar mensaje genérico
                 return {
                     "recipients": [],
