@@ -7,10 +7,15 @@
 1. **Crear proyecto en Vercel:**
    - Ve a https://vercel.com/new
    - Conecta repositorio `CeloBuild-`
-   - **Root Directory**: `lootbox-minipay/apps/agents`
+   - **Root Directory**: `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
    - **Framework Preset**: Other
    - **Build Command**: (dejar vacío)
    - **Output Directory**: (dejar vacío)
+
+2. **Si el proyecto ya existe pero no se actualiza:**
+   - Ve a **Settings → General**
+   - Verifica que **Root Directory** sea: `lootbox-minipay/apps/agents`
+   - Si está vacío o incorrecto, cámbialo y guarda (esto activará un nuevo deployment)
 
 2. **Variables de Entorno** (Settings → Environment Variables):
    ```
@@ -66,18 +71,29 @@
 
 ### Los pushes no se reflejan en Vercel
 
-1. **Verificar Root Directory:**
-   - Backend: `lootbox-minipay/apps/agents`
-   - Frontend: `lootbox-minipay/apps/web`
-   - Settings → General → Root Directory
+**⚠️ PROBLEMA MÁS COMÚN: Root Directory incorrecto o vacío**
+
+1. **Verificar Root Directory (PASO MÁS IMPORTANTE):**
+   - Ve a tu proyecto del backend en Vercel
+   - **Settings → General → Root Directory**
+   - Debe ser exactamente: `lootbox-minipay/apps/agents`
+   - Si está vacío o incorrecto:
+     - Cámbialo a: `lootbox-minipay/apps/agents`
+     - Guarda
+     - Esto activará un nuevo deployment automáticamente
 
 2. **Verificar Webhook:**
    - Settings → Git
    - Repositorio conectado: `MarxMad/CeloBuild-`
    - Branch monitoreado: `main`
+   - Si no está conectado o el webhook está roto:
+     - Desconecta el repositorio
+     - Reconecta el repositorio
+     - Selecciona branch `main`
 
 3. **Forzar redeploy:**
    - Deployments → ⋯ → Redeploy
+   - O haz un commit vacío: `git commit --allow-empty -m "trigger deploy" && git push`
 
 ### "Internal Server Error" en Frontend
 
