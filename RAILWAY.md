@@ -42,7 +42,7 @@ Después del redeploy, en los logs deberías ver:
 - ✅ **Builder**: "Nixpacks" (no "Railpack")
 - ✅ **Detecta**: Python 3.11
 - ✅ **Build**: `pip install -r requirements.txt`
-- ✅ **Start**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
+- ✅ **Start**: `python uvicorn api.index:app --host 0.0.0.0 --port $PORT`
 - ❌ **NO** debería intentar `pnpm install`
 
 ## 📋 Setup en Railway
