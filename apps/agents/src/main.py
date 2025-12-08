@@ -41,7 +41,16 @@ class LootboxEvent(BaseModel):
         return v.lower()
 
 
-app = FastAPI(title="Lootbox Multi-Agent Service", lifespan=lifespan)
+# En Vercel serverless, el lifespan puede causar problemas, así que lo hacemos opcional
+try:
+    app = FastAPI(title="Lootbox Multi-Agent Service", lifespan=lifespan)
+except Exception as exc:
+    # Si el lifespan falla (por ejemplo en serverless), crear app sin lifespan
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning("No se pudo inicializar con lifespan, usando app básica: %s", exc)
+    app = FastAPI(title="Lootbox Multi-Agent Service")
+
 supervisor = SupervisorOrchestrator.from_settings(settings)
 
 # Rate limiting simple: almacenar últimos requests por IP
