@@ -12,14 +12,23 @@ logger = logging.getLogger(__name__)
 
 def _normalize_user(payload: dict[str, Any]) -> dict[str, Any]:
     """Asegura que siempre tenemos los campos mínimos de un perfil."""
-    profile = payload.get("profile") or payload.get("user") or payload
+    # En Neynar v2, fid/username están en el nivel superior.
+    # En v1 o legacy, pueden estar en 'profile' o 'user'.
+    
+    # Si payload tiene 'fid' directamente, usar payload como fuente principal
+    if "fid" in payload:
+        source = payload
+    else:
+        # Fallback para estructuras anidadas
+        source = payload.get("profile") or payload.get("user") or payload
+
     return {
-        "fid": profile.get("fid"),
-        "username": profile.get("username") or profile.get("display_name") or "anon",
-        "custody_address": (profile.get("custody_address") or "").lower(),
-        "pfp_url": profile.get("pfp_url"),
-        "follower_count": profile.get("follower_count") or profile.get("followers", {}).get("count", 0) or 0,
-        "power_badge": bool(profile.get("power_badge")),
+        "fid": source.get("fid"),
+        "username": source.get("username") or source.get("display_name") or "anon",
+        "custody_address": (source.get("custody_address") or "").lower(),
+        "pfp_url": source.get("pfp_url"),
+        "follower_count": source.get("follower_count") or source.get("followers", {}).get("count", 0) or 0,
+        "power_badge": bool(source.get("power_badge")),
     }
 
 
