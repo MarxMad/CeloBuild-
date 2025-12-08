@@ -38,11 +38,17 @@ class EligibilityAgent:
         # PRIORIDAD 1: Si hay target_address, analizar específicamente a ese usuario
         if target_address:
             try:
-                target_checksum = self.celo_tool.checksum(target_address)
-                logger.info("🎯 Analizando usuario específico que activó recompensa: %s", target_checksum)
+                # Normalizar dirección: usar lowercase para buscar en Farcaster
+                # Neynar API requiere lowercase, no checksummed
+                target_normalized = target_address.lower().strip()
+                target_checksum = self.celo_tool.checksum(target_address)  # Para uso on-chain
+                
+                logger.info("🎯 Analizando usuario específico que activó recompensa: %s (normalized: %s)", 
+                           target_checksum, target_normalized)
                 
                 # Obtener información del usuario de Farcaster por su wallet address
-                user_info = await self.farcaster.fetch_user_by_address(target_checksum)
+                # Usar dirección normalizada (lowercase) para buscar en Neynar
+                user_info = await self.farcaster.fetch_user_by_address(target_normalized)
                 
                 if user_info and user_info.get("fid"):
                     user_fid = user_info.get("fid")
@@ -137,8 +143,35 @@ class EligibilityAgent:
                     }
             except ValueError as exc:
                 logger.warning("❌ Dirección inválida: %s - %s", target_address, exc)
+                # Retornar error de elegibilidad para dirección inválida
+                return {
+                    "recipients": [],
+                    "rankings": [],
+                    "eligible": False,
+                    "reason": "invalid_address",
+                    "message": f"Dirección de wallet inválida: {target_address}. Verifica que sea una dirección Ethereum válida.",
+                }
             except Exception as exc:  # noqa: BLE001
                 logger.error("❌ Error analizando usuario específico %s: %s", target_address, exc, exc_info=True)
+                # En caso de error, retornar como no elegible con mensaje de error
+                error_msg = str(exc)
+                # Si el error contiene "Not Found" o 404, es porque no se encontró en Farcaster
+                if "not found" in error_msg.lower() or "404" in error_msg.lower():
+                    return {
+                        "recipients": [],
+                        "rankings": [],
+                        "eligible": False,
+                        "reason": "user_not_in_farcaster",
+                        "message": f"La wallet {target_checksum if 'target_checksum' in locals() else target_address} no está vinculada a una cuenta de Farcaster. Solo usuarios de Farcaster son elegibles para recompensas.",
+                    }
+                # Para otros errores, retornar mensaje genérico
+                return {
+                    "recipients": [],
+                    "rankings": [],
+                    "eligible": False,
+                    "reason": "error_analyzing_user",
+                    "message": f"Error al analizar usuario: {error_msg[:100]}. Por favor, intenta de nuevo.",
+                }
 
         # PRIORIDAD 2: Si no hay target_address o no se encontró, analizar participantes del cast
         if not rankings and cast_hash:
