@@ -47,7 +47,10 @@ class LeaderboardStore:
 
 
 def default_store(max_entries: int = 100) -> LeaderboardStore:
-    base_path = Path(__file__).resolve().parents[1] / "data"
+    import os
+    # En Vercel serverless, usar /tmp que es writable
+    if os.getenv("VERCEL"):
+        base_path = Path("/tmp/lootbox")
+    else:
+        base_path = Path(__file__).resolve().parents[1] / "data"
     return LeaderboardStore(base_path / "leaderboard.json", max_entries=max_entries)
-
-
