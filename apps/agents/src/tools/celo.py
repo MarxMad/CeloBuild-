@@ -105,10 +105,12 @@ class CeloToolbox:
         campaign_bytes = self._campaign_bytes(campaign_id)
         checksum_recipient = self.checksum(participant)
 
+        # Usar nonce "pending" para incluir transacciones pendientes
+        nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
         tx = contract.functions.grantXp(campaign_bytes, checksum_recipient, amount).build_transaction(
             {
                 "from": self.account.address,
-                "nonce": self.web3.eth.get_transaction_count(self.account.address),
+                "nonce": nonce,
                 "gasPrice": self.web3.eth.gas_price,
             }
         )
@@ -159,6 +161,8 @@ class CeloToolbox:
         metadata_uri = metadata_uri or "ipfs://QmExample"
         
         try:
+            # Usar nonce "pending" para incluir transacciones pendientes
+            nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
             tx = contract.functions.mintBatch(
                 campaign_bytes,
                 [checksum_recipient],
@@ -166,7 +170,7 @@ class CeloToolbox:
                 [False] # Transferible
             ).build_transaction({
                 "from": self.account.address,
-                "nonce": self.web3.eth.get_transaction_count(self.account.address),
+                "nonce": nonce,
                 "gasPrice": self.web3.eth.gas_price,
             })
 
@@ -231,10 +235,12 @@ class CeloToolbox:
         campaign_bytes = self._campaign_bytes(campaign_id)
         checksum_recipients = [self.checksum(r) for r in recipients]
 
+        # Usar nonce "pending" para incluir transacciones pendientes
+        nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
         tx = contract.functions.distributeERC20(campaign_bytes, checksum_recipients).build_transaction(
             {
                 "from": self.account.address,
-                "nonce": self.web3.eth.get_transaction_count(self.account.address),
+                "nonce": nonce,
                 "gasPrice": self.web3.eth.gas_price,
             }
         )
@@ -266,15 +272,19 @@ class CeloToolbox:
         campaign_bytes = self._campaign_bytes(campaign_id)
         
         # Obtener nonce y gas price con manejo de errores
-        nonce = self.web3.eth.get_transaction_count(self.account.address)
+        # Usar nonce "pending" para incluir transacciones pendientes
+        nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
         base_gas_price = self.web3.eth.gas_price
         
-        # Si hay transacciones pendientes, usar gas price más alto
-        pending_txns = self.web3.eth.get_transaction_count(self.account.address, "pending")
-        if pending_txns > nonce:
+        # Si hay transacciones pendientes, aumentar gas price para priorizar
+        confirmed_nonce = self.web3.eth.get_transaction_count(self.account.address)
+        if nonce > confirmed_nonce:
             # Hay transacciones pendientes, aumentar gas price en 20%
             gas_price = int(base_gas_price * 1.2)
-            logger.warning("Transacciones pendientes detectadas, usando gas price aumentado: %s", gas_price)
+            logger.warning(
+                "Transacciones pendientes detectadas (nonce: %s -> %s), usando gas price aumentado: %s",
+                confirmed_nonce, nonce, gas_price
+            )
         else:
             gas_price = base_gas_price
         
@@ -328,14 +338,19 @@ class CeloToolbox:
         campaign_bytes = self._campaign_bytes(campaign_id)
         
         # Obtener nonce y gas price con manejo de errores
-        nonce = self.web3.eth.get_transaction_count(self.account.address)
+        # Usar nonce "pending" para incluir transacciones pendientes
+        nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
         base_gas_price = self.web3.eth.gas_price
         
-        # Si hay transacciones pendientes, usar gas price más alto
-        pending_txns = self.web3.eth.get_transaction_count(self.account.address, "pending")
-        if pending_txns > nonce:
+        # Si hay transacciones pendientes, aumentar gas price para priorizar
+        confirmed_nonce = self.web3.eth.get_transaction_count(self.account.address)
+        if nonce > confirmed_nonce:
+            # Hay transacciones pendientes, aumentar gas price en 20%
             gas_price = int(base_gas_price * 1.2)
-            logger.warning("Transacciones pendientes detectadas, usando gas price aumentado: %s", gas_price)
+            logger.warning(
+                "Transacciones pendientes detectadas (nonce: %s -> %s), usando gas price aumentado: %s",
+                confirmed_nonce, nonce, gas_price
+            )
         else:
             gas_price = base_gas_price
         
@@ -352,9 +367,11 @@ class CeloToolbox:
             return tx_hash.hex()
         except ValueError as e:
             error_msg = str(e)
-            if "replacement transaction underpriced" in error_msg.lower():
-                # Reintentar con gas price aún más alto
-                logger.warning("Transacción rechazada por gas price bajo, reintentando con precio más alto...")
+            if "replacement transaction underpriced" in error_msg.lower() or "nonce too low" in error_msg.lower():
+                # Reintentar con gas price aún más alto y actualizar nonce
+                logger.warning("Transacción rechazada (gas price bajo o nonce), reintentando...")
+                # Actualizar nonce por si acaso
+                nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
                 gas_price = int(base_gas_price * 1.5)
                 tx = contract.functions.configureCampaign(campaign_bytes, base_uri).build_transaction({
                     "from": self.account.address,
