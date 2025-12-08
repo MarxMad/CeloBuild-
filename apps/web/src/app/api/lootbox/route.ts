@@ -4,6 +4,11 @@ import type { LootboxEventPayload } from "@/lib/lootbox";
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL ?? process.env.NEXT_PUBLIC_AGENT_SERVICE_URL;
 
 export async function POST(request: Request) {
+  // Log para debugging
+  console.log("AGENT_SERVICE_URL:", AGENT_SERVICE_URL ? "✅ Configurado" : "❌ No configurado");
+  console.log("process.env.AGENT_SERVICE_URL:", process.env.AGENT_SERVICE_URL ? "✅" : "❌");
+  console.log("process.env.NEXT_PUBLIC_AGENT_SERVICE_URL:", process.env.NEXT_PUBLIC_AGENT_SERVICE_URL ? "✅" : "❌");
+  
   if (!AGENT_SERVICE_URL) {
     console.error("AGENT_SERVICE_URL no configurado en el frontend");
     return NextResponse.json(
@@ -18,20 +23,27 @@ export async function POST(request: Request) {
   const payload = (await request.json()) as LootboxEventPayload;
 
   try {
-    console.log(`Llamando al backend: ${AGENT_SERVICE_URL}/api/lootbox/run`);
-    const response = await fetch(`${AGENT_SERVICE_URL}/api/lootbox/run`, {
+    const backendUrl = `${AGENT_SERVICE_URL}/api/lootbox/run`;
+    const requestBody = {
+      frame_id: payload.frameId,
+      channel_id: payload.channelId,
+      trend_score: payload.trendScore,
+      thread_id: payload.threadId,
+      target_address: payload.targetAddress,
+      target_fid: payload.targetFid,
+      reward_type: payload.rewardType,
+    };
+    
+    console.log(`[LOOTBOX] Llamando al backend: ${backendUrl}`);
+    console.log(`[LOOTBOX] Payload:`, JSON.stringify(requestBody, null, 2));
+    
+    const response = await fetch(backendUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        frame_id: payload.frameId,
-        channel_id: payload.channelId,
-        trend_score: payload.trendScore,
-        thread_id: payload.threadId,
-        target_address: payload.targetAddress,
-        target_fid: payload.targetFid,
-        reward_type: payload.rewardType,
-      }),
+      body: JSON.stringify(requestBody),
     });
+    
+    console.log(`[LOOTBOX] Respuesta del backend: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
       // Leer el error una sola vez
