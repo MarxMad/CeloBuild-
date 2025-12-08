@@ -2,38 +2,48 @@
 
 ## ⚠️ Problema: Railway Detecta Node.js
 
-Si Railway detecta Node.js en lugar de Python, es porque encuentra el `package.json` en la raíz del monorepo.
+Railway está usando **Railpack** (Node.js) en lugar de **Nixpacks** (Python) porque encuentra el `package.json` en la raíz del monorepo.
 
-## ✅ Solución Definitiva
+## ✅ Solución: Cambiar Builder Manualmente
 
-### Opción 1: Configurar Root Directory ANTES del Deploy (RECOMENDADO)
+### Paso 1: Ir a Settings del Servicio
 
-1. **Elimina el servicio actual** en Railway
-2. Crea un **nuevo servicio**
-3. Selecciona "Deploy from GitHub repo"
-4. Conecta tu repositorio `CeloBuild-`
-5. **ANTES de hacer clic en "Deploy"**, ve a **Settings** (icono de engranaje)
-6. **Root Directory**: `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
-7. **Builder**: Selecciona **"Nixpacks"** (no "Railpack")
-8. **Start Command**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
-9. **Guarda** y luego haz clic en "Deploy"
+1. En Railway, ve a tu servicio
+2. Haz clic en **Settings** (icono de engranaje)
+3. Ve a la sección **"Build"**
 
-### Opción 2: Si Ya Tienes un Servicio Creado
+### Paso 2: Cambiar Builder a Nixpacks
 
-1. Ve a **Settings** del servicio
-2. **Root Directory**: `lootbox-minipay/apps/agents`
-3. **Builder**: Cambia a **"Nixpacks"**
-4. **Start Command**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
-5. **Guarda**
-6. Ve a **Deployments** y haz clic en **"Redeploy"**
+1. Busca **"Builder"** o **"Buildpack"**
+2. Cambia de **"Railpack"** a **"Nixpacks"**
+3. Si no ves la opción, busca **"Override Build Command"** y desactívala
 
-### Verificar que Funciona
+### Paso 3: Configurar Root Directory
 
-Después de configurar, Railway debería mostrar:
+1. En **Settings → General**
+2. **Root Directory**: `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
+3. Guarda
+
+### Paso 4: Configurar Start Command
+
+1. En **Settings → Deploy**
+2. **Start Command**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
+3. Guarda
+
+### Paso 5: Redeploy
+
+1. Ve a **Deployments**
+2. Haz clic en **"Redeploy"** del último deployment
+3. Ahora debería usar Nixpacks (Python) en lugar de Railpack (Node.js)
+
+## 🔍 Verificar que Funciona
+
+Después del redeploy, en los logs deberías ver:
 - ✅ **Builder**: "Nixpacks" (no "Railpack")
 - ✅ **Detecta**: Python 3.11
 - ✅ **Build**: `pip install -r requirements.txt`
 - ✅ **Start**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
+- ❌ **NO** debería intentar `pnpm install`
 
 ## 📋 Setup en Railway
 
