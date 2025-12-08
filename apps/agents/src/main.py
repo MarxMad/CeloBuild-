@@ -42,14 +42,27 @@ class LootboxEvent(BaseModel):
 
 
 # En Vercel serverless, el lifespan puede causar problemas, así que lo hacemos opcional
-try:
-    app = FastAPI(title="Lootbox Multi-Agent Service", lifespan=lifespan)
-except Exception as exc:
-    # Si el lifespan falla (por ejemplo en serverless), crear app sin lifespan
+import os
+
+# Detectar si estamos en Vercel serverless
+is_vercel = os.getenv("VERCEL") is not None
+
+if is_vercel:
+    # En Vercel, no usar lifespan (causa problemas en serverless)
+    app = FastAPI(title="Lootbox Multi-Agent Service")
     import logging
     logger = logging.getLogger(__name__)
-    logger.warning("No se pudo inicializar con lifespan, usando app básica: %s", exc)
-    app = FastAPI(title="Lootbox Multi-Agent Service")
+    logger.info("Vercel serverless detectado - usando app sin lifespan")
+else:
+    # En otros entornos (Railway, Render, local), usar lifespan con scheduler
+    try:
+        app = FastAPI(title="Lootbox Multi-Agent Service", lifespan=lifespan)
+    except Exception as exc:
+        # Si el lifespan falla, crear app sin lifespan
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("No se pudo inicializar con lifespan, usando app básica: %s", exc)
+        app = FastAPI(title="Lootbox Multi-Agent Service")
 
 supervisor = SupervisorOrchestrator.from_settings(settings)
 
