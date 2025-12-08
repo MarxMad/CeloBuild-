@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, TrendingUp, Sparkles, MessageSquare } from "lucide-react";
+import { Trophy, TrendingUp, Sparkles, MessageSquare, RefreshCw } from "lucide-react";
 
 type LeaderboardEntry = {
   username?: string;
@@ -40,6 +40,55 @@ export function Leaderboard() {
   const [activeTrends, setActiveTrends] = useState<TrendItem[]>([]);
   const [trendDetails, setTrendDetails] = useState<TrendData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isScanning, setIsScanning] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(null);
+
+  // Check cooldown on mount
+  useEffect(() => {
+    const lastScan = localStorage.getItem("lastTrendScanTime");
+    if (lastScan) {
+      const elapsed = Date.now() - parseInt(lastScan);
+      const sixHours = 6 * 60 * 60 * 1000;
+      if (elapsed < sixHours) {
+        setCooldownRemaining(sixHours - elapsed);
+      }
+    }
+  }, []);
+
+  // Update cooldown timer
+  useEffect(() => {
+    if (cooldownRemaining !== null && cooldownRemaining > 0) {
+      const interval = setInterval(() => {
+        setCooldownRemaining((prev) => {
+          if (prev === null || prev <= 1000) return null;
+          return prev - 1000;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [cooldownRemaining]);
+
+  const handleRefresh = async () => {
+    if (cooldownRemaining !== null) return;
+
+    setIsScanning(true);
+    try {
+      const res = await fetch("/api/lootbox/scan", { method: "POST" });
+      if (res.ok) {
+        localStorage.setItem("lastTrendScanTime", Date.now().toString());
+        setCooldownRemaining(6 * 60 * 60 * 1000);
+        // Reload data after a short delay to allow backend to save
+        setTimeout(() => {
+          // Force reload by triggering the fetch effect (or manually calling fetch)
+          window.location.reload(); // Simple way to refresh everything
+        }, 2000);
+      }
+    } catch (e) {
+      console.error("Scan failed", e);
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,10 +111,10 @@ export function Leaderboard() {
         if (trendsResp.ok) {
           const trendsData = await trendsResp.json();
           const trends = (trendsData.items ?? []) as TrendData[];
-          
+
           // Guardar detalles completos de tendencias
           setTrendDetails(trends);
-          
+
           // Construir tendencias activas desde los trends detectados
           const trendSummary = buildTrendSummaryFromTrends(trends);
           if (trendSummary.length > 0) {
@@ -85,7 +134,7 @@ export function Leaderboard() {
       }
     };
     fetchData();
-    
+
     // Refrescar cada 30 segundos
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
@@ -98,11 +147,21 @@ export function Leaderboard() {
     <div className="grid gap-4 sm:gap-6 md:grid-cols-2 animate-in fade-in slide-in-from-bottom-8 duration-700">
       <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
         <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#FCFF52] flex-shrink-0" />
-            <CardTitle className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              Tendencias Activas
-            </CardTitle>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-[#FCFF52] flex-shrink-0" />
+              <CardTitle className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                Tendencias Activas
+              </CardTitle>
+            </div>
+            <button
+              onClick={handleRefresh}
+              disabled={isScanning || cooldownRemaining !== null}
+              className="p-1.5 rounded-full hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title={cooldownRemaining ? `Disponible en ${Math.ceil(cooldownRemaining / (1000 * 60 * 60))}h` : "Actualizar Tendencias"}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${isScanning ? "animate-spin" : ""}`} />
+            </button>
           </div>
         </CardHeader>
         <CardContent className="space-y-2 sm:space-y-3 px-3 sm:px-6 pb-4 sm:pb-6 max-h-[600px] sm:max-h-[700px] overflow-y-auto scrollbar-thin scrollbar-thumb-[#FCFF52]/20 scrollbar-track-transparent">
@@ -116,16 +175,15 @@ export function Leaderboard() {
               Sin tendencias recientes.
             </div>
           )}
-          
+
           {/* Mostrar hasta 5 tendencias con detalles - Responsive */}
           {!loading && topTrends.map((trend, index) => (
             <div
               key={trend.frame_id || trend.cast_hash || index}
-              className={`p-2.5 sm:p-3 rounded-lg sm:rounded-xl border mb-2 transition-all hover:scale-[1.01] ${
-                index === 0
+              className={`p-2.5 sm:p-3 rounded-lg sm:rounded-xl border mb-2 transition-all hover:scale-[1.01] ${index === 0
                   ? "bg-gradient-to-br from-[#FCFF52]/10 to-transparent border-[#FCFF52]/20 shadow-sm"
                   : "bg-white/5 border-white/10"
-              }`}
+                }`}
             >
               {/* Header con score */}
               <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-2 flex-wrap">
@@ -143,7 +201,7 @@ export function Leaderboard() {
                   </div>
                 )}
               </div>
-              
+
               {/* Autor */}
               {trend.author_username && (
                 <div className="mb-1 sm:mb-1.5">
@@ -153,7 +211,7 @@ export function Leaderboard() {
                   </span>
                 </div>
               )}
-              
+
               {/* Texto del cast */}
               {trend.source_text && (
                 <div className="mb-1 sm:mb-1.5">
@@ -165,7 +223,7 @@ export function Leaderboard() {
                   </div>
                 </div>
               )}
-              
+
               {/* Análisis IA (solo para #1) */}
               {trend.ai_analysis && index === 0 && (
                 <div className="mb-1 sm:mb-1.5 p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-white/5 border border-white/10">
@@ -174,7 +232,7 @@ export function Leaderboard() {
                   </p>
                 </div>
               )}
-              
+
               {/* Tags */}
               {trend.topic_tags && trend.topic_tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1 sm:mt-1.5">
@@ -190,7 +248,7 @@ export function Leaderboard() {
               )}
             </div>
           ))}
-          
+
           {/* Tags de tendencias activas - Responsive */}
           {activeTrends.map((trend) => (
             <div
@@ -233,15 +291,14 @@ export function Leaderboard() {
             <div key={`${winner.address}-${index}`} className="flex items-center justify-between p-2">
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
-                    index === 0
+                  className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${index === 0
                       ? "bg-yellow-500 text-black"
                       : index === 1
-                      ? "bg-gray-400 text-black"
-                      : index === 2
-                      ? "bg-orange-700 text-white"
-                      : "bg-white/10 text-muted-foreground"
-                  }`}
+                        ? "bg-gray-400 text-black"
+                        : index === 2
+                          ? "bg-orange-700 text-white"
+                          : "bg-white/10 text-muted-foreground"
+                    }`}
                 >
                   {index + 1}
                 </div>
