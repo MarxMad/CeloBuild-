@@ -9,6 +9,8 @@ export async function POST(request: Request) {
   console.log("process.env.AGENT_SERVICE_URL:", process.env.AGENT_SERVICE_URL ? "✅" : "❌");
   console.log("process.env.NEXT_PUBLIC_AGENT_SERVICE_URL:", process.env.NEXT_PUBLIC_AGENT_SERVICE_URL ? "✅" : "❌");
   
+}
+  
   if (!AGENT_SERVICE_URL) {
     console.error("AGENT_SERVICE_URL no configurado en el frontend");
     return NextResponse.json(

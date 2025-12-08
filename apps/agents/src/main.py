@@ -69,6 +69,7 @@ else:
         app = FastAPI(title="Lootbox Multi-Agent Service")
 
 # Inicializar supervisor con manejo de errores
+_supervisor_error = None
 try:
     supervisor = SupervisorOrchestrator.from_settings(settings)
 except Exception as exc:
@@ -76,6 +77,10 @@ except Exception as exc:
     logger = logging.getLogger(__name__)
     logger.error("Error inicializando supervisor: %s", exc, exc_info=True)
     supervisor = None
+    _supervisor_error = {
+        "error": str(exc),
+        "type": type(exc).__name__,
+    }
 
 # Rate limiting simple: almacenar últimos requests por IP
 # En producción, usar Redis o un middleware más robusto
@@ -160,13 +165,38 @@ async def root():
             "trends": "/api/lootbox/trends",
             "run": "/api/lootbox/run",
             "scan": "/api/lootbox/scan",
-            "docs": "/docs"
+            "docs": "/docs",
+            "debug": "/debug",
         }
     }
 
 
+@app.get("/debug")
+async def debug() -> dict[str, object]:
+    """Debug endpoint que muestra el estado de inicialización del servicio."""
+    import os
+    
+    return {
+        "supervisor_initialized": supervisor is not None,
+        "supervisor_error": _supervisor_error,
+        "is_vercel": is_vercel,
+        "env_vars": {
+            "GOOGLE_API_KEY": "SET" if os.getenv("GOOGLE_API_KEY") else "MISSING",
+            "TAVILY_API_KEY": "SET" if os.getenv("TAVILY_API_KEY") else "MISSING",
+            "CELO_RPC_URL": "SET" if os.getenv("CELO_RPC_URL") else "MISSING",
+            "CELO_PRIVATE_KEY": "SET" if os.getenv("CELO_PRIVATE_KEY") else "MISSING",
+            "LOOTBOX_VAULT_ADDRESS": "SET" if os.getenv("LOOTBOX_VAULT_ADDRESS") else "MISSING",
+            "REGISTRY_ADDRESS": "SET" if os.getenv("REGISTRY_ADDRESS") else "MISSING",
+            "MINTER_ADDRESS": "SET" if os.getenv("MINTER_ADDRESS") else "MISSING",
+            "NEYNAR_API_KEY": "SET" if os.getenv("NEYNAR_API_KEY") else "MISSING",
+            "ALLOW_MANUAL_TARGET": "SET" if os.getenv("ALLOW_MANUAL_TARGET") else "MISSING",
+        }
+    }
+
+
+
 @app.get("/healthz")
-async def healthcheck() -> dict[str, str]:
+async def healthcheck() -> dict[str, Any]:
     """Health check endpoint que verifica el estado del servicio."""
     import os
     
@@ -316,6 +346,29 @@ async def run_lootbox(event: LootboxEvent):
     try:
         # Usar supervisor del scheduler si está disponible
         active_supervisor = scheduler_supervisor or supervisor
+        
+        if not active_supervisor:
+            # Verificar qué variables faltan para dar un mensaje útil
+            import os
+            missing_vars = []
+            critical_vars = [
+                "GOOGLE_API_KEY", "TAVILY_API_KEY", "CELO_RPC_URL", 
+                "CELO_PRIVATE_KEY", "LOOTBOX_VAULT_ADDRESS"
+            ]
+            for var in critical_vars:
+                if not os.getenv(var):
+                    missing_vars.append(var)
+            
+            error_msg = "Service not initialized."
+            if missing_vars:
+                error_msg += f" Missing environment variables: {', '.join(missing_vars)}"
+            
+            logger.error(error_msg)
+            raise HTTPException(
+                status_code=503,
+                detail=error_msg
+            )
+            
         result = await active_supervisor.run(event.model_dump())
     except ValueError as exc:
         # Errores de validación (direcciones inválidas, etc.)
