@@ -31,11 +31,13 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
+      // Leer el error una sola vez
       let errorBody: any;
+      const responseText = await response.text();
       try {
-        errorBody = await response.json();
+        errorBody = JSON.parse(responseText);
       } catch {
-        errorBody = await response.text();
+        errorBody = responseText;
       }
       
       console.error(`Error del backend: ${response.status} - ${JSON.stringify(errorBody)}`);
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Leer el body una sola vez
     const result = await response.json();
     console.log("Respuesta del backend:", result);
     return NextResponse.json(result);

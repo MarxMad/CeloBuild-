@@ -20,12 +20,16 @@ export async function GET(request: Request) {
     });
 
     if (!response.ok) {
-      console.error(`Error del backend: ${response.status} - ${await response.text()}`);
+      // Leer el error una sola vez
+      const errorText = await response.text();
+      console.error(`Error del backend: ${response.status} - ${errorText}`);
       // Retornar lista vacía en lugar de error para que el frontend no se rompa
       return NextResponse.json({ items: [] });
     }
 
-    return NextResponse.json(await response.json());
+    // Leer el body una sola vez
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error conectando al backend:", error);
     // Retornar lista vacía en lugar de error

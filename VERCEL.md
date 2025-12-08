@@ -42,16 +42,16 @@
 
 2. **Variables de Entorno:**
    ```
-   NEXT_PUBLIC_AGENT_SERVICE_URL=https://tu-backend.vercel.app
-   AGENT_SERVICE_URL=https://tu-backend.vercel.app
+   NEXT_PUBLIC_AGENT_SERVICE_URL=https://celo-build-backend-agents.vercel.app
+   AGENT_SERVICE_URL=https://celo-build-backend-agents.vercel.app
    NEXT_PUBLIC_WC_PROJECT_ID=tu_walletconnect_project_id
    ```
    
    **⚠️ IMPORTANTE:** 
-   - Reemplaza `https://tu-backend.vercel.app` con la URL real de tu backend desplegado en Vercel
-   - Puedes encontrar la URL en: **Settings → Domains** del proyecto del backend
+   - URL del backend: `https://celo-build-backend-agents.vercel.app` (sin trailing slash)
    - Después de agregar las variables, haz un **Redeploy** del frontend para que tome efecto
-   - Si ves el error "DEPLOYMENT_NOT_FOUND", verifica que `AGENT_SERVICE_URL` esté configurado correctamente
+   - Si ves el error "DEPLOYMENT_NOT_FOUND" o "Body has already been read", verifica que `AGENT_SERVICE_URL` esté configurado correctamente
+   - Asegúrate de que la URL no tenga trailing slash (`/`) al final
 
 ## 🔧 Troubleshooting
 
