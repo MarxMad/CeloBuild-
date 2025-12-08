@@ -36,6 +36,7 @@ class TrendWatcherAgent:
         channel_id = payload.get("channel_id") or "global"
         base_context = {
             "target_address": payload.get("target_address"),
+            "target_fid": payload.get("target_fid"),
             "channel_id": channel_id,
             "reward_type": payload.get("reward_type") or self.settings.default_reward_type,
         }
