@@ -3,6 +3,7 @@ builder = "nixpacks"
 
 [build.env]
 NIXPACKS_NO_NODE = "1"
+NIXPACKS_SKIP_NODE_DETECT = "1"
 
 [deploy]
 startCommand = "uvicorn api.index:app --host 0.0.0.0 --port $PORT"

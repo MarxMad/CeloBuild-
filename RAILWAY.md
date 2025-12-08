@@ -1,10 +1,23 @@
 # 🚂 Deployment en Railway - Backend Python
 
-## ⚠️ Problema: Railway Detecta Node.js
+## ⚠️ Problema: Nixpacks Detecta Node.js
 
-Railway está usando **Railpack** (Node.js) en lugar de **Nixpacks** (Python) porque encuentra el `package.json` en la raíz del monorepo.
+Nixpacks está detectando Node.js del monorepo y está intentando instalar pnpm, lo cual falla.
 
-## ✅ Solución: Cambiar Builder Manualmente
+## ✅ Solución: Verificar Root Directory
+
+**El problema más probable es que el Root Directory no está configurado correctamente.**
+
+1. En Railway, ve a **Settings → General**
+2. **Root Directory**: Debe ser exactamente `lootbox-minipay/apps/agents`
+3. Si está vacío o incorrecto:
+   - Cámbialo a: `lootbox-minipay/apps/agents`
+   - **Guarda**
+   - Haz un **Redeploy**
+
+Si el Root Directory está correcto pero sigue detectando Node.js, entonces:
+
+## ✅ Solución Alternativa: Cambiar Builder Manualmente
 
 ### Paso 1: Ir a Settings del Servicio
 
@@ -42,7 +55,7 @@ Después del redeploy, en los logs deberías ver:
 - ✅ **Builder**: "Nixpacks" (no "Railpack")
 - ✅ **Detecta**: Python 3.11
 - ✅ **Build**: `pip install -r requirements.txt`
-- ✅ **Start**: `python uvicorn api.index:app --host 0.0.0.0 --port $PORT`
+- ✅ **Start**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
 - ❌ **NO** debería intentar `pnpm install`
 
 ## 📋 Setup en Railway
