@@ -105,19 +105,43 @@ class CeloToolbox:
         campaign_bytes = self._campaign_bytes(campaign_id)
         checksum_recipient = self.checksum(participant)
 
-        # Usar nonce "pending" para incluir transacciones pendientes
-        nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
-        tx = contract.functions.grantXp(campaign_bytes, checksum_recipient, amount).build_transaction(
-            {
-                "from": self.account.address,
-                "nonce": nonce,
-                "gasPrice": self.web3.eth.gas_price,
-            }
-        )
-        signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
-        tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-        logger.info("XP grant transaction sent: %s", tx_hash.hex())
-        return tx_hash.hex()
+        try:
+            # Usar nonce "pending" para incluir transacciones pendientes
+            nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
+            tx = contract.functions.grantXp(campaign_bytes, checksum_recipient, amount).build_transaction(
+                {
+                    "from": self.account.address,
+                    "nonce": nonce,
+                    "gasPrice": self.web3.eth.gas_price,
+                }
+            )
+            signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            logger.info("XP grant transaction sent: %s", tx_hash.hex())
+            return tx_hash.hex()
+        except ValueError as e:
+            error_msg = str(e)
+            if "replacement transaction underpriced" in error_msg.lower() or "nonce too low" in error_msg.lower():
+                # Reintentar con gas price más alto y actualizar nonce
+                logger.warning("Transacción XP rechazada (gas/nonce), reintentando...")
+                import time
+                time.sleep(2) # Esperar propagación
+                
+                nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
+                gas_price = int(self.web3.eth.gas_price * 1.5)
+                
+                tx = contract.functions.grantXp(campaign_bytes, checksum_recipient, amount).build_transaction(
+                    {
+                        "from": self.account.address,
+                        "nonce": nonce,
+                        "gasPrice": gas_price,
+                    }
+                )
+                signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+                tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+                logger.info("XP grant transaction sent (retry): %s", tx_hash.hex())
+                return tx_hash.hex()
+            raise
     
     def get_xp_balance(self, registry_address: str, campaign_id: str, participant: str) -> int:
         """Lee el balance de XP de un participante desde el contrato LootAccessRegistry."""
