@@ -448,9 +448,9 @@ class FarcasterToolbox:
             return None
         
         headers = {"accept": "application/json", "api_key": self.neynar_key}
-        # Endpoint de Neynar v2 para buscar usuario por FID
-        # Documentación: https://docs.neynar.com/reference/user-by-fid
-        url = f"https://api.neynar.com/v2/farcaster/user/by_fid?fid={fid}"
+        # Endpoint de Neynar v2 para buscar usuario por FID (usando bulk)
+        # Documentación: https://docs.neynar.com/reference/user-bulk
+        url = f"https://api.neynar.com/v2/farcaster/user/bulk?fids={fid}"
         
         async with httpx.AsyncClient(timeout=10) as client:
             try:
@@ -473,11 +473,12 @@ class FarcasterToolbox:
                 
                 logger.debug("📦 Datos recibidos de Neynar: %s", str(data)[:200])
                 
-                # La API retorna el usuario en diferentes formatos
+                # La API v2 bulk retorna {"users": [...]}
                 user_data = None
                 if isinstance(data, dict):
-                    if "result" in data and isinstance(data["result"], dict):
-                        user_data = data["result"].get("user")
+                    users = data.get("users", [])
+                    if users and len(users) > 0:
+                        user_data = users[0]
                     if not user_data and "user" in data:
                         user_data = data["user"]
                     if not user_data and "fid" in data:
