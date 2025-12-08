@@ -76,9 +76,15 @@ export function TrendingCampaignForm() {
         channelId: "global",
         trendScore: 0,
         targetAddress: address, // Enviar address para recompensa
-        targetFid: farcasterUser.fid || undefined, // Enviar FID si está disponible (más confiable)
+        targetFid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined, // Asegurar que sea número
         rewardType: undefined, // No especificar aún, solo análisis
       };
+
+      console.log("📤 Enviando análisis:", {
+        ...analysisPayload,
+        hasFid: !!farcasterUser.fid,
+        fidValue: farcasterUser.fid
+      });
 
       const response = await fetch("/api/lootbox", {
         method: "POST",
@@ -385,8 +391,8 @@ export function TrendingCampaignForm() {
                         </span>
                         {result.trend_info.ai_enabled !== undefined && (
                           <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${result.trend_info.ai_enabled
-                              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                              : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
+                            ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                            : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
                             }`}>
                             {result.trend_info.ai_enabled ? "🤖 AI" : "📊 Básico"}
                           </span>
