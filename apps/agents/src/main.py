@@ -196,7 +196,7 @@ async def debug() -> dict[str, object]:
 
 
 @app.get("/healthz")
-async def healthcheck() -> dict[str, Any]:
+async def healthcheck() -> dict[str, object]:
     """Health check endpoint que verifica el estado del servicio."""
     import os
     
