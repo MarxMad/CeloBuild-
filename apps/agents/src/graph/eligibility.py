@@ -241,9 +241,11 @@ class EligibilityAgent:
                         participant.get("power_badge", False),
                         participation_data.get("total_engagement", 0.0)
                     )
-                else:
-                    # Usuario no encontrado en Farcaster
-                    logger.warning("❌ Usuario no encontrado en Farcaster para address: %s", target_checksum)
+                elif user_info is None:
+                    # Usuario no encontrado en Farcaster (user_info es None)
+                    logger.warning("❌ Usuario no encontrado en Farcaster para address: %s (normalized: %s)", 
+                                 target_checksum, target_normalized)
+                    logger.warning("   Esto significa que la wallet no está vinculada a una cuenta de Farcaster")
                     
                     # Modo demo: permitir usuarios sin Farcaster con score reducido
                     if self.settings.demo_mode:
@@ -291,7 +293,8 @@ class EligibilityAgent:
                 # En caso de error, retornar como no elegible con mensaje de error
                 error_msg = str(exc)
                 # Si el error contiene "Not Found" o 404, es porque no se encontró en Farcaster
-                if "not found" in error_msg.lower() or "404" in error_msg.lower():
+                if "not found" in error_msg.lower() or "404" in error_msg.lower() or "user_not_in_farcaster" in error_msg.lower():
+                    logger.warning("❌ Error 404/Not Found al buscar usuario en Farcaster: %s", error_msg[:200])
                     # Modo demo: permitir usuarios sin Farcaster
                     if self.settings.demo_mode:
                         logger.info("🎭 MODO DEMO: Permitiendo usuario sin Farcaster (error 404) para demostración")

@@ -148,6 +148,23 @@ async def rate_limit_middleware(request: Request, call_next):
     return response
 
 
+@app.get("/")
+async def root():
+    """Endpoint raíz para verificar que el servicio está funcionando."""
+    return {
+        "service": "Lootbox Multi-Agent Service",
+        "status": "running",
+        "endpoints": {
+            "health": "/healthz",
+            "leaderboard": "/api/lootbox/leaderboard",
+            "trends": "/api/lootbox/trends",
+            "run": "/api/lootbox/run",
+            "scan": "/api/lootbox/scan",
+            "docs": "/docs"
+        }
+    }
+
+
 @app.get("/healthz")
 async def healthcheck() -> dict[str, str]:
     """Health check endpoint que verifica el estado del servicio."""

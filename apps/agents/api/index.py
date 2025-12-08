@@ -64,9 +64,19 @@ except Exception as e:
     @app.get("/")
     async def root():
         return {
+            "service": "Lootbox Multi-Agent Service (Error Mode)",
+            "status": "error",
             "error": "Failed to initialize app",
             "details": _app_error,
             "python_path": sys.path
+        }
+    
+    @app.get("/api")
+    async def api_root():
+        return {
+            "service": "Lootbox Multi-Agent Service (Error Mode)",
+            "status": "error",
+            "message": "App failed to initialize. Check /debug for details."
         }
     
     @app.get("/debug")
