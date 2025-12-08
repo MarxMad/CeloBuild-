@@ -426,21 +426,76 @@ class CeloToolbox:
         campaign_bytes = self._campaign_bytes(campaign_id)
         token_checksum = self.checksum(token_address)
         
-        tx = contract.functions.initializeCampaign(
-            campaign_bytes,
-            token_checksum,
-            reward_per_recipient
-        ).build_transaction({
-            "from": self.account.address,
-            "nonce": self.web3.eth.get_transaction_count(self.account.address),
-            "gasPrice": self.web3.eth.gas_price,
-        })
+        # Usar nonce "pending" para incluir transacciones pendientes
+        nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
+        base_gas_price = self.web3.eth.gas_price
         
-        signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
-        tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-        logger.info(
-            "Campaign initialized in Vault: %s (token: %s, reward: %s wei) (tx: %s)",
-            campaign_id, token_address, reward_per_recipient, tx_hash.hex()
-        )
-        return tx_hash.hex()
+        # Si hay transacciones pendientes, aumentar gas price
+        confirmed_nonce = self.web3.eth.get_transaction_count(self.account.address)
+        if nonce > confirmed_nonce:
+            gas_price = int(base_gas_price * 1.2)
+            logger.warning(
+                "Transacciones pendientes detectadas (nonce: %s -> %s), usando gas price aumentado: %s",
+                confirmed_nonce, nonce, gas_price
+            )
+        else:
+            gas_price = base_gas_price
+        
+        try:
+            tx = contract.functions.initializeCampaign(
+                campaign_bytes,
+                token_checksum,
+                reward_per_recipient
+            ).build_transaction({
+                "from": self.account.address,
+                "nonce": nonce,
+                "gasPrice": gas_price,
+            })
+            
+            signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            logger.info(
+                "Campaign initialized in Vault: %s (token: %s, reward: %s wei) (tx: %s)",
+                campaign_id, token_address, reward_per_recipient, tx_hash.hex()
+            )
+            return tx_hash.hex()
+        except (ValueError, Exception) as e:  # noqa: BLE001
+            error_msg = str(e)
+            error_repr = repr(e)
+            
+            # Detectar si la campaña ya está inicializada
+            # El contrato revierte con InvalidInput() cuando campaign.token != address(0)
+            # Esto puede aparecer como diferentes formatos de error
+            is_already_initialized = (
+                "0xb4fa3fb3" in error_msg or 
+                "0xb4fa3fb3" in error_repr or
+                "CampaignAlreadyInitialized" in error_msg or 
+                "already initialized" in error_msg.lower() or
+                "InvalidInput" in error_msg or
+                ("execution reverted" in error_msg.lower() and "0xb4fa3fb3" in error_repr)
+            )
+            
+            if is_already_initialized:
+                logger.debug("Campaña %s ya está inicializada en LootBoxVault (esto es normal)", campaign_id)
+                # Lanzar error específico para que el caller lo maneje silenciosamente
+                raise ValueError(f"Campaign {campaign_id} already initialized in Vault") from e
+            elif "replacement transaction underpriced" in error_msg.lower() or "nonce too low" in error_msg.lower():
+                # Reintentar con gas price más alto
+                logger.warning("Transacción rechazada (gas price bajo o nonce), reintentando...")
+                nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
+                gas_price = int(base_gas_price * 1.5)
+                tx = contract.functions.initializeCampaign(
+                    campaign_bytes,
+                    token_checksum,
+                    reward_per_recipient
+                ).build_transaction({
+                    "from": self.account.address,
+                    "nonce": nonce,
+                    "gasPrice": gas_price,
+                })
+                signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+                tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+                logger.info("Campaign initialized in Vault (retry): %s (tx: %s)", campaign_id, tx_hash.hex())
+                return tx_hash.hex()
+            raise
 

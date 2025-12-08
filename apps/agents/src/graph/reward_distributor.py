@@ -89,11 +89,22 @@ class RewardDistributorAgent:
                     # Si falla, la campaña puede seguir funcionando para NFT y XP
                     # Solo fallará si intenta distribuir cUSD desde el vault
                     error_str = str(vault_exc)
-                    if "replacement transaction underpriced" in error_str.lower():
-                        logger.warning("Transacción pendiente detectada para Vault, continuando...")
-                    elif "already initialized" in error_str.lower() or "0xb4fa3fb3" in error_str:
-                        logger.info("Campaña %s ya está inicializada en LootBoxVault (esto es normal)", campaign_id)
+                    error_repr = repr(vault_exc)
+                    
+                    # Detectar diferentes tipos de errores
+                    if "replacement transaction underpriced" in error_str.lower() or "nonce too low" in error_str.lower():
+                        logger.debug("Transacción pendiente detectada para Vault, continuando...")
+                    elif (
+                        "already initialized" in error_str.lower() or 
+                        "0xb4fa3fb3" in error_str or 
+                        "0xb4fa3fb3" in error_repr or
+                        "CampaignAlreadyInitialized" in error_str or
+                        "InvalidInput" in error_str
+                    ):
+                        # La campaña ya está inicializada - esto es normal y esperado
+                        logger.debug("Campaña %s ya está inicializada en LootBoxVault (esto es normal)", campaign_id)
                     else:
+                        # Otro tipo de error - loguear como warning
                         logger.warning(
                             "No se pudo inicializar campaña en Vault (puede que ya esté inicializada): %s",
                             vault_exc
