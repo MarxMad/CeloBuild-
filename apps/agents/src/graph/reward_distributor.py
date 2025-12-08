@@ -190,12 +190,30 @@ class RewardDistributorAgent:
                         logger.error("Fallo minteando NFT: %s", exc)
                 
                 elif user_score >= self.settings.tier_cusd_threshold:
-                                campaign_id=campaign_id,
-                                recipients=[address],
-                            )
-                            micropayments[address] = tx_hash
-                        except Exception as exc:  # noqa: BLE001
-                            logger.error("Fallo distribuyendo cUSD: %s", exc)
+                    # Priorizar distribución vía contrato como solicitó el usuario
+                    try:
+                        logger.info("Enviando cUSD via contrato (LootBoxVault) a %s (score: %.2f)...", address, user_score)
+                        tx_hash = self.celo_tool.distribute_cusd(
+                            vault_address=self.settings.lootbox_vault_address,
+                            campaign_id=campaign_id,
+                            recipients=[address],
+                        )
+                        micropayments[address] = tx_hash
+                    except Exception as exc:  # noqa: BLE001
+                        logger.error("Fallo distribuyendo cUSD via contrato: %s", exc)
+                        
+                        # Fallback opcional a MiniPay Tool
+                        if self.settings.minipay_tool_url:
+                            try:
+                                logger.info("Intentando fallback a MiniPay Tool API...")
+                                resp = await self.minipay.send_micropayment(
+                                    recipient=address,
+                                    amount=self.settings.cusd_reward_amount,
+                                    note=f"Premio {campaign_id}",
+                                )
+                                micropayments[address] = resp.get("tx_hash") or resp.get("id") or "micropayment"
+                            except Exception as exc2:
+                                logger.error("Fallo fallback MiniPay Tool: %s", exc2)
                 
                 else:
                     # Tier 3: XP para scores bajos pero elegibles
