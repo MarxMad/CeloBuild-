@@ -96,18 +96,46 @@ class TrendWatcherAgent:
             if len(valid_trends) >= 5:
                 break
         
-        if not valid_trends:
-            # Si no hay tendencias válidas, retornar el top cast con status de bajo umbral
+            # Si no hay tendencias válidas, usar las top 5 de bajo umbral
             top_cast = scored_casts[0]
             logger.info(
                 "Trend encontrado pero bajo el umbral (%.2f < %.2f)",
                 top_cast["trend_score"],
                 self.settings.min_trend_score,
             )
+            
+            # Recopilar top 5 tendencias débiles para mostrar en el frontend
+            weak_trends = []
+            seen_users_weak: set[int | str] = set()
+            
+            for cast in scored_casts:
+                author = cast.get("author", {})
+                user_id = author.get("fid") or author.get("username") or "unknown"
+                
+                if user_id not in seen_users_weak and len(weak_trends) < 5:
+                    seen_users_weak.add(user_id)
+                    
+                    # Formatear tendencia débil
+                    weak_trends.append({
+                        "frame_id": "cast-" + (cast.get("hash") or "unknown")[:8],
+                        "cast_hash": cast.get("hash"),
+                        "trend_score": round(cast["trend_score"], 3),
+                        "source_text": cast.get("text"),
+                        "ai_analysis": cast.get("text"), # Sin análisis AI profundo para ahorrar tokens
+                        "ai_enabled": False,
+                        "topic_tags": self._extract_tags(cast.get("text", "")),
+                        "channel_id": cast.get("channel_id") or channel_id,
+                        "author": cast.get("author", {}),
+                    })
+                
+                if len(weak_trends) >= 5:
+                    break
+
             # Generar frame_id incluso para tendencias bajo el umbral
             frame_identifier = "cast-" + (top_cast.get("hash") or "unknown")[:8]
             # Generar análisis (puede usar AI o fallback)
             analysis_text, uses_ai = await self._summarize_cast(top_cast)
+            
             return {
                 **base_context,
                 "status": "trend_below_threshold",
@@ -118,7 +146,7 @@ class TrendWatcherAgent:
                 "ai_analysis": analysis_text,
                 "ai_enabled": uses_ai,  # Indicador si se usó AI o fallback
                 "topic_tags": self._extract_tags(top_cast.get("text", "")),
-                "trends": [],  # Lista vacía de tendencias válidas
+                "trends": weak_trends,  # Retornar las tendencias débiles
             }
         
         # Procesar cada tendencia válida
