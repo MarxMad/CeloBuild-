@@ -46,6 +46,12 @@
    AGENT_SERVICE_URL=https://tu-backend.vercel.app
    NEXT_PUBLIC_WC_PROJECT_ID=tu_walletconnect_project_id
    ```
+   
+   **⚠️ IMPORTANTE:** 
+   - Reemplaza `https://tu-backend.vercel.app` con la URL real de tu backend desplegado en Vercel
+   - Puedes encontrar la URL en: **Settings → Domains** del proyecto del backend
+   - Después de agregar las variables, haz un **Redeploy** del frontend para que tome efecto
+   - Si ves el error "DEPLOYMENT_NOT_FOUND", verifica que `AGENT_SERVICE_URL` esté configurado correctamente
 
 ## 🔧 Troubleshooting
 
