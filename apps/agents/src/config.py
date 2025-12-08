@@ -52,25 +52,52 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
-# Inicializar settings con manejo de errores
+# Inicializar settings con manejo de errores robusto
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     settings = Settings()
+    logger.info("✅ Settings cargados correctamente")
 except Exception as e:
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.error("Error cargando configuración: %s", e, exc_info=True)
+    logger.warning("⚠️ Error cargando configuración completa: %s", e)
+    logger.info("🔄 Intentando cargar con valores por defecto...")
+    
     # Crear settings con valores por defecto para que el health check funcione
     # Esto permite que el backend arranque incluso si faltan algunas variables
-    import os
-    settings = Settings(
-        google_api_key=os.getenv("GOOGLE_API_KEY", ""),
-        tavily_api_key=os.getenv("TAVILY_API_KEY", ""),
-        celo_rpc_url=os.getenv("CELO_RPC_URL", ""),
-        lootbox_vault_address=os.getenv("LOOTBOX_VAULT_ADDRESS", ""),
-        registry_address=os.getenv("REGISTRY_ADDRESS", ""),
-        minter_address=os.getenv("MINTER_ADDRESS", ""),
-        celo_private_key=os.getenv("CELO_PRIVATE_KEY", ""),
-    )
+    try:
+        settings = Settings(
+            google_api_key=os.getenv("GOOGLE_API_KEY", ""),
+            tavily_api_key=os.getenv("TAVILY_API_KEY", ""),
+            celo_rpc_url=os.getenv("CELO_RPC_URL", ""),
+            lootbox_vault_address=os.getenv("LOOTBOX_VAULT_ADDRESS", ""),
+            registry_address=os.getenv("REGISTRY_ADDRESS", ""),
+            minter_address=os.getenv("MINTER_ADDRESS", ""),
+            celo_private_key=os.getenv("CELO_PRIVATE_KEY", ""),
+            neynar_api_key=os.getenv("NEYNAR_API_KEY", ""),
+        )
+        logger.info("✅ Settings cargados con valores por defecto")
+    except Exception as e2:
+        logger.error("❌ Error crítico cargando settings: %s", e2, exc_info=True)
+        # Crear un objeto settings mínimo para evitar que el import falle
+        # Esto permite que el health check al menos funcione
+        from types import SimpleNamespace
+        settings = SimpleNamespace(
+            google_api_key=os.getenv("GOOGLE_API_KEY", ""),
+            tavily_api_key=os.getenv("TAVILY_API_KEY", ""),
+            celo_rpc_url=os.getenv("CELO_RPC_URL", ""),
+            lootbox_vault_address=os.getenv("LOOTBOX_VAULT_ADDRESS", ""),
+            registry_address=os.getenv("REGISTRY_ADDRESS", ""),
+            minter_address=os.getenv("MINTER_ADDRESS", ""),
+            celo_private_key=os.getenv("CELO_PRIVATE_KEY", ""),
+            neynar_api_key=os.getenv("NEYNAR_API_KEY", ""),
+            min_trend_score=0.35,
+            max_reward_recipients=5,
+            allow_manual_target=False,
+        )
+        logger.warning("⚠️ Usando settings mínimos - algunas funciones pueden no funcionar")
 
 
 
