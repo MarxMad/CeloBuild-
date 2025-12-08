@@ -4,39 +4,36 @@
 
 Si Railway detecta Node.js en lugar de Python, es porque encuentra el `package.json` en la raíz del monorepo.
 
-## ✅ Solución Paso a Paso
+## ✅ Solución Definitiva
 
-### Paso 1: Eliminar el Servicio Actual
+### Opción 1: Configurar Root Directory ANTES del Deploy (RECOMENDADO)
 
-1. En Railway, **elimina el servicio actual** que está usando Railpack
-2. Esto es necesario porque Railway ya detectó Node.js y no cambiará automáticamente
+1. **Elimina el servicio actual** en Railway
+2. Crea un **nuevo servicio**
+3. Selecciona "Deploy from GitHub repo"
+4. Conecta tu repositorio `CeloBuild-`
+5. **ANTES de hacer clic en "Deploy"**, ve a **Settings** (icono de engranaje)
+6. **Root Directory**: `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
+7. **Builder**: Selecciona **"Nixpacks"** (no "Railpack")
+8. **Start Command**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
+9. **Guarda** y luego haz clic en "Deploy"
 
-### Paso 2: Crear Nuevo Servicio con Root Directory
+### Opción 2: Si Ya Tienes un Servicio Creado
 
-1. Crea un **nuevo servicio** en Railway
-2. Selecciona "Deploy from GitHub repo"
-3. Conecta tu repositorio `CeloBuild-`
-4. **IMPORTANTE**: Antes de hacer deploy, ve a **Settings**
-5. **Root Directory**: `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
-6. Guarda
+1. Ve a **Settings** del servicio
+2. **Root Directory**: `lootbox-minipay/apps/agents`
+3. **Builder**: Cambia a **"Nixpacks"**
+4. **Start Command**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
+5. **Guarda**
+6. Ve a **Deployments** y haz clic en **"Redeploy"**
 
-### Paso 3: Forzar Nixpacks (Python)
+### Verificar que Funciona
 
-1. En **Settings → Build**
-2. **Builder**: Cambia a **"Nixpacks"** (no "Railpack")
-3. Si no ves la opción, Railway debería detectar Python automáticamente con:
-   - `requirements.txt`
-   - `runtime.txt`
-   - `nixpacks.toml`
-   - `railway.toml`
-
-### Paso 4: Verificar Detección
-
-Después de configurar el Root Directory, Railway debería:
-- Ver `requirements.txt` (Python)
-- Ver `nixpacks.toml` (configuración Python)
-- **NO** ver `package.json` (porque está fuera del Root Directory)
-- Usar Nixpacks en lugar de Railpack
+Después de configurar, Railway debería mostrar:
+- ✅ **Builder**: "Nixpacks" (no "Railpack")
+- ✅ **Detecta**: Python 3.11
+- ✅ **Build**: `pip install -r requirements.txt`
+- ✅ **Start**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
 
 ## 📋 Setup en Railway
 
