@@ -1,5 +1,32 @@
 # 🚂 Deployment en Railway - Backend Python
 
+## ⚠️ Problema: Railway Detecta Node.js
+
+Si Railway detecta Node.js en lugar de Python, es porque encuentra el `package.json` en la raíz del monorepo.
+
+## ✅ Solución
+
+### Paso 1: Configurar Root Directory
+
+1. En Railway, ve a **Settings** del servicio
+2. **Root Directory**: `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
+3. Esto hace que Railway solo vea el directorio del backend (Python), no el monorepo completo
+
+### Paso 2: Forzar Nixpacks (Python)
+
+1. En **Settings → Build**
+2. **Builder**: Selecciona **"Nixpacks"** (no "Railpack")
+3. Railway usará `nixpacks.toml` para detectar Python
+
+### Paso 3: Si Sigue Detectando Node.js
+
+1. **Elimina el servicio actual**
+2. **Crea un nuevo servicio**
+3. Al crear, especifica:
+   - **Root Directory**: `lootbox-minipay/apps/agents`
+   - **Builder**: "Nixpacks"
+4. Railway debería detectar Python automáticamente
+
 ## 📋 Setup en Railway
 
 ### Paso 1: Crear Proyecto
@@ -11,8 +38,9 @@
 
 ### Paso 2: Configurar el Servicio
 
-1. **Root Directory**: `lootbox-minipay/apps/agents`
-2. Railway debería detectar automáticamente que es Python por:
+1. **Root Directory**: `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
+2. **Builder**: "Nixpacks" (no Railpack)
+3. Railway debería detectar automáticamente que es Python por:
    - `requirements.txt`
    - `runtime.txt`
    - `nixpacks.toml`
