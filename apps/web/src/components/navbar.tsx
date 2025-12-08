@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Box } from "lucide-react"
+import Image from "next/image"
 import { ConnectButton } from "@/components/connect-button"
 
 export function Navbar() {
@@ -11,11 +11,17 @@ export function Navbar() {
         
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <div className="p-1.5 bg-primary rounded-lg text-primary-foreground shadow-sm">
-                <Box className="h-4 w-4" />
+            <div className="relative h-8 w-8">
+                <Image 
+                    src="/PremioxyzLogo.svg" 
+                    alt="Premio.xyz Logo" 
+                    fill
+                    className="object-contain"
+                    priority
+                />
             </div>
             <span className="font-bold text-sm tracking-tight hidden sm:inline-block">
-              Loot Box
+              Premio.xyz
             </span>
         </Link>
         
