@@ -68,7 +68,14 @@ else:
         logger.warning("No se pudo inicializar con lifespan, usando app básica: %s", exc)
         app = FastAPI(title="Lootbox Multi-Agent Service")
 
-supervisor = SupervisorOrchestrator.from_settings(settings)
+# Inicializar supervisor con manejo de errores
+try:
+    supervisor = SupervisorOrchestrator.from_settings(settings)
+except Exception as exc:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error("Error inicializando supervisor: %s", exc, exc_info=True)
+    supervisor = None
 
 # Rate limiting simple: almacenar últimos requests por IP
 # En producción, usar Redis o un middleware más robusto
@@ -143,7 +150,37 @@ async def rate_limit_middleware(request: Request, call_next):
 
 @app.get("/healthz")
 async def healthcheck() -> dict[str, str]:
-    return {"status": "ok"}
+    """Health check endpoint que verifica el estado del servicio."""
+    import os
+    
+    # Verificar variables de entorno críticas
+    missing_vars = []
+    critical_vars = [
+        "GOOGLE_API_KEY",
+        "TAVILY_API_KEY", 
+        "CELO_RPC_URL",
+        "CELO_PRIVATE_KEY",
+        "LOOTBOX_VAULT_ADDRESS",
+        "REGISTRY_ADDRESS",
+        "MINTER_ADDRESS",
+    ]
+    
+    for var in critical_vars:
+        if not os.getenv(var):
+            missing_vars.append(var)
+    
+    status = "ok" if not missing_vars and supervisor is not None else "degraded"
+    
+    response = {
+        "status": status,
+        "supervisor_initialized": supervisor is not None,
+    }
+    
+    if missing_vars:
+        response["missing_env_vars"] = missing_vars
+        response["message"] = f"Faltan {len(missing_vars)} variables de entorno críticas"
+    
+    return response
 
 
 @app.get("/api/lootbox/leaderboard")

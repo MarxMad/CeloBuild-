@@ -52,7 +52,25 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
-settings = Settings()
+# Inicializar settings con manejo de errores
+try:
+    settings = Settings()
+except Exception as e:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error("Error cargando configuración: %s", e, exc_info=True)
+    # Crear settings con valores por defecto para que el health check funcione
+    # Esto permite que el backend arranque incluso si faltan algunas variables
+    import os
+    settings = Settings(
+        google_api_key=os.getenv("GOOGLE_API_KEY", ""),
+        tavily_api_key=os.getenv("TAVILY_API_KEY", ""),
+        celo_rpc_url=os.getenv("CELO_RPC_URL", ""),
+        lootbox_vault_address=os.getenv("LOOTBOX_VAULT_ADDRESS", ""),
+        registry_address=os.getenv("REGISTRY_ADDRESS", ""),
+        minter_address=os.getenv("MINTER_ADDRESS", ""),
+        celo_private_key=os.getenv("CELO_PRIVATE_KEY", ""),
+    )
 
 
 
