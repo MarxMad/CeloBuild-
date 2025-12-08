@@ -58,8 +58,8 @@ class SupervisorOrchestrator:
 
         trend_context = await self.trend_watcher.handle(payload)
         
-        # Guardar todas las tendencias detectadas si es válida
-        if trend_context.get("status") == "trend_detected":
+        # Guardar todas las tendencias detectadas si es válida o si es la mejor encontrada (aunque sea bajo umbral)
+        if trend_context.get("status") in ["trend_detected", "trend_below_threshold"]:
             trends_list = trend_context.get("trends", [])
             
             # Si hay una lista de tendencias, guardar todas
