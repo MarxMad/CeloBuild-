@@ -171,5 +171,7 @@ class SupervisorOrchestrator:
                 "trend_score": trend_context.get("trend_score"),
                 "topic_tags": trend_context.get("topic_tags", []),
             } if trend_context.get("status") in ("trend_detected", "trend_below_threshold") else None,
+            eligible=True,
+            eligibility_message=eligible_users.get("message"),
         )
 
