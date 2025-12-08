@@ -3,8 +3,10 @@ import { NextResponse } from "next/server";
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL ?? process.env.NEXT_PUBLIC_AGENT_SERVICE_URL;
 
 export async function GET(request: Request) {
+  // Si no hay AGENT_SERVICE_URL, retornar lista vacía en lugar de error
   if (!AGENT_SERVICE_URL) {
-    return NextResponse.json({ error: "AGENT_SERVICE_URL no configurado" }, { status: 500 });
+    console.warn("AGENT_SERVICE_URL no configurado, retornando leaderboard vacío");
+    return NextResponse.json({ items: [] });
   }
 
   const url = new URL(request.url);
@@ -18,13 +20,16 @@ export async function GET(request: Request) {
     });
 
     if (!response.ok) {
-      const body = await response.text();
-      return NextResponse.json({ error: body || "Error en leaderboard" }, { status: response.status });
+      console.error(`Error del backend: ${response.status} - ${await response.text()}`);
+      // Retornar lista vacía en lugar de error para que el frontend no se rompa
+      return NextResponse.json({ items: [] });
     }
 
     return NextResponse.json(await response.json());
   } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    console.error("Error conectando al backend:", error);
+    // Retornar lista vacía en lugar de error
+    return NextResponse.json({ items: [] });
   }
 }
 

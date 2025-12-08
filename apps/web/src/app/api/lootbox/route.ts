@@ -5,12 +5,17 @@ const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL ?? process.env.NEXT_PUBL
 
 export async function POST(request: Request) {
   if (!AGENT_SERVICE_URL) {
-    return NextResponse.json({ error: "AGENT_SERVICE_URL no configurado" }, { status: 500 });
+    console.error("AGENT_SERVICE_URL no configurado");
+    return NextResponse.json(
+      { error: "Backend no configurado. Verifica AGENT_SERVICE_URL en variables de entorno." },
+      { status: 500 }
+    );
   }
 
   const payload = (await request.json()) as LootboxEventPayload;
 
   try {
+    console.log(`Llamando al backend: ${AGENT_SERVICE_URL}/api/lootbox/run`);
     const response = await fetch(`${AGENT_SERVICE_URL}/api/lootbox/run`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -26,12 +31,22 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      return NextResponse.json({ error: errorBody || "Agente respondió con error" }, { status: response.status });
+      console.error(`Error del backend: ${response.status} - ${errorBody}`);
+      return NextResponse.json(
+        { error: errorBody || `Agente respondió con error ${response.status}` },
+        { status: response.status }
+      );
     }
 
-    return NextResponse.json(await response.json());
+    const result = await response.json();
+    console.log("Respuesta del backend:", result);
+    return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    console.error("Error conectando al backend:", error);
+    return NextResponse.json(
+      { error: `Error de conexión: ${(error as Error).message}. Verifica que el backend esté corriendo en ${AGENT_SERVICE_URL}` },
+      { status: 500 }
+    );
   }
 }
 
