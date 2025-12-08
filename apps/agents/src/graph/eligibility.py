@@ -104,7 +104,7 @@ class EligibilityAgent:
                         {
                             "fid": target_fid,
                             "username": username,
-                            "address": user_info.get("custody_address"),
+                            "address": target_checksum or user_info.get("custody_address"),
                             "score": round(score, 2),
                             "reasons": ["Usuario verificado por FID", f"Engagement: {engagement_weight}"],
                             "follower_count": user_info.get("follower_count", 0),
