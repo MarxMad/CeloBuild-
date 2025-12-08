@@ -31,10 +31,24 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`Error del backend: ${response.status} - ${errorBody}`);
+      let errorBody: any;
+      try {
+        errorBody = await response.json();
+      } catch {
+        errorBody = await response.text();
+      }
+      
+      console.error(`Error del backend: ${response.status} - ${JSON.stringify(errorBody)}`);
+      
+      // Si el error contiene "detail", extraerlo
+      const errorMessage = errorBody?.detail || errorBody?.error || errorBody || `Error ${response.status}`;
+      
       return NextResponse.json(
-        { error: errorBody || `Agente respondió con error ${response.status}` },
+        { 
+          error: typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage),
+          status: response.status,
+          detail: errorBody
+        },
         { status: response.status }
       );
     }

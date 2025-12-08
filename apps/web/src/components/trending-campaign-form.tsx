@@ -87,7 +87,15 @@ export function TrendingCampaignForm() {
       });
       
       if (!response.ok) {
-        throw new Error((await response.json()).error ?? "Error en el análisis");
+        const errorData = await response.json();
+        const errorMessage = errorData?.error || errorData?.detail || "Error en el análisis";
+        
+        // Si el error es "DEPLOYMENT_NOT_FOUND", es un problema de configuración de Vercel
+        if (errorMessage.includes("DEPLOYMENT_NOT_FOUND") || errorMessage.includes("deployment could not be found")) {
+          throw new Error("Error de configuración: El backend no está configurado correctamente en Vercel. Verifica que AGENT_SERVICE_URL esté configurado en las variables de entorno del frontend.");
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const analysisResult = await response.json();
@@ -148,7 +156,15 @@ export function TrendingCampaignForm() {
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
-        throw new Error((await response.json()).error ?? "Error desconocido");
+        const errorData = await response.json();
+        const errorMessage = errorData?.error || errorData?.detail || "Error desconocido";
+        
+        // Si el error es "DEPLOYMENT_NOT_FOUND", es un problema de configuración de Vercel
+        if (errorMessage.includes("DEPLOYMENT_NOT_FOUND") || errorMessage.includes("deployment could not be found")) {
+          throw new Error("Error de configuración: El backend no está configurado correctamente en Vercel. Verifica que AGENT_SERVICE_URL esté configurado en las variables de entorno del frontend.");
+        }
+        
+        throw new Error(errorMessage);
       }
       setResult(await response.json());
     } catch (err) {
