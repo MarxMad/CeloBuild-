@@ -1,0 +1,64 @@
+#!/bin/bash
+# Script para depositar fondos cUSD en una campaña del LootBoxVault
+
+set -e
+
+# Cargar variables de entorno
+if [ -f .env ]; then
+    export $(cat .env | grep -v '^#' | xargs)
+fi
+
+# Variables requeridas
+if [ -z "$DEPLOYER_PRIVATE_KEY" ] || [ -z "$CELO_RPC_URL" ] || [ -z "$LOOTBOX_VAULT_ADDRESS" ] || [ -z "$CUSD_ADDRESS" ]; then
+    echo "❌ Error: Faltan variables de entorno requeridas"
+    echo "Necesitas: DEPLOYER_PRIVATE_KEY, CELO_RPC_URL, LOOTBOX_VAULT_ADDRESS, CUSD_ADDRESS"
+    exit 1
+fi
+
+# Configuración
+CAMPAIGN_NAME="${CAMPAIGN_ID:-demo-campaign}"
+AMOUNT_CUSD="${FUND_AMOUNT_CUSD:-100}"  # Por defecto 100 cUSD
+AMOUNT_WEI=$(cast --to-wei "$AMOUNT_CUSD" ether)
+
+echo "💰 Depositando fondos en LootBoxVault"
+echo "========================================"
+echo "Vault: $LOOTBOX_VAULT_ADDRESS"
+echo "cUSD Token: $CUSD_ADDRESS"
+echo "Campaña: $CAMPAIGN_NAME"
+echo "Cantidad: $AMOUNT_CUSD cUSD"
+echo ""
+
+# Paso 1: Aprobar el vault
+echo "📝 Paso 1: Aprobando vault para transferir cUSD..."
+cast send "$CUSD_ADDRESS" \
+    "approve(address,uint256)" \
+    "$LOOTBOX_VAULT_ADDRESS" \
+    "$AMOUNT_WEI" \
+    --private-key "$DEPLOYER_PRIVATE_KEY" \
+    --rpc-url "$CELO_RPC_URL" \
+    --chain celo-sepolia
+
+echo "✅ Aprobación completada"
+echo ""
+
+# Paso 2: Calcular campaign_id
+CAMPAIGN_ID=$(cast keccak "$CAMPAIGN_NAME")
+echo "📋 Campaign ID: $CAMPAIGN_ID"
+echo ""
+
+# Paso 3: Depositar fondos
+echo "💰 Paso 2: Depositando fondos en la campaña..."
+cast send "$LOOTBOX_VAULT_ADDRESS" \
+    "fundCampaign(bytes32,uint256)" \
+    "$CAMPAIGN_ID" \
+    "$AMOUNT_WEI" \
+    --private-key "$DEPLOYER_PRIVATE_KEY" \
+    --rpc-url "$CELO_RPC_URL" \
+    --chain celo-sepolia
+
+echo ""
+echo "✅ ¡Fondos depositados exitosamente!"
+echo ""
+echo "La campaña '$CAMPAIGN_NAME' ahora tiene $AMOUNT_CUSD cUSD disponibles"
+echo "para distribuir recompensas."
+
