@@ -30,13 +30,119 @@ class EligibilityAgent:
         cast_hash = context.get("cast_hash")
         topic_tags = context.get("topic_tags", [])
 
-        manual_target = context.get("target_address")
-        allow_manual = bool(self.settings.allow_manual_target and manual_target)
+        target_address = context.get("target_address")
+        allow_manual = bool(self.settings.allow_manual_target and target_address)
 
         rankings: list[dict[str, Any]] = []
 
-        # Analizar participación en la tendencia global
-        if cast_hash:
+        # PRIORIDAD 1: Si hay target_address, analizar específicamente a ese usuario
+        if target_address:
+            try:
+                target_checksum = self.celo_tool.checksum(target_address)
+                logger.info("🎯 Analizando usuario específico que activó recompensa: %s", target_checksum)
+                
+                # Obtener información del usuario de Farcaster por su wallet address
+                user_info = await self.farcaster.fetch_user_by_address(target_checksum)
+                
+                if user_info and user_info.get("fid"):
+                    user_fid = user_info.get("fid")
+                    username = user_info.get("username", "unknown")
+                    logger.info("✅ Usuario encontrado en Farcaster: @%s (FID: %s, Followers: %d)", 
+                               username, user_fid, user_info.get("follower_count", 0))
+                    
+                    # Analizar participación del usuario en la tendencia (si hay cast_hash)
+                    participation_data = {}
+                    engagement_weight = 0.0
+                    reasons = []
+                    
+                    if cast_hash:
+                        logger.info("📊 Analizando participación de @%s en cast: %s", username, cast_hash[:16])
+                        
+                        # Analizar participación detallada
+                        participation_data = await self.farcaster.analyze_user_participation_in_trend(
+                            user_fid=user_fid,
+                            cast_hash=cast_hash,
+                            topic_tags=topic_tags,
+                        )
+                        
+                        # Verificar si participó directamente en el cast
+                        participants = await self.farcaster.fetch_cast_engagement(cast_hash, limit=100)
+                        for p in participants:
+                            if p.get("fid") == user_fid:
+                                engagement_weight = p.get("engagement_weight", 0.0)
+                                reasons = p.get("reasons", [])
+                                logger.info("  - Participación directa: %s (weight: %.2f)", reasons, engagement_weight)
+                                break
+                        
+                        if participation_data.get("related_casts"):
+                            logger.info("  - Casts relacionados encontrados: %d", len(participation_data.get("related_casts", [])))
+                    else:
+                        logger.info("⚠️ No hay cast_hash disponible, analizando solo perfil del usuario")
+                        # Sin cast_hash, dar score base basado en perfil
+                        participation_data = {
+                            "directly_participated": False,
+                            "related_casts": [],
+                            "total_engagement": 0.0,
+                        }
+                    
+                    # Crear objeto participant con la información del usuario
+                    participant = {
+                        "fid": user_fid,
+                        "username": username,
+                        "custody_address": target_checksum,
+                        "follower_count": user_info.get("follower_count", 0),
+                        "power_badge": user_info.get("power_badge", False),
+                        "engagement_weight": engagement_weight,
+                        "reasons": reasons if reasons else ["user_activated"],
+                    }
+                    
+                    # Calcular score usando ponderaciones configuradas
+                    score = self._score_user_advanced(
+                        participant=participant,
+                        trend_score=trend_score,
+                        participation_data=participation_data,
+                    )
+                    
+                    rankings.append(
+                        {
+                            "fid": user_fid,
+                            "username": username,
+                            "address": target_checksum,
+                            "score": score,
+                            "reasons": participant.get("reasons", []),
+                            "follower_count": participant.get("follower_count", 0),
+                            "power_badge": participant.get("power_badge", False),
+                            "participation": participation_data,
+                        }
+                    )
+                    logger.info(
+                        "📈 Usuario analizado: @%s - Score: %.2f, Followers: %d, Power Badge: %s, Engagement: %.2f",
+                        username,
+                        score,
+                        participant.get("follower_count", 0),
+                        participant.get("power_badge", False),
+                        participation_data.get("total_engagement", 0.0)
+                    )
+                else:
+                    # Usuario no encontrado en Farcaster - NO ES ELEGIBLE
+                    logger.warning("❌ Usuario no encontrado en Farcaster para address: %s. NO ES ELEGIBLE para recompensas.", target_checksum)
+                    # NO agregar al ranking - el usuario no es elegible
+                    # Retornar un estado especial indicando que no es elegible
+                    return {
+                        "recipients": [],
+                        "rankings": [],
+                        "eligible": False,
+                        "reason": "user_not_in_farcaster",
+                        "message": f"La wallet {target_checksum} no está vinculada a una cuenta de Farcaster. Solo usuarios de Farcaster son elegibles para recompensas.",
+                    }
+            except ValueError as exc:
+                logger.warning("❌ Dirección inválida: %s - %s", target_address, exc)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("❌ Error analizando usuario específico %s: %s", target_address, exc, exc_info=True)
+
+        # PRIORIDAD 2: Si no hay target_address o no se encontró, analizar participantes del cast
+        if not rankings and cast_hash:
+            logger.info("Analizando participantes del cast: %s", cast_hash)
             participants = await self.farcaster.fetch_cast_engagement(cast_hash, limit=100)
             
             for participant in participants:
@@ -70,25 +176,6 @@ class EligibilityAgent:
                         "follower_count": participant.get("follower_count", 0),
                         "power_badge": participant.get("power_badge", False),
                         "participation": participation_data,
-                    }
-                )
-
-        fallback_manual = manual_target and (allow_manual or not rankings)
-        if fallback_manual:
-            try:
-                manual_address = self.celo_tool.checksum(manual_target)  # type: ignore[arg-type]
-            except ValueError:
-                logger.warning("Dirección manual inválida: %s", manual_target)
-            else:
-                rankings.append(
-                    {
-                        "fid": None,
-                        "username": "manual_override",
-                        "address": manual_address,
-                        "score": max(trend_score * 100, 50.0),
-                        "reasons": ["manual"],
-                        "follower_count": 0,
-                        "power_badge": False,
                     }
                 )
 

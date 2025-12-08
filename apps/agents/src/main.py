@@ -1,3 +1,4 @@
+import logging
 import re
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -7,11 +8,13 @@ from .config import settings
 from .graph.supervisor import SupervisorOrchestrator
 from .scheduler import lifespan, supervisor as scheduler_supervisor
 
+logger = logging.getLogger(__name__)
+
 
 class LootboxEvent(BaseModel):
     """Payload mínimo para detonar un flujo de loot box."""
 
-    frame_id: str = Field(..., min_length=1, max_length=100)
+    frame_id: str | None = Field(default=None, max_length=100)  # Opcional: None para análisis automático de tendencias
     channel_id: str = Field(..., min_length=1, max_length=100)
     trend_score: float = Field(..., ge=0.0, le=1.0)
     thread_id: str | None = Field(None, max_length=100)
@@ -68,30 +71,70 @@ supervisor = SupervisorOrchestrator.from_settings(settings)
 
 # Rate limiting simple: almacenar últimos requests por IP
 # En producción, usar Redis o un middleware más robusto
-_request_counts: dict[str, int] = {}
-_REQUEST_LIMIT = 10  # Máximo 10 requests por minuto
+_request_timestamps: dict[str, list[int]] = {}
+_REQUEST_LIMIT_GET = 60  # Máximo 60 requests GET por minuto (para polling del frontend)
+_REQUEST_LIMIT_POST = 10  # Máximo 10 requests POST por minuto
 _REQUEST_WINDOW = 60  # Ventana de 60 segundos
 
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
-    """Middleware simple de rate limiting por IP."""
+    """Middleware simple de rate limiting por IP con ventana deslizante."""
+    # Excluir health check, docs y endpoints GET de lectura del rate limiting
+    # Los endpoints GET de lectura (leaderboard, trends) son consultas frecuentes del frontend
+    excluded_paths = [
+        "/healthz", 
+        "/docs", 
+        "/openapi.json", 
+        "/redoc",
+        "/api/lootbox/leaderboard",  # GET - lectura frecuente del frontend
+        "/api/lootbox/trends",       # GET - lectura frecuente del frontend
+    ]
+    
+    # Excluir todos los GET de lectura (solo aplicar rate limiting a POST)
+    if request.url.path in excluded_paths or request.method == "GET":
+        return await call_next(request)
+    
+    # Solo aplicar rate limiting a POST (operaciones que consumen recursos)
+    # Declarar que usamos la variable global
+    global _request_timestamps
+    
     client_ip = request.client.host if request.client else "unknown"
     current_time = int(__import__("time").time())
     
-    # Limpiar entradas antiguas (simplificado, en producción usar Redis)
-    if client_ip in _request_counts:
-        # En producción, implementar ventana deslizante con Redis
-        pass
+    # Inicializar lista de timestamps para esta IP si no existe
+    if client_ip not in _request_timestamps:
+        _request_timestamps[client_ip] = []
     
-    # Contar requests (simplificado)
-    if client_ip not in _request_counts:
-        _request_counts[client_ip] = 0
+    # Limpiar timestamps fuera de la ventana de tiempo
+    _request_timestamps[client_ip] = [
+        ts for ts in _request_timestamps[client_ip]
+        if (current_time - ts) < _REQUEST_WINDOW
+    ]
     
-    _request_counts[client_ip] += 1
+    # Aplicar límite solo a POST (operaciones que consumen recursos)
+    limit = _REQUEST_LIMIT_POST
     
-    if _request_counts[client_ip] > _REQUEST_LIMIT:
-        raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
+    # Verificar si excede el límite
+    if len(_request_timestamps[client_ip]) >= limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many requests. Limit: {limit} requests per {_REQUEST_WINDOW} seconds."
+        )
+    
+    # Registrar este request
+    _request_timestamps[client_ip].append(current_time)
+    
+    # Limpiar IPs antiguas (más de 5 minutos sin actividad)
+    # Modificar in-place en lugar de reasignar para evitar problemas de scope
+    if len(_request_timestamps) > 1000:  # Limpiar si hay muchas IPs
+        cutoff_time = current_time - 300  # 5 minutos
+        ips_to_remove = [
+            ip for ip, timestamps in _request_timestamps.items()
+            if not timestamps or (timestamps and max(timestamps) <= cutoff_time)
+        ]
+        for ip in ips_to_remove:
+            _request_timestamps.pop(ip, None)
     
     response = await call_next(request)
     return response
@@ -164,11 +207,22 @@ async def run_lootbox(event: LootboxEvent):
     - Límites de batch size
     """
 
-    # Validación adicional de seguridad
+    # Validación de seguridad: target_address está permitido cuando:
+    # 1. ALLOW_MANUAL_TARGET=true (configuración explícita)
+    # 2. O cuando viene del frontend (usuario conectado desde Farcaster) - esto es el caso normal
+    # En producción, target_address viene del usuario conectado desde Farcaster, así que es seguro
+    # El bloqueo solo aplica si explícitamente se deshabilita para prevenir abusos de admin
+    # NOTA: En el flujo normal (usuario conectado desde Farcaster), target_address siempre viene del frontend
+    # y debería estar permitido. ALLOW_MANUAL_TARGET=false solo bloquea casos de testing/admin.
     if event.target_address and not settings.allow_manual_target:
+        logger.warning(
+            "target_address recibido pero ALLOW_MANUAL_TARGET=false. "
+            "Si esto es un usuario conectado desde Farcaster, configura ALLOW_MANUAL_TARGET=true en .env"
+        )
         raise HTTPException(
             status_code=403,
-            detail="Manual target addresses are disabled for security. Set ALLOW_MANUAL_TARGET=true to enable."
+            detail="Manual target addresses are disabled for security. Set ALLOW_MANUAL_TARGET=true to enable. "
+                   "Note: This is required when users connect their wallet from Farcaster."
         )
 
     try:
@@ -192,6 +246,10 @@ async def run_lootbox(event: LootboxEvent):
         "explorer_url": result.explorer_url,
         "mode": result.mode,
         "reward_type": result.reward_type,
+        "user_analysis": result.user_analysis,  # Información del usuario analizado
+        "trend_info": result.trend_info,  # Información de la tendencia
+        "eligible": result.eligible,  # Si el usuario es elegible
+        "eligibility_message": result.eligibility_message,  # Mensaje de elegibilidad
     }
 
 

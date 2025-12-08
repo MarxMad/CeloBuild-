@@ -119,3 +119,4 @@ La respuesta debe incluir:
 
 Una vez que `TrendWatcherAgent` funciona, el contexto se pasa automáticamente a `EligibilityAgent`.
 
+

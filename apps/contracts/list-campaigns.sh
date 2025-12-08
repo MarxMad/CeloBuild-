@@ -105,3 +105,4 @@ echo "   - Revisa los logs del backend cuando se ejecuta un scan"
 echo "   - Busca mensajes como: 'Configurando campaña real automáticamente: cast-...'"
 echo "   - O revisa el leaderboard en: /api/lootbox/leaderboard"
 
+

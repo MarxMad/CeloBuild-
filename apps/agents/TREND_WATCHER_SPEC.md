@@ -236,3 +236,4 @@ Una vez que el `TrendWatcherAgent` funciona correctamente, el contexto se pasa a
 2. Calcula scores individuales
 3. Filtra por elegibilidad on-chain
 
+

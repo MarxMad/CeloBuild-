@@ -69,35 +69,92 @@ class TrendWatcherAgent:
             )
 
         scored_casts.sort(key=lambda cast: cast["trend_score"], reverse=True)
-        top_cast = scored_casts[0]
-
-        if top_cast["trend_score"] < self.settings.min_trend_score:
+        
+        # Filtrar casts que pasen el umbral mínimo
+        valid_casts = [
+            cast for cast in scored_casts
+            if cast["trend_score"] >= self.settings.min_trend_score
+        ]
+        
+        # Deduplicar por usuario/autor para asegurar diversidad
+        # Seleccionar hasta 5 tendencias de diferentes usuarios
+        seen_users: set[int | str] = set()
+        valid_trends = []
+        
+        for cast in valid_casts:
+            # Obtener identificador único del usuario (FID o username)
+            author = cast.get("author", {})
+            user_id = author.get("fid") or author.get("username") or "unknown"
+            
+            # Solo agregar si no hemos visto este usuario antes
+            if user_id not in seen_users and len(valid_trends) < 5:
+                seen_users.add(user_id)
+                valid_trends.append(cast)
+            
+            # Si ya tenemos 5 tendencias de diferentes usuarios, parar
+            if len(valid_trends) >= 5:
+                break
+        
+        if not valid_trends:
+            # Si no hay tendencias válidas, retornar el top cast con status de bajo umbral
+            top_cast = scored_casts[0]
             logger.info(
                 "Trend encontrado pero bajo el umbral (%.2f < %.2f)",
                 top_cast["trend_score"],
                 self.settings.min_trend_score,
             )
+            # Generar frame_id incluso para tendencias bajo el umbral
+            frame_identifier = "cast-" + (top_cast.get("hash") or "unknown")[:8]
+            # Generar análisis (puede usar AI o fallback)
+            analysis_text, uses_ai = await self._summarize_cast(top_cast)
             return {
                 **base_context,
                 "status": "trend_below_threshold",
+                "frame_id": frame_identifier,  # Incluir frame_id para que el pipeline funcione
+                "cast_hash": top_cast.get("hash"),
                 "trend_score": top_cast["trend_score"],
                 "source_text": top_cast.get("text"),
+                "ai_analysis": analysis_text,
+                "ai_enabled": uses_ai,  # Indicador si se usó AI o fallback
+                "topic_tags": self._extract_tags(top_cast.get("text", "")),
+                "trends": [],  # Lista vacía de tendencias válidas
             }
-
-        analysis_text = await self._summarize_cast(top_cast)
-        topic_tags = self._extract_tags(top_cast.get("text", ""))
-        frame_identifier = "cast-" + (top_cast.get("hash") or "unknown")[:8]
+        
+        # Procesar cada tendencia válida
+        detected_trends = []
+        for cast in valid_trends:
+            analysis_text, uses_ai = await self._summarize_cast(cast)
+            topic_tags = self._extract_tags(cast.get("text", ""))
+            frame_identifier = "cast-" + (cast.get("hash") or "unknown")[:8]
+            
+            detected_trends.append({
+                "frame_id": frame_identifier,
+                "cast_hash": cast.get("hash"),
+                "trend_score": round(cast["trend_score"], 3),
+                "source_text": cast.get("text"),
+                "ai_analysis": analysis_text,
+                "ai_enabled": uses_ai,  # Indicador si se usó AI o fallback
+                "topic_tags": topic_tags,
+                "channel_id": cast.get("channel_id") or channel_id,
+                "author": cast.get("author", {}),
+            })
+        
+        logger.info("Detectadas %d tendencias válidas (score >= %.2f)", len(detected_trends), self.settings.min_trend_score)
         
         return {
             **base_context,
-            "frame_id": frame_identifier,
-            "cast_hash": top_cast.get("hash"),
-            "trend_score": round(top_cast["trend_score"], 3),
             "status": "trend_detected",
-            "source_text": top_cast.get("text"),
-            "ai_analysis": analysis_text,
-            "topic_tags": topic_tags,
-            "channel_id": top_cast.get("channel_id") or channel_id,
+            "trends": detected_trends,  # Lista de tendencias detectadas
+            # Mantener compatibilidad: también retornar la primera tendencia en campos individuales
+            "frame_id": detected_trends[0]["frame_id"],
+            "cast_hash": detected_trends[0]["cast_hash"],
+            "trend_score": detected_trends[0]["trend_score"],
+            "source_text": detected_trends[0]["source_text"],
+            "ai_analysis": detected_trends[0]["ai_analysis"],
+            "ai_enabled": detected_trends[0]["ai_enabled"],  # Indicador si se usó AI o fallback
+            "topic_tags": detected_trends[0]["topic_tags"],
+            "channel_id": detected_trends[0]["channel_id"],
+            "author": detected_trends[0]["author"],
         }
 
     def _get_llm(self) -> ChatGoogleGenerativeAI | None:
@@ -140,11 +197,16 @@ class TrendWatcherAgent:
         logger.warning("⚠️ No se pudo inicializar ningún modelo de Gemini. Usando análisis básico.")
         return None
 
-    async def _summarize_cast(self, cast: dict[str, Any]) -> str:
-        """Genera un análisis del cast usando IA si está disponible, sino genera uno básico."""
+    async def _summarize_cast(self, cast: dict[str, Any]) -> tuple[str, bool]:
+        """Genera un análisis del cast usando IA si está disponible, sino genera uno básico.
+        
+        Retorna: (análisis_texto, usa_ai)
+        - usa_ai: True si se usó Gemini, False si se usó fallback
+        """
         llm = self._get_llm()
         if not llm:
             # Análisis básico sin IA basado en keywords y engagement
+            logger.info("🤖 AI no disponible - usando análisis básico (fallback)")
             text = cast.get("text", "")
             author = cast.get("author", {}).get("username", "usuario")
             reactions = cast.get("reactions", {})
@@ -155,13 +217,16 @@ class TrendWatcherAgent:
             has_keywords = any(kw in text.lower() for kw in keywords)
             
             if has_keywords and (likes > 10 or recasts > 5):
-                return f"Cast relevante de {author} sobre Web3/Celo con alto engagement ({likes} likes, {recasts} recasts). Potencial para recompensar participación activa."
+                analysis = f"Cast relevante de {author} sobre Web3/Celo con alto engagement ({likes} likes, {recasts} recasts). Potencial para recompensar participación activa."
             elif has_keywords:
-                return f"Cast de {author} mencionando temas de Celo/Web3. Considerar recompensa para fomentar más participación."
+                analysis = f"Cast de {author} mencionando temas de Celo/Web3. Considerar recompensa para fomentar más participación."
             else:
-                return f"Cast de {author} con engagement moderado. Evaluar relevancia para la comunidad Celo."
+                analysis = f"Cast de {author} con engagement moderado. Evaluar relevancia para la comunidad Celo."
+            
+            return (analysis, False)  # False = no usa AI
         
         # Intentar usar IA si está disponible
+        logger.info("🤖 Intentando análisis con Gemini AI...")
         prompt = ChatPromptTemplate.from_template(
             (
                 "Eres un estratega de growth para comunidades Web3. Resume en 1 frase por qué este cast es "
@@ -177,7 +242,8 @@ class TrendWatcherAgent:
                     "author": cast.get("author", {}).get("username"),
                 }
             )
-            return result.content
+            logger.info("✅ Análisis generado con Gemini AI")
+            return (result.content, True)  # True = usa AI
         except Exception as exc:  # noqa: BLE001
             # Detectar si es error de cuota (429) o cualquier otro error
             error_str = str(exc).lower()
@@ -185,15 +251,16 @@ class TrendWatcherAgent:
             
             if is_quota_error:
                 logger.warning(
-                    "Cuota de Gemini agotada (usando análisis básico). "
+                    "⚠️ Cuota de Gemini agotada (usando análisis básico). "
                     "El sistema funcionará normalmente sin IA."
                 )
                 # Deshabilitar LLM para evitar más intentos
                 self.llm = None
             else:
-                logger.warning("Error analizando con Gemini (usando análisis básico): %s", exc)
+                logger.warning("⚠️ Error analizando con Gemini (usando análisis básico): %s", exc)
             
             # Fallback al análisis básico (sin IA)
+            logger.info("🔄 Cambiando a análisis básico (fallback)")
             text = cast.get("text", "")
             author = cast.get("author", {}).get("username", "usuario")
             reactions = cast.get("reactions", {})
@@ -204,11 +271,13 @@ class TrendWatcherAgent:
             has_keywords = any(kw in text.lower() for kw in keywords)
             
             if has_keywords and (likes > 10 or recasts > 5):
-                return f"Cast relevante de {author} sobre Web3/Celo con alto engagement ({likes} likes, {recasts} recasts). Potencial para recompensar participación activa."
+                analysis = f"Cast relevante de {author} sobre Web3/Celo con alto engagement ({likes} likes, {recasts} recasts). Potencial para recompensar participación activa."
             elif has_keywords:
-                return f"Cast de {author} mencionando temas de Celo/Web3. Considerar recompensa para fomentar más participación."
+                analysis = f"Cast de {author} mencionando temas de Celo/Web3. Considerar recompensa para fomentar más participación."
             else:
-                return f"Cast de {author} con engagement moderado. Evaluar relevancia para la comunidad Celo."
+                analysis = f"Cast de {author} con engagement moderado. Evaluar relevancia para la comunidad Celo."
+            
+            return (analysis, False)  # False = no usa AI
 
     def _score_cast(self, cast: dict[str, Any]) -> float:
         reactions = cast.get("reactions", {})

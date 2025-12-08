@@ -292,6 +292,79 @@ class FarcasterToolbox:
 
         return participation
 
+    async def fetch_user_by_address(self, custody_address: str) -> dict[str, Any] | None:
+        """Obtiene información de un usuario de Farcaster por su custody_address (wallet).
+        
+        Retorna el perfil del usuario si existe, None si no se encuentra.
+        """
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            logger.warning("NEYNAR_API_KEY no configurada, no se puede buscar usuario por address")
+            return None
+        
+        headers = {"accept": "application/json", "api_key": self.neynar_key}
+        url = "https://api.neynar.com/v2/farcaster/user/by_custody_address"
+        
+        # Normalizar address a lowercase
+        custody_address = custody_address.lower()
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            try:
+                params = {"custody_address": custody_address}
+                logger.info("🔍 Buscando usuario en Farcaster por custody_address: %s", custody_address)
+                resp = await client.get(url, headers=headers, params=params)
+                
+                logger.info("📡 Respuesta de Neynar API: status=%d, url=%s", resp.status_code, url)
+                
+                if resp.status_code == 404:
+                    # Usuario no encontrado
+                    logger.warning("⚠️ Usuario no encontrado en Farcaster para address: %s", custody_address)
+                    logger.warning("   Esto puede significar que la wallet no está vinculada a una cuenta de Farcaster")
+                    return None
+                
+                if resp.status_code == 402:
+                    raise ValueError(
+                        "Neynar API: Payment Required (402). Tu API key no tiene crédito o no es válida."
+                    )
+                
+                resp.raise_for_status()
+                data = resp.json()
+                
+                logger.debug("📦 Datos recibidos de Neynar: %s", str(data)[:200])
+                
+                # La API retorna el usuario en diferentes formatos
+                # Probar diferentes estructuras de respuesta
+                user_data = None
+                if isinstance(data, dict):
+                    # Formato 1: { "result": { "user": {...} } }
+                    if "result" in data and isinstance(data["result"], dict):
+                        user_data = data["result"].get("user")
+                    # Formato 2: { "user": {...} }
+                    if not user_data and "user" in data:
+                        user_data = data["user"]
+                    # Formato 3: Los datos directamente son el usuario
+                    if not user_data and "fid" in data:
+                        user_data = data
+                
+                if not user_data:
+                    logger.warning("⚠️ No se pudo extraer datos del usuario de la respuesta: %s", str(data)[:200])
+                    return None
+                
+                # Normalizar usando la función helper
+                normalized = _normalize_user(user_data)
+                logger.info("✅ Usuario encontrado: @%s (FID: %s)", normalized.get("username"), normalized.get("fid"))
+                return normalized
+                
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code == 404:
+                    logger.warning("⚠️ Usuario no encontrado (404) para address: %s", custody_address)
+                    return None
+                logger.error("❌ Error HTTP obteniendo usuario por address %s: %s - %s", 
+                           custody_address, exc.response.status_code, exc.response.text[:200])
+                return None
+            except Exception as exc:  # noqa: BLE001
+                logger.error("❌ Error obteniendo usuario por address %s: %s", custody_address, exc, exc_info=True)
+                return None
+
     @staticmethod
     def timestamp_age_hours(timestamp: str | None) -> float:
         if not timestamp:

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Loader2, Send, Wallet, ExternalLink, Box, Sparkles } from "lucide-react";
+import { Loader2, Send, Wallet, ExternalLink, Box, Sparkles, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +34,8 @@ export function TrendingCampaignForm() {
   const [selectedRewardType, setSelectedRewardType] = useState<LootboxEventPayload["rewardType"] | null>(null);
   const [result, setResult] = useState<AgentRunResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [userAnalysis, setUserAnalysis] = useState<AgentRunResponse["user_analysis"] | null>(null);
+  const [trendInfo, setTrendInfo] = useState<AgentRunResponse["trend_info"] | null>(null);
   const getRewardDisplay = (type?: AgentRunResponse["reward_type"]) => {
     switch (type) {
       case "cusd":
@@ -55,11 +57,60 @@ export function TrendingCampaignForm() {
   };
 
   // Trigger analysis animation first
-  const handleStartAnalysis = (e: React.FormEvent) => {
+  const handleStartAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address) return;
+    
     setIsAnalyzing(true);
-    // When overlay completes, it calls onAnalysisComplete
+    setError(null);
+    setUserAnalysis(null);
+    setTrendInfo(null);
+    
+    try {
+      // Ejecutar análisis ANTES de mostrar el selector de recompensas
+      // Esto detecta la tendencia y analiza al usuario específico
+      const analysisPayload: LootboxEventPayload = {
+        frameId: undefined, // El backend generará el frame_id cuando detecte la tendencia
+        channelId: "global",
+        trendScore: 0,
+        targetAddress: address, // Enviar address para análisis específico
+        rewardType: undefined, // No especificar aún, solo análisis
+      };
+      
+      const response = await fetch("/api/lootbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(analysisPayload),
+      });
+      
+      if (!response.ok) {
+        throw new Error((await response.json()).error ?? "Error en el análisis");
+      }
+      
+      const analysisResult = await response.json();
+      console.log("Análisis completado:", analysisResult);
+      
+      // Verificar si el usuario es elegible
+      if (analysisResult.eligible === false) {
+        // Usuario no es elegible - mostrar mensaje de error
+        setError(analysisResult.eligibility_message || "No eres elegible para recompensas. Solo usuarios de Farcaster pueden recibir recompensas.");
+        setIsAnalyzing(false);
+        setUserAnalysis(null);
+        setTrendInfo(null);
+        return;
+      }
+      
+      // Guardar datos del análisis para mostrar en el RewardSelector
+      setUserAnalysis(analysisResult.user_analysis || null);
+      setTrendInfo(analysisResult.trend_info || null);
+      
+      // Cuando el overlay completa, mostrar selector de recompensas con el análisis
+      // El AnalysisOverlay se encargará de llamar onAnalysisComplete después de la animación
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error en el análisis");
+      setIsAnalyzing(false);
+    }
   };
 
   const onAnalysisComplete = () => {
@@ -78,8 +129,9 @@ export function TrendingCampaignForm() {
     
     // Aquí es donde mandamos el 'reward_type' al backend para que el contrato sepa qué mintear
     // (A futuro: actualizar contrato para soportar rewardType)
+    // No enviar frameId - el backend lo generará automáticamente cuando detecte la tendencia
     const payload: LootboxEventPayload = {
-      frameId: "", 
+      frameId: undefined,  // El backend generará el frame_id cuando detecte la tendencia
       channelId: "global",
       trendScore: 0,
       targetAddress: address || undefined,
@@ -122,7 +174,11 @@ export function TrendingCampaignForm() {
         {/* Step 2: Reward Selection */}
         {showRewards && (
             <div className="fixed inset-0 bg-black/90 z-40 flex items-center justify-center p-6 backdrop-blur-sm">
-                <RewardSelector onSelect={handleRewardSelect} />
+                <RewardSelector 
+                  onSelect={handleRewardSelect}
+                  userAnalysis={userAnalysis}
+                  trendInfo={trendInfo}
+                />
             </div>
         )}
 
@@ -179,11 +235,132 @@ export function TrendingCampaignForm() {
                         <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
                              <Box className="h-6 w-6" />
                         </div>
-                        <div>
+                        <div className="flex-1">
                             <h4 className="font-bold text-lg text-foreground">{getRewardDisplay(result.reward_type).title}</h4>
                             <p className="text-xs text-muted-foreground">{getRewardDisplay(result.reward_type).subtitle}</p>
                         </div>
                     </div>
+                    
+                    {/* Análisis del Usuario */}
+                    {result.user_analysis && (
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="w-4 h-4 text-[#FCFF52]" />
+                          <h5 className="text-sm font-bold text-foreground">Tu Análisis</h5>
+                        </div>
+                        
+                        {/* Username y Score */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">@</span>
+                            <span className="text-sm font-semibold text-foreground">
+                              {result.user_analysis.username || "Usuario"}
+                            </span>
+                            {result.user_analysis.power_badge && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+                                ⭐ Power
+                              </span>
+                            )}
+                          </div>
+                          {result.user_analysis.score !== undefined && (
+                            <div className="text-sm font-mono font-bold text-[#FCFF52]">
+                              {result.user_analysis.score.toFixed(1)} pts
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {result.user_analysis.follower_count !== undefined && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground">Followers:</span>
+                              <span className="font-semibold text-foreground">{result.user_analysis.follower_count}</span>
+                            </div>
+                          )}
+                          {result.user_analysis.participation?.total_engagement !== undefined && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground">Engagement:</span>
+                              <span className="font-semibold text-foreground">
+                                {result.user_analysis.participation.total_engagement.toFixed(1)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Reasons */}
+                        {result.user_analysis.reasons && result.user_analysis.reasons.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {result.user_analysis.reasons.map((reason, idx) => (
+                              <span
+                                key={idx}
+                                className="text-[9px] px-2 py-0.5 rounded-full bg-[#FCFF52]/10 text-[#FCFF52] border border-[#FCFF52]/20 uppercase"
+                              >
+                                {reason}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Participación */}
+                        {result.user_analysis.participation?.directly_participated && (
+                          <div className="text-[10px] text-green-400 flex items-center gap-1">
+                            <span>✓</span>
+                            <span>Participaste en esta tendencia</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Información de la Tendencia */}
+                    {result.trend_info && (
+                      <div className="p-3 rounded-lg bg-white/5 border border-white/10 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-3 h-3 text-[#FCFF52]" />
+                          <span className="text-xs font-bold text-[#FCFF52] uppercase">Tendencia Detectada</span>
+                          {result.trend_info.trend_score !== undefined && (
+                            <span className="text-[10px] font-mono text-muted-foreground ml-auto">
+                              {(result.trend_info.trend_score * 100).toFixed(0)}%
+                            </span>
+                          )}
+                        </div>
+                        {result.trend_info.source_text && (
+                          <p className="text-xs text-foreground line-clamp-2">
+                            {result.trend_info.source_text}
+                          </p>
+                        )}
+                        {result.trend_info.ai_analysis && (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-muted-foreground italic line-clamp-2">
+                                💡 {result.trend_info.ai_analysis}
+                              </span>
+                              {result.trend_info.ai_enabled !== undefined && (
+                                <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${
+                                  result.trend_info.ai_enabled 
+                                    ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" 
+                                    : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
+                                }`}>
+                                  {result.trend_info.ai_enabled ? "🤖 AI" : "📊 Básico"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {result.trend_info.topic_tags && result.trend_info.topic_tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {result.trend_info.topic_tags.slice(0, 3).map((tag) => (
+                              <span
+                                key={tag}
+                                className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/10"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     {result.explorer_url && (
                       <Button variant="outline" className="w-full border-green-500/30 hover:bg-green-500/10 text-green-600 dark:text-green-400" asChild>
                           <Link href={result.explorer_url} target="_blank">
@@ -218,8 +395,19 @@ export function TrendingCampaignForm() {
         )}
 
         {error && (
-          <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-500 text-center font-medium">
-            {error}
+          <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                <span className="text-red-400 text-lg">⚠️</span>
+              </div>
+              <h4 className="font-bold text-base text-red-300">No Eres Elegible</h4>
+            </div>
+            <p className="text-sm text-red-400/90 pl-10">
+              {error}
+            </p>
+            <p className="text-xs text-red-400/70 pl-10 mt-2">
+              💡 Para ser elegible, necesitas tener una cuenta de Farcaster vinculada a tu wallet.
+            </p>
           </div>
         )}
     </div>
