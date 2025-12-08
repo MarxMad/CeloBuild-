@@ -156,7 +156,13 @@ class EligibilityAgent:
                         }
             except Exception as exc:  # noqa: BLE001
                 logger.error("❌ Error analizando usuario por FID %d: %s", target_fid, exc, exc_info=True)
-                # Continuar con el flujo normal si falla la búsqueda por FID
+                return {
+                    "recipients": [],
+                    "rankings": [],
+                    "eligible": False,
+                    "reason": "api_error",
+                    "message": f"Error consultando Farcaster API: {str(exc)}",
+                }
 
         # PRIORIDAD 2: Si hay target_address (y no se encontró por FID), analizar específicamente a ese usuario
         if target_address and not rankings:
