@@ -8,14 +8,10 @@
    - Ve a https://vercel.com/new
    - Conecta repositorio `CeloBuild-`
    - **Root Directory**: `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
-   - **Framework Preset**: Other
-   - **Build Command**: (dejar vacío)
-   - **Output Directory**: (dejar vacío)
-
-2. **Si el proyecto ya existe pero no se actualiza:**
-   - Ve a **Settings → General**
-   - Verifica que **Root Directory** sea: `lootbox-minipay/apps/agents`
-   - Si está vacío o incorrecto, cámbialo y guarda (esto activará un nuevo deployment)
+   - **Framework Preset**: `Other` o `Python`
+   - **Build Command**: (vacío) o `pip install -r requirements.txt`
+   - **Install Command**: (vacío) o `pip install -r requirements.txt`
+   - **Output Directory**: (vacío)
 
 2. **Variables de Entorno** (Settings → Environment Variables):
    ```
@@ -51,49 +47,69 @@
    NEXT_PUBLIC_WC_PROJECT_ID=tu_walletconnect_project_id
    ```
 
-## ✅ Verificación Post-Deployment
-
-### Backend
-
-- [ ] Status: "Ready" (verde) en Vercel
-- [ ] Health check funciona: `/healthz` retorna `{"status":"ok"}`
-- [ ] Root Directory: `lootbox-minipay/apps/agents`
-- [ ] Variables de entorno configuradas
-
-### Frontend
-
-- [ ] Status: "Ready" (verde) en Vercel
-- [ ] La app carga sin "Internal Server Error"
-- [ ] Root Directory: `lootbox-minipay/apps/web`
-- [ ] `NEXT_PUBLIC_AGENT_SERVICE_URL` apunta al backend
-
 ## 🔧 Troubleshooting
 
 ### Los pushes no se reflejan en Vercel
 
 **⚠️ PROBLEMA MÁS COMÚN: Root Directory incorrecto o vacío**
 
-1. **Verificar Root Directory (PASO MÁS IMPORTANTE):**
-   - Ve a tu proyecto del backend en Vercel
-   - **Settings → General → Root Directory**
-   - Debe ser exactamente: `lootbox-minipay/apps/agents`
-   - Si está vacío o incorrecto:
-     - Cámbialo a: `lootbox-minipay/apps/agents`
-     - Guarda
-     - Esto activará un nuevo deployment automáticamente
+1. **Verificar Root Directory:**
+   - Settings → General → Root Directory
+   - Backend: `lootbox-minipay/apps/agents`
+   - Frontend: `lootbox-minipay/apps/web`
+   - Si está vacío o incorrecto, cámbialo y guarda (esto activará un nuevo deployment)
 
 2. **Verificar Webhook:**
    - Settings → Git
-   - Repositorio conectado: `MarxMad/CeloBuild-`
-   - Branch monitoreado: `main`
-   - Si no está conectado o el webhook está roto:
-     - Desconecta el repositorio
-     - Reconecta el repositorio
-     - Selecciona branch `main`
+   - Repository: `MarxMad/CeloBuild-`
+   - Branch: `main`
+   - Si no funciona, desconecta y reconecta el repositorio
 
 3. **Forzar redeploy:**
    - Deployments → ⋯ → Redeploy
-   - O haz un commit vacío: `git commit --allow-empty -m "trigger deploy" && git push`
+   - O: `git commit --allow-empty -m "trigger deploy" && git push`
+
+### Error: "Root Directory does not exist"
+
+**Causa**: Vercel está usando un commit antiguo
+
+**Solución**:
+1. Ve a **Deployments** y verifica que use el commit más reciente
+2. Si usa un commit antiguo:
+   - Settings → Git → Reconecta el repositorio
+   - O haz un **Redeploy** manual
+
+### Error: Build Command incorrecto (pnpm en lugar de pip)
+
+**Síntoma**: Build Command tiene `pnpm build` o `pnpm install`
+
+**Solución**:
+1. Settings → Build and Deployment
+2. **Build Command**: (vacío) o `pip install -r requirements.txt`
+3. **Install Command**: (vacío) o `pip install -r requirements.txt`
+4. Guarda
+
+### "Internal Server Error" en Backend
+
+1. **Diagnosticar:**
+   ```bash
+   curl https://tu-backend.vercel.app/debug
+   # Muestra el error específico y variables faltantes
+   ```
+
+2. **Verificar variables de entorno:**
+   - Settings → Environment Variables
+   - Todas las variables críticas deben estar configuradas
+
+3. **Ver logs:**
+   - Deployments → Logs (no Build Logs)
+   - Busca errores de inicialización
+
+4. **Health check:**
+   ```bash
+   curl https://tu-backend.vercel.app/healthz
+   # Si retorna "degraded", revisa qué variables faltan
+   ```
 
 ### "Internal Server Error" en Frontend
 
@@ -102,33 +118,36 @@
    curl https://tu-backend.vercel.app/healthz
    ```
 
-2. **Verificar variables de entorno del frontend:**
+2. **Verificar variables de entorno:**
    - `NEXT_PUBLIC_AGENT_SERVICE_URL` debe ser la URL del backend
    - Sin trailing slash (`/`)
    - Con `https://`
 
 3. **Ver logs de runtime:**
-   - Deployments → Logs (no Build Logs)
+   - Deployments → Logs
    - Buscar errores de conexión al backend
 
-### Backend retorna error en health check
+## ✅ Checklist de Verificación
 
-1. **Verificar variables de entorno:**
-   - Todas las de `apps/agents/env.sample` deben estar configuradas
+### Backend
+- [ ] Root Directory: `lootbox-minipay/apps/agents`
+- [ ] Framework Preset: `Other` o `Python`
+- [ ] Build Command: (vacío) o `pip install -r requirements.txt`
+- [ ] Variables de entorno configuradas
+- [ ] Health check funciona: `/healthz` retorna `{"status":"ok"}`
+- [ ] Último deployment usa el commit más reciente
 
-2. **Ver logs:**
-   - Deployments → Logs
-   - Buscar errores de inicialización
-
-3. **Health check detallado:**
-   ```bash
-   curl https://tu-backend.vercel.app/healthz
-   # Si retorna "degraded", revisa qué variables faltan
-   ```
+### Frontend
+- [ ] Root Directory: `lootbox-minipay/apps/web`
+- [ ] Framework Preset: `Next.js`
+- [ ] `NEXT_PUBLIC_AGENT_SERVICE_URL` apunta al backend
+- [ ] La app carga sin "Internal Server Error"
 
 ## 📝 Notas Importantes
 
 - **Root Directory es crítico**: Si está vacío o incorrecto, los deployments no funcionarán
+- **Commit antiguo**: Si Vercel usa un commit antiguo, reconecta el repositorio o haz redeploy
+- **Build Command**: No debe tener comandos de `pnpm` para el backend (es Python, no Node.js)
 - **Variables de entorno**: `NEXT_PUBLIC_*` son accesibles en el cliente, las demás solo en servidor
-- **Health check**: Siempre prueba `/healthz` después de un deployment para verificar que funciona
-
+- **Health check**: Siempre prueba `/healthz` después de un deployment
+- **Debug endpoint**: Usa `/debug` para diagnosticar problemas específicos
