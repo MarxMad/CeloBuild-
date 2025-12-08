@@ -4,25 +4,36 @@
 
 Nixpacks está detectando Node.js del monorepo y está intentando instalar pnpm, lo cual falla.
 
-## ✅ Solución: Verificar Root Directory (CRÍTICO)
+## ✅ Solución: Usar Dockerfile Personalizado
 
-**El problema más probable es que el Root Directory no está configurado correctamente.**
+He creado un `Dockerfile` que fuerza solo Python, evitando la detección automática de Node.js.
+
+### Paso 1: Verificar Root Directory
 
 1. En Railway, ve a **Settings → General**
 2. **Root Directory**: Debe ser exactamente `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
 3. Si está vacío o incorrecto:
    - Cámbialo a: `lootbox-minipay/apps/agents`
    - **Guarda**
-   - Haz un **Redeploy**
 
-**Si el Root Directory está correcto pero sigue detectando Node.js:**
+### Paso 2: Configurar Builder a Dockerfile
 
 1. En **Settings → Build**
-2. Activa **"Override Build Command"**
-3. Build Command: `pip install -r requirements.txt`
-4. En **Settings → Deploy**
-5. Start Command: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
-6. Guarda y haz **Redeploy**
+2. **Builder**: Cambia a **"Dockerfile"** (no "Nixpacks")
+3. **Dockerfile Path**: `Dockerfile` (debería detectarlo automáticamente)
+4. Guarda
+
+### Paso 3: Configurar Start Command
+
+1. En **Settings → Deploy**
+2. **Start Command**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
+3. Guarda
+
+### Paso 4: Redeploy
+
+1. Ve a **Deployments**
+2. Haz clic en **"Redeploy"**
+3. Ahora debería usar el Dockerfile personalizado (solo Python, sin Node.js)
 
 Si el Root Directory está correcto pero sigue detectando Node.js, entonces:
 
