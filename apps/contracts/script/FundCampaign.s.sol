@@ -16,7 +16,8 @@ import {LootBoxVault} from "../src/LootBoxVault.sol";
  */
 contract FundCampaign is Script {
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        // Usar CELO_PRIVATE_KEY (del agente) o DEPLOYER_PRIVATE_KEY como fallback
+        uint256 deployerPrivateKey = vm.envOr("CELO_PRIVATE_KEY", vm.envUint("DEPLOYER_PRIVATE_KEY"));
         address vaultAddress = vm.envAddress("LOOTBOX_VAULT_ADDRESS");
         address cusdAddress = vm.envAddress("CUSD_ADDRESS");
         

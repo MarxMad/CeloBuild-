@@ -9,9 +9,12 @@ if [ -f .env ]; then
 fi
 
 # Variables requeridas
-if [ -z "$DEPLOYER_PRIVATE_KEY" ] || [ -z "$CELO_RPC_URL" ] || [ -z "$LOOTBOX_VAULT_ADDRESS" ] || [ -z "$CUSD_ADDRESS" ]; then
+# Usar CELO_PRIVATE_KEY (del agente) o DEPLOYER_PRIVATE_KEY como fallback
+PRIVATE_KEY="${CELO_PRIVATE_KEY:-$DEPLOYER_PRIVATE_KEY}"
+
+if [ -z "$PRIVATE_KEY" ] || [ -z "$CELO_RPC_URL" ] || [ -z "$LOOTBOX_VAULT_ADDRESS" ] || [ -z "$CUSD_ADDRESS" ]; then
     echo "❌ Error: Faltan variables de entorno requeridas"
-    echo "Necesitas: DEPLOYER_PRIVATE_KEY, CELO_RPC_URL, LOOTBOX_VAULT_ADDRESS, CUSD_ADDRESS"
+    echo "Necesitas: CELO_PRIVATE_KEY (o DEPLOYER_PRIVATE_KEY), CELO_RPC_URL, LOOTBOX_VAULT_ADDRESS, CUSD_ADDRESS"
     exit 1
 fi
 
@@ -34,7 +37,7 @@ cast send "$CUSD_ADDRESS" \
     "approve(address,uint256)" \
     "$LOOTBOX_VAULT_ADDRESS" \
     "$AMOUNT_WEI" \
-    --private-key "$DEPLOYER_PRIVATE_KEY" \
+    --private-key "$PRIVATE_KEY" \
     --rpc-url "$CELO_RPC_URL" \
     --chain celo-sepolia
 
@@ -52,7 +55,7 @@ cast send "$LOOTBOX_VAULT_ADDRESS" \
     "fundCampaign(bytes32,uint256)" \
     "$CAMPAIGN_ID" \
     "$AMOUNT_WEI" \
-    --private-key "$DEPLOYER_PRIVATE_KEY" \
+    --private-key "$PRIVATE_KEY" \
     --rpc-url "$CELO_RPC_URL" \
     --chain celo-sepolia
 

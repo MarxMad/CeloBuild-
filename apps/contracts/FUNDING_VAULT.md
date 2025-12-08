@@ -12,7 +12,8 @@ El `LootBoxVault` necesita fondos cUSD depositados para poder distribuir recompe
 cd apps/contracts
 
 # Configurar variables (si no están en .env)
-export DEPLOYER_PRIVATE_KEY="tu_private_key"
+# Usa CELO_PRIVATE_KEY (del agente) o DEPLOYER_PRIVATE_KEY
+export CELO_PRIVATE_KEY="tu_private_key"  # O DEPLOYER_PRIVATE_KEY
 export CELO_RPC_URL="https://celo-sepolia.infura.io/v3/tu_key"
 export LOOTBOX_VAULT_ADDRESS="0x..."
 export CUSD_ADDRESS="0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
@@ -44,12 +45,15 @@ forge script script/FundCampaign.s.sol:FundCampaign \
 ### Opción 3: Manual con `cast`
 
 ```bash
+# Usar CELO_PRIVATE_KEY (del agente) o DEPLOYER_PRIVATE_KEY
+PRIVATE_KEY="${CELO_PRIVATE_KEY:-$DEPLOYER_PRIVATE_KEY}"
+
 # 1. Aprobar el vault para transferir cUSD
 cast send $CUSD_ADDRESS \
     "approve(address,uint256)" \
     $LOOTBOX_VAULT_ADDRESS \
     $(cast --to-wei 100 ether) \
-    --private-key $DEPLOYER_PRIVATE_KEY \
+    --private-key $PRIVATE_KEY \
     --rpc-url $CELO_RPC_URL \
     --chain celo-sepolia
 
@@ -63,7 +67,7 @@ cast send $LOOTBOX_VAULT_ADDRESS \
     "fundCampaign(bytes32,uint256)" \
     $CAMPAIGN_ID \
     $(cast --to-wei 100 ether) \
-    --private-key $DEPLOYER_PRIVATE_KEY \
+    --private-key $PRIVATE_KEY \
     --rpc-url $CELO_RPC_URL \
     --chain celo-sepolia
 ```
