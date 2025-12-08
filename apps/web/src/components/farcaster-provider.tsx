@@ -7,13 +7,11 @@ import { sdk } from "@farcaster/miniapp-sdk";
 interface FarcasterUserContextType {
   fid: number | null;
   username: string | null;
-  custodyAddress: string | null;
 }
 
 const FarcasterUserContext = createContext<FarcasterUserContextType>({
   fid: null,
   username: null,
-  custodyAddress: null,
 });
 
 export const useFarcasterUser = () => useContext(FarcasterUserContext);
@@ -31,7 +29,6 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const [userContext, setUserContext] = useState<FarcasterUserContextType>({
     fid: null,
     username: null,
-    custodyAddress: null,
   });
 
   useEffect(() => {
@@ -44,12 +41,10 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           setUserContext({
             fid: context.user.fid || null,
             username: context.user.username || null,
-            custodyAddress: context.user.custodyAddress || null,
           });
           console.log("✅ Usuario de Farcaster obtenido:", {
             fid: context.user.fid,
             username: context.user.username,
-            custodyAddress: context.user.custodyAddress,
           });
         }
       } catch (error) {
