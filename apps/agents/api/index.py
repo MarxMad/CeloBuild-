@@ -95,6 +95,7 @@ except Exception as e:
                 "LOOTBOX_VAULT_ADDRESS": "SET" if os.getenv("LOOTBOX_VAULT_ADDRESS") else "MISSING",
                 "REGISTRY_ADDRESS": "SET" if os.getenv("REGISTRY_ADDRESS") else "MISSING",
                 "MINTER_ADDRESS": "SET" if os.getenv("MINTER_ADDRESS") else "MISSING",
+                "NEYNAR_API_KEY": "SET" if os.getenv("NEYNAR_API_KEY") else "MISSING",
             }
         }
 

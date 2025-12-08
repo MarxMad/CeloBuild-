@@ -170,34 +170,53 @@ async def healthcheck() -> dict[str, str]:
     """Health check endpoint que verifica el estado del servicio."""
     import os
     
-    # Verificar variables de entorno críticas
-    missing_vars = []
-    critical_vars = [
-        "GOOGLE_API_KEY",
-        "TAVILY_API_KEY", 
-        "CELO_RPC_URL",
-        "CELO_PRIVATE_KEY",
-        "LOOTBOX_VAULT_ADDRESS",
-        "REGISTRY_ADDRESS",
-        "MINTER_ADDRESS",
-    ]
-    
-    for var in critical_vars:
-        if not os.getenv(var):
-            missing_vars.append(var)
-    
-    status = "ok" if not missing_vars and supervisor is not None else "degraded"
-    
-    response = {
-        "status": status,
-        "supervisor_initialized": supervisor is not None,
-    }
-    
-    if missing_vars:
-        response["missing_env_vars"] = missing_vars
-        response["message"] = f"Faltan {len(missing_vars)} variables de entorno críticas"
-    
-    return response
+    try:
+        # Verificar variables de entorno críticas
+        missing_vars = []
+        critical_vars = [
+            "GOOGLE_API_KEY",
+            "TAVILY_API_KEY", 
+            "CELO_RPC_URL",
+            "CELO_PRIVATE_KEY",
+            "LOOTBOX_VAULT_ADDRESS",
+            "REGISTRY_ADDRESS",
+            "MINTER_ADDRESS",
+        ]
+        
+        for var in critical_vars:
+            if not os.getenv(var):
+                missing_vars.append(var)
+        
+        # Verificar supervisor de forma segura
+        supervisor_status = False
+        try:
+            supervisor_status = supervisor is not None
+        except Exception:
+            supervisor_status = False
+        
+        status = "ok" if not missing_vars and supervisor_status else "degraded"
+        
+        response = {
+            "status": status,
+            "supervisor_initialized": supervisor_status,
+        }
+        
+        if missing_vars:
+            response["missing_env_vars"] = missing_vars
+            response["message"] = f"Faltan {len(missing_vars)} variables de entorno críticas"
+        
+        return response
+    except Exception as exc:
+        # Si hay cualquier error, retornar estado degradado pero funcional
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error("Error en healthcheck: %s", exc, exc_info=True)
+        return {
+            "status": "error",
+            "supervisor_initialized": False,
+            "error": str(exc),
+            "message": "Health check falló pero el servicio puede estar funcionando"
+        }
 
 
 @app.get("/api/lootbox/leaderboard")
