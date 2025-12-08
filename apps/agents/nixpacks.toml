@@ -1,6 +1,10 @@
 [phases.setup]
 nixPkgs = ["python311", "pip"]
 
+# Sobrescribir la fase de instalación de Node.js para que no se ejecute
+[phases.setup.nodejs]
+nixPkgs = []
+
 [phases.install]
 cmds = [
   "pip install --upgrade pip",

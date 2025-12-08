@@ -4,16 +4,25 @@
 
 Nixpacks está detectando Node.js del monorepo y está intentando instalar pnpm, lo cual falla.
 
-## ✅ Solución: Verificar Root Directory
+## ✅ Solución: Verificar Root Directory (CRÍTICO)
 
 **El problema más probable es que el Root Directory no está configurado correctamente.**
 
 1. En Railway, ve a **Settings → General**
-2. **Root Directory**: Debe ser exactamente `lootbox-minipay/apps/agents`
+2. **Root Directory**: Debe ser exactamente `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
 3. Si está vacío o incorrecto:
    - Cámbialo a: `lootbox-minipay/apps/agents`
    - **Guarda**
    - Haz un **Redeploy**
+
+**Si el Root Directory está correcto pero sigue detectando Node.js:**
+
+1. En **Settings → Build**
+2. Activa **"Override Build Command"**
+3. Build Command: `pip install -r requirements.txt`
+4. En **Settings → Deploy**
+5. Start Command: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
+6. Guarda y haz **Redeploy**
 
 Si el Root Directory está correcto pero sigue detectando Node.js, entonces:
 

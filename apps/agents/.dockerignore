@@ -6,4 +6,8 @@ node_modules
 ../pnpm-lock.yaml
 ../pnpm-workspace.yaml
 apps/web
+**/package.json
+**/pnpm-lock.yaml
+**/pnpm-workspace.yaml
+**/node_modules
 
