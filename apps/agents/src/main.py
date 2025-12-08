@@ -111,6 +111,37 @@ async def leaderboard(limit: int = Query(5, ge=1, le=25)) -> dict[str, list[dict
     return {"items": items}
 
 
+@app.post("/api/lootbox/scan")
+async def trigger_scan():
+    """Endpoint para ejecutar un scan manual de tendencias (útil para Vercel Cron Jobs)."""
+    try:
+        active_supervisor = scheduler_supervisor or supervisor
+        if not active_supervisor:
+            raise HTTPException(status_code=500, detail="Supervisor no inicializado")
+        
+        # Ejecutar scan automático
+        payload = {
+            "frame_id": "",
+            "channel_id": "global",
+            "trend_score": 0.0,
+        }
+        
+        result = await active_supervisor.run(payload)
+        return {
+            "status": "success",
+            "summary": result.summary,
+            "tx_hash": result.tx_hash,
+            "explorer_url": result.explorer_url,
+            "mode": result.mode,
+            "reward_type": result.reward_type,
+        }
+    except Exception as exc:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error("Error en scan manual: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @app.post("/api/lootbox/run")
 async def run_lootbox(event: LootboxEvent):
     """Expone el grafo supervisor como endpoint HTTP.

@@ -1,5 +1,11 @@
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
+  ],
+  "crons": [
+    {
+      "path": "/api/lootbox/scan",
+      "schedule": "*/30 * * * *"
+    }
   ]
 }
