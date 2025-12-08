@@ -173,9 +173,23 @@ export function TrendingCampaignForm() {
         const errorData = await response.json();
         const errorMessage = errorData?.error || errorData?.detail || "Error desconocido";
         
-        // Si el error es "DEPLOYMENT_NOT_FOUND", es un problema de configuración de Vercel
-        if (errorMessage.includes("DEPLOYMENT_NOT_FOUND") || errorMessage.includes("deployment could not be found")) {
-          throw new Error("Error de configuración: El backend no está configurado correctamente en Vercel. Verifica que AGENT_SERVICE_URL esté configurado en las variables de entorno del frontend.");
+        // Detectar errores de configuración
+        if (
+          errorMessage.includes("Backend no configurado") ||
+          errorMessage.includes("AGENT_SERVICE_URL") ||
+          errorMessage.includes("DEPLOYMENT_NOT_FOUND") ||
+          errorMessage.includes("deployment could not be found")
+        ) {
+          throw new Error(
+            "Error de configuración: El backend no está configurado correctamente en Vercel.\n\n" +
+            "Pasos para solucionarlo:\n" +
+            "1. Ve a tu proyecto del frontend en Vercel\n" +
+            "2. Settings → Environment Variables\n" +
+            "3. Agrega estas variables:\n" +
+            "   - AGENT_SERVICE_URL = https://celo-build-backend-agents.vercel.app\n" +
+            "   - NEXT_PUBLIC_AGENT_SERVICE_URL = https://celo-build-backend-agents.vercel.app\n" +
+            "4. Haz un Redeploy del frontend"
+          );
         }
         
         throw new Error(errorMessage);
