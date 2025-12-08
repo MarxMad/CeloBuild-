@@ -190,34 +190,6 @@ class RewardDistributorAgent:
                         logger.error("Fallo minteando NFT: %s", exc)
                 
                 elif user_score >= self.settings.tier_cusd_threshold:
-                    # Tier 2: cUSD para scores medios (usar MiniPay Tool como preferido)
-                    if self.minipay_tool:
-                        try:
-                            logger.info("Enviando cUSD via MiniPay Tool (tier 2) a %s (score: %.2f)...", address, user_score)
-                            resp = await self.minipay_tool.send_micropayment(
-                                recipient=address,
-                                amount=self.settings.minipay_reward_amount,
-                                note=f"Premio {campaign_id}",
-                            )
-                            micropayments[address] = resp.get("tx_hash") or resp.get("id") or "micropayment"
-                        except Exception as exc:  # noqa: BLE001
-                            logger.error("Fallo MiniPay Tool, intentando contrato: %s", exc)
-                            # Fallback a contrato
-                            try:
-                                tx_hash = self.celo_tool.distribute_cusd(
-                                    vault_address=self.settings.lootbox_vault_address,
-                                    campaign_id=campaign_id,
-                                    recipients=[address],
-                                )
-                                micropayments[address] = tx_hash
-                            except Exception as exc2:  # noqa: BLE001
-                                logger.error("Fallo distribuyendo cUSD desde contrato: %s", exc2)
-                    else:
-                        # Usar contrato directamente si no hay MiniPay Tool
-                        try:
-                            logger.info("Enviando cUSD via contrato (tier 2) a %s (score: %.2f)...", address, user_score)
-                            tx_hash = self.celo_tool.distribute_cusd(
-                                vault_address=self.settings.lootbox_vault_address,
                                 campaign_id=campaign_id,
                                 recipients=[address],
                             )
