@@ -284,7 +284,7 @@ export function TrendingCampaignForm() {
       {result && (
         <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Success Card */}
-          {result && (
+          {result && result.eligible && (
             <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 flex flex-col gap-4">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
