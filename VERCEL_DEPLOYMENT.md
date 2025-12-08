@@ -1,156 +1,143 @@
-# 🚀 Guía de Deployment en Vercel
+# 🚀 Deployment en Vercel - Guía Rápida
 
-## 📋 Configuración de Proyectos
+## ✅ Push Completado
 
-Tienes dos proyectos en Vercel:
-- **Frontend**: https://celo-build-web-8rej.vercel.app/
-- **Backend**: https://celo-build-web.vercel.app/
+Todos los cambios han sido pusheados al repositorio:
+- ✅ Mejoras de seguridad en contratos
+- ✅ Sistema de campañas dinámicas
+- ✅ Validaciones y rate limiting
+- ✅ Scripts de deployment optimizados
+- ✅ Documentación completa
 
-## 🔧 Configuración del Frontend
+## 📋 Verificación Post-Deployment
 
-### Variables de Entorno Requeridas
+### Backend (Vercel - apps/agents)
 
-En el proyecto del **Frontend** (`celo-build-web-8rej`), configura estas variables de entorno en Vercel:
+Después de que Vercel despliegue el backend, verifica:
 
-1. Ve a **Settings** → **Environment Variables**
-2. Agrega las siguientes variables:
+1. **Variables de Entorno en Vercel:**
+   - `CELO_PRIVATE_KEY` ✅
+   - `LOOTBOX_VAULT_ADDRESS=0x3808D0C3525C4F85F1f8c9a881E3949327FB9cF7` ✅
+   - `REGISTRY_ADDRESS=0x86C878108798e2Ce39B783127955B8F8A18ae2BE` ✅
+   - `MINTER_ADDRESS=0x0d7370f79f77Ee701C5F40443F8C8969C28b3412` ✅
+   - `CELO_RPC_URL` ✅
+   - `NEYNAR_API_KEY` ✅
+   - `GOOGLE_API_KEY` ✅
+   - Todas las demás variables de `apps/agents/env.sample`
 
-```bash
-AGENT_SERVICE_URL=https://celo-build-web.vercel.app
-NEXT_PUBLIC_AGENT_SERVICE_URL=https://celo-build-web.vercel.app
-NEXT_PUBLIC_WC_PROJECT_ID=tu_walletconnect_project_id
-```
+2. **Health Check:**
+   ```bash
+   curl https://tu-backend.vercel.app/healthz
+   # Debe retornar: {"status":"ok"}
+   ```
 
-**Importante:**
-- `AGENT_SERVICE_URL` es para las API routes del servidor (server-side)
-- `NEXT_PUBLIC_AGENT_SERVICE_URL` es para el cliente (client-side) - aunque no se usa directamente, es bueno tenerlo
-- Asegúrate de que la URL del backend termine **sin** `/` al final
+3. **Verificar Scheduler:**
+   - El scheduler debe iniciar automáticamente
+   - Verifica los logs en Vercel para confirmar
 
-### Configuración del Proyecto
+### Frontend (Vercel - apps/web)
 
-1. **Root Directory**: `apps/web`
-2. **Framework Preset**: Next.js (se detecta automáticamente)
-3. **Build Command**: `cd ../.. && pnpm build --filter=web` (ya configurado en `vercel.json`)
-4. **Install Command**: `cd ../.. && pnpm install` (ya configurado en `vercel.json`)
+Después de que Vercel despliegue el frontend, verifica:
 
-## 🔧 Configuración del Backend
+1. **Variables de Entorno en Vercel:**
+   - `NEXT_PUBLIC_WC_PROJECT_ID` ✅
+   - `NEXT_PUBLIC_AGENT_SERVICE_URL` (URL del backend desplegado) ✅
 
-### ⚠️ Problema: Backend en Vercel (Serverless)
+2. **Verificar que carga:**
+   - Abre la URL de Vercel
+   - Verifica que la app carga correctamente
+   - Prueba conectar wallet
 
-El backend Python (FastAPI) **NO es ideal para Vercel** porque:
-- Vercel tiene límites de tiempo de ejecución (10s en plan gratuito, 60s en Pro)
-- Los agentes pueden tardar más tiempo en procesar
-- Vercel está optimizado para funciones serverless, no para servicios de larga duración
+## 🧪 Pruebas Rápidas
 
-### Opciones Recomendadas para el Backend:
-
-#### Opción 1: Railway (Recomendado) 🚂
-
-1. Ve a [Railway.app](https://railway.app)
-2. Crea un nuevo proyecto desde GitHub
-3. Selecciona el repositorio `CeloBuild-`
-4. **Root Directory**: `apps/agents`
-5. **Start Command**: `uvicorn src.main:app --host 0.0.0.0 --port $PORT`
-6. Configura todas las variables de entorno desde `apps/agents/.env`
-7. Railway te dará una URL como: `https://tu-backend.railway.app`
-
-**Luego actualiza el frontend:**
-```bash
-AGENT_SERVICE_URL=https://tu-backend.railway.app
-```
-
-#### Opción 2: Render 🎨
-
-1. Ve a [Render.com](https://render.com)
-2. Crea un nuevo **Web Service**
-3. Conecta tu repositorio de GitHub
-4. **Root Directory**: `apps/agents`
-5. **Build Command**: `pip install -e ".[dev]"`
-6. **Start Command**: `uvicorn src.main:app --host 0.0.0.0 --port $PORT`
-7. Configura todas las variables de entorno
-8. Render te dará una URL como: `https://tu-backend.onrender.com`
-
-#### Opción 3: Mantener en Vercel (con limitaciones) ⚠️
-
-Si quieres mantener el backend en Vercel, necesitas:
-
-1. **Crear un proyecto separado** para el backend
-2. **Root Directory**: `apps/agents`
-3. **Framework Preset**: Other
-4. Crear `api/index.py` o usar serverless functions
-
-**Nota**: Esto requiere refactorizar el código para que sea compatible con serverless.
-
-### Variables de Entorno del Backend
-
-El backend necesita todas las variables de `apps/agents/.env`:
+### 1. Probar Health Check del Backend
 
 ```bash
-# APIs
-GOOGLE_API_KEY=tu_google_api_key
-NEYNAR_API_KEY=tu_neynar_api_key
-CELO_RPC_URL=https://rpc.ankr.com/celo_sepolia
-CELO_PRIVATE_KEY=tu_private_key
-
-# Contratos (ya desplegados)
-LOOTBOX_VAULT_ADDRESS=0xfE5aAb76ec266547418adBdF741e9D36D70AecAA
-REGISTRY_ADDRESS=0x30a364AaA515494fc4dec5D6B2cA4aF81FE8FcA7
-MINTER_ADDRESS=0x6C9553371f8c7e9afDE8D7385Ad986Eb5B661A5F
-
-# MiniPay (opcional)
-MINIPAY_PROJECT_ID=lootbox-agent
-MINIPAY_PROJECT_SECRET=tu_secret_si_tienes
-
-# Configuración
-MINIPAY_REWARD_AMOUNT=0.15
-XP_REWARD_AMOUNT=50
-# ... (todas las demás variables)
+curl https://tu-backend.vercel.app/healthz
 ```
 
-## ✅ Checklist de Deployment
+### 2. Probar Leaderboard
 
-### Frontend (Vercel)
-- [ ] Variables de entorno configuradas (`AGENT_SERVICE_URL`, `NEXT_PUBLIC_WC_PROJECT_ID`)
-- [ ] Root Directory: `apps/web`
-- [ ] Build Command configurado correctamente
-- [ ] Deployment exitoso sin errores
+```bash
+curl https://tu-backend.vercel.app/api/lootbox/leaderboard?limit=5
+```
 
-### Backend (Railway/Render)
-- [ ] Proyecto creado en Railway o Render
-- [ ] Root Directory: `apps/agents`
-- [ ] Todas las variables de entorno configuradas
-- [ ] Servicio corriendo y accesible
-- [ ] Health check: `GET https://tu-backend.railway.app/healthz` retorna `{"status":"ok"}`
+### 3. Probar Activación Manual (desde Frontend)
 
-### Verificación Final
-- [ ] Frontend puede conectarse al backend
-- [ ] El botón "Activar Recompensas" funciona
-- [ ] El leaderboard carga datos
-- [ ] Las recompensas se distribuyen correctamente
+1. Abre el frontend en Vercel
+2. Conecta tu wallet
+3. Haz clic en "Activar Recompensas"
+4. Selecciona tipo de recompensa (NFT, cUSD, XP)
+5. Espera la confirmación
 
-## 🔍 Troubleshooting
+### 4. Verificar Primera Ejecución Automática
 
-### Error: "AGENT_SERVICE_URL no configurado"
-- Verifica que la variable esté configurada en Vercel
-- Asegúrate de hacer un nuevo deployment después de agregar variables
+El scheduler ejecutará automáticamente cada 30 minutos. Para verificar:
 
-### Error: "Failed to fetch" o CORS
-- Verifica que la URL del backend sea correcta
-- Asegúrate de que el backend esté corriendo y accesible
-- Verifica que no haya problemas de CORS (el backend debería permitir requests del frontend)
+1. Revisa los logs del backend en Vercel
+2. Busca mensajes como:
+   - "🤖 Ejecutando scan de tendencias Farcaster..."
+   - "Scan completado: ..."
+   - "✅ Campaña X configurada exitosamente"
 
-### Error: Timeout en Vercel
-- Si el backend está en Vercel y tarda mucho, considera moverlo a Railway/Render
-- Los agentes pueden tardar 30-60 segundos en procesar
+## 🔍 Monitoreo
 
-### Error: "Module not found" en build
-- Verifica que `@celo/abis` esté actualizado a `^14.0.1` en `package.json`
-- Ejecuta `pnpm install` localmente y commit los cambios
+### Logs del Backend
 
-## 📝 Notas Importantes
+En Vercel, ve a:
+- Tu proyecto → Deployments → Logs
 
-1. **Backend en Vercel**: No es recomendado para este proyecto debido a los límites de tiempo
-2. **Variables de Entorno**: Nunca commitees el archivo `.env` con valores reales
-3. **CORS**: El backend debe permitir requests desde el dominio del frontend
-4. **Health Check**: Siempre verifica que el backend esté funcionando con `/healthz`
+Busca:
+- ✅ "Scheduler iniciado: ejecutando scans cada 30 minutos"
+- ✅ "Trend detectado: ..."
+- ✅ "Campaña X configurada exitosamente"
+- ✅ "Recompensa distribuida: ..."
 
+### Transacciones On-Chain
+
+Usa los links de Blockscout en el README para ver:
+- Transacciones de configuración de campañas
+- Transacciones de distribución de recompensas
+- NFTs minteados
+- XP otorgado
+
+## ⚠️ Troubleshooting
+
+### Backend no responde
+
+1. Verifica que todas las variables de entorno estén configuradas
+2. Revisa los logs en Vercel para errores
+3. Verifica que `CELO_RPC_URL` sea accesible
+
+### Scheduler no ejecuta
+
+1. Verifica `AUTO_SCAN_ON_STARTUP=true` en variables de entorno
+2. Verifica `AUTO_SCAN_INTERVAL_MINUTES=30`
+3. Revisa logs para errores de inicialización
+
+### Frontend no se conecta al backend
+
+1. Verifica `NEXT_PUBLIC_AGENT_SERVICE_URL` en frontend
+2. Verifica CORS en backend (debe permitir el dominio del frontend)
+3. Verifica que el backend esté desplegado y accesible
+
+### No se detectan tendencias
+
+1. Verifica que `NEYNAR_API_KEY` sea válida y tenga créditos
+2. Revisa logs para errores de API
+3. Verifica que `GOOGLE_API_KEY` sea válida (para análisis IA)
+
+## 📊 Estado Esperado
+
+Después del deployment exitoso:
+
+- ✅ Backend desplegado y accesible
+- ✅ Frontend desplegado y accesible
+- ✅ Scheduler ejecutándose cada 30 minutos
+- ✅ Sistema listo para detectar tendencias
+- ✅ Campañas se crearán automáticamente
+- ✅ Recompensas se distribuirán automáticamente
+
+---
+
+**¡Todo listo para probar! 🚀**

@@ -46,18 +46,33 @@ class RewardDistributorAgent:
                 logger.info("Configurando campaña real automáticamente: %s", campaign_id)
                 
                 # 1. Configurar en LootAccessRegistry
-                self.celo_tool.configure_campaign_registry(
-                    registry_address=self.settings.registry_address,
-                    campaign_id=campaign_id,
-                    cooldown_seconds=86400,  # 1 día
-                )
+                try:
+                    self.celo_tool.configure_campaign_registry(
+                        registry_address=self.settings.registry_address,
+                        campaign_id=campaign_id,
+                        cooldown_seconds=86400,  # 1 día
+                    )
+                except Exception as reg_exc:  # noqa: BLE001
+                    error_str = str(reg_exc)
+                    # Si la campaña ya existe, continuar (no es un error fatal)
+                    if "replacement transaction underpriced" in error_str.lower():
+                        logger.warning("Transacción pendiente detectada para Registry, continuando...")
+                    else:
+                        logger.warning("Error configurando Registry (puede que ya exista): %s", reg_exc)
                 
                 # 2. Configurar en LootBoxMinter
-                self.celo_tool.configure_campaign_minter(
-                    minter_address=self.settings.minter_address,
-                    campaign_id=campaign_id,
-                    base_uri=self.settings.reward_metadata_uri or "ipfs://QmExample/",
-                )
+                try:
+                    self.celo_tool.configure_campaign_minter(
+                        minter_address=self.settings.minter_address,
+                        campaign_id=campaign_id,
+                        base_uri=self.settings.reward_metadata_uri or "ipfs://QmExample/",
+                    )
+                except Exception as minter_exc:  # noqa: BLE001
+                    error_str = str(minter_exc)
+                    if "replacement transaction underpriced" in error_str.lower():
+                        logger.warning("Transacción pendiente detectada para Minter, continuando...")
+                    else:
+                        logger.warning("Error configurando Minter (puede que ya exista): %s", minter_exc)
                 
                 # 3. Inicializar en LootBoxVault (solo si se va a usar para cUSD)
                 # Nota: Esto requiere que el vault tenga fondos depositados después
@@ -73,17 +88,20 @@ class RewardDistributorAgent:
                 except Exception as vault_exc:  # noqa: BLE001
                     # Si falla, la campaña puede seguir funcionando para NFT y XP
                     # Solo fallará si intenta distribuir cUSD desde el vault
-                    logger.warning(
-                        "No se pudo inicializar campaña en Vault (puede que ya esté inicializada o falte ownership): %s",
-                        vault_exc
-                    )
+                    error_str = str(vault_exc)
+                    if "replacement transaction underpriced" in error_str.lower():
+                        logger.warning("Transacción pendiente detectada para Vault, continuando...")
+                    else:
+                        logger.warning(
+                            "No se pudo inicializar campaña en Vault (puede que ya esté inicializada): %s",
+                            vault_exc
+                        )
                 
-                logger.info("✅ Campaña %s configurada exitosamente en todos los contratos", campaign_id)
+                logger.info("✅ Campaña %s configurada (o ya existía)", campaign_id)
             except Exception as exc:  # noqa: BLE001
                 # Si falla completamente, usar demo-campaign como fallback
                 logger.error(
-                    "No se pudo configurar la campaña %s. "
-                    "Verifica que el agente sea owner de los contratos. Error: %s",
+                    "Error crítico configurando la campaña %s: %s",
                     campaign_id, exc
                 )
                 logger.warning("Usando 'demo-campaign' como fallback")

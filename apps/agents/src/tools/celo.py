@@ -265,16 +265,46 @@ class CeloToolbox:
         contract = self.web3.eth.contract(address=registry_address, abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         
-        tx = contract.functions.configureCampaign(campaign_bytes, cooldown_seconds).build_transaction({
-            "from": self.account.address,
-            "nonce": self.web3.eth.get_transaction_count(self.account.address),
-            "gasPrice": self.web3.eth.gas_price,
-        })
+        # Obtener nonce y gas price con manejo de errores
+        nonce = self.web3.eth.get_transaction_count(self.account.address)
+        base_gas_price = self.web3.eth.gas_price
         
-        signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
-        tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-        logger.info("Campaign configured in Registry: %s (tx: %s)", campaign_id, tx_hash.hex())
-        return tx_hash.hex()
+        # Si hay transacciones pendientes, usar gas price más alto
+        pending_txns = self.web3.eth.get_transaction_count(self.account.address, "pending")
+        if pending_txns > nonce:
+            # Hay transacciones pendientes, aumentar gas price en 20%
+            gas_price = int(base_gas_price * 1.2)
+            logger.warning("Transacciones pendientes detectadas, usando gas price aumentado: %s", gas_price)
+        else:
+            gas_price = base_gas_price
+        
+        try:
+            tx = contract.functions.configureCampaign(campaign_bytes, cooldown_seconds).build_transaction({
+                "from": self.account.address,
+                "nonce": nonce,
+                "gasPrice": gas_price,
+            })
+            
+            signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            logger.info("Campaign configured in Registry: %s (tx: %s)", campaign_id, tx_hash.hex())
+            return tx_hash.hex()
+        except ValueError as e:
+            error_msg = str(e)
+            if "replacement transaction underpriced" in error_msg.lower():
+                # Reintentar con gas price aún más alto
+                logger.warning("Transacción rechazada por gas price bajo, reintentando con precio más alto...")
+                gas_price = int(base_gas_price * 1.5)
+                tx = contract.functions.configureCampaign(campaign_bytes, cooldown_seconds).build_transaction({
+                    "from": self.account.address,
+                    "nonce": nonce,
+                    "gasPrice": gas_price,
+                })
+                signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+                tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+                logger.info("Campaign configured in Registry (retry): %s (tx: %s)", campaign_id, tx_hash.hex())
+                return tx_hash.hex()
+            raise
 
     def configure_campaign_minter(self, minter_address: str, campaign_id: str, base_uri: str = "ipfs://QmExample/") -> str:
         """Configura una campaña en LootBoxMinter si no existe."""
@@ -297,16 +327,45 @@ class CeloToolbox:
         contract = self.web3.eth.contract(address=minter_address, abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         
-        tx = contract.functions.configureCampaign(campaign_bytes, base_uri).build_transaction({
-            "from": self.account.address,
-            "nonce": self.web3.eth.get_transaction_count(self.account.address),
-            "gasPrice": self.web3.eth.gas_price,
-        })
+        # Obtener nonce y gas price con manejo de errores
+        nonce = self.web3.eth.get_transaction_count(self.account.address)
+        base_gas_price = self.web3.eth.gas_price
         
-        signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
-        tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-        logger.info("Campaign configured in Minter: %s (tx: %s)", campaign_id, tx_hash.hex())
-        return tx_hash.hex()
+        # Si hay transacciones pendientes, usar gas price más alto
+        pending_txns = self.web3.eth.get_transaction_count(self.account.address, "pending")
+        if pending_txns > nonce:
+            gas_price = int(base_gas_price * 1.2)
+            logger.warning("Transacciones pendientes detectadas, usando gas price aumentado: %s", gas_price)
+        else:
+            gas_price = base_gas_price
+        
+        try:
+            tx = contract.functions.configureCampaign(campaign_bytes, base_uri).build_transaction({
+                "from": self.account.address,
+                "nonce": nonce,
+                "gasPrice": gas_price,
+            })
+            
+            signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            logger.info("Campaign configured in Minter: %s (tx: %s)", campaign_id, tx_hash.hex())
+            return tx_hash.hex()
+        except ValueError as e:
+            error_msg = str(e)
+            if "replacement transaction underpriced" in error_msg.lower():
+                # Reintentar con gas price aún más alto
+                logger.warning("Transacción rechazada por gas price bajo, reintentando con precio más alto...")
+                gas_price = int(base_gas_price * 1.5)
+                tx = contract.functions.configureCampaign(campaign_bytes, base_uri).build_transaction({
+                    "from": self.account.address,
+                    "nonce": nonce,
+                    "gasPrice": gas_price,
+                })
+                signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+                tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+                logger.info("Campaign configured in Minter (retry): %s (tx: %s)", campaign_id, tx_hash.hex())
+                return tx_hash.hex()
+            raise
 
     def initialize_campaign_vault(
         self,
