@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     registry_address: str
     minter_address: str
     celo_private_key: str
+    # Token addresses (Celo Sepolia)
+    cusd_address: str = "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"  # cUSD en Sepolia
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

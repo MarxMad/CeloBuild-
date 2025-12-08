@@ -85,11 +85,17 @@ contract LootAccessRegistry {
         emit ClaimRecorded(campaignId, participant, data.lastClaimAt);
     }
 
+    uint32 public constant MAX_XP_PER_GRANT = 10000; // Límite máximo de XP por grant (protección contra overflow)
+
     function grantXp(bytes32 campaignId, address participant, uint32 amount) external onlyReporter {
         if (!campaignRules[campaignId].exists) revert CampaignNotConfigured();
         require(participant != address(0), "participant zero");
         require(amount > 0, "amount zero");
-        uint256 newBalance = xpBalances[campaignId][participant] + amount;
+        require(amount <= MAX_XP_PER_GRANT, "amount too large"); // Protección contra amounts excesivos
+        
+        uint256 currentBalance = xpBalances[campaignId][participant];
+        require(currentBalance <= type(uint256).max - amount, "XP overflow"); // Protección contra overflow
+        uint256 newBalance = currentBalance + amount;
         xpBalances[campaignId][participant] = newBalance;
         emit XpGranted(campaignId, participant, amount, newBalance);
     }

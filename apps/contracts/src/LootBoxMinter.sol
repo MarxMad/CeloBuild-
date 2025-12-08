@@ -59,6 +59,8 @@ contract LootBoxMinter is ERC721, Ownable {
         emit CampaignStatusChanged(campaignId, active);
     }
 
+    uint256 public constant MAX_MINT_BATCH_SIZE = 50; // Límite de seguridad para evitar gas griefing
+
     function mintBatch(
         bytes32 campaignId,
         address[] calldata recipients,
@@ -69,8 +71,18 @@ contract LootBoxMinter is ERC721, Ownable {
         if (bytes(config.baseURI).length == 0 || !config.active) revert InvalidCampaign();
         uint256 count = recipients.length;
         require(count > 0, "recipients empty");
+        require(count <= MAX_MINT_BATCH_SIZE, "batch too large"); // Protección contra gas griefing
         require(metadataURIs.length == count, "metadata length mismatch");
         require(soulboundFlags.length == count, "soulbound length mismatch");
+
+        // Validar que no haya direcciones duplicadas (protección contra exploits)
+        for (uint256 i = 0; i < count; i++) {
+            require(recipients[i] != address(0), "recipient zero");
+            // Verificar duplicados
+            for (uint256 j = i + 1; j < count; j++) {
+                if (recipients[i] == recipients[j]) revert InvalidCampaign();
+            }
+        }
 
         for (uint256 i = 0; i < count; i++) {
             uint256 tokenId = nextTokenId++;

@@ -39,32 +39,54 @@ class RewardDistributorAgent:
         rankings = eligibility.get("rankings", [])
         metadata = eligibility.get("metadata", {})
         
-        # Si la campaña no es "demo-campaign", intentar configurarla automáticamente
-        # o usar "demo-campaign" como fallback seguro
+        # Configurar campaña automáticamente si no es "demo-campaign"
+        # En producción, el agente debe ser owner para poder configurar campañas dinámicamente
         if campaign_id != "demo-campaign":
             try:
-                # Intentar configurar la campaña en los contratos si no existe
-                # Nota: Esto solo funciona si el agente es owner de los contratos
-                # Si falla, usaremos "demo-campaign" como fallback
-                logger.info("Configurando campaña automáticamente: %s", campaign_id)
+                logger.info("Configurando campaña real automáticamente: %s", campaign_id)
+                
+                # 1. Configurar en LootAccessRegistry
                 self.celo_tool.configure_campaign_registry(
                     registry_address=self.settings.registry_address,
                     campaign_id=campaign_id,
                     cooldown_seconds=86400,  # 1 día
                 )
+                
+                # 2. Configurar en LootBoxMinter
                 self.celo_tool.configure_campaign_minter(
                     minter_address=self.settings.minter_address,
                     campaign_id=campaign_id,
                     base_uri=self.settings.reward_metadata_uri or "ipfs://QmExample/",
                 )
-                logger.info("Campaña %s configurada exitosamente", campaign_id)
+                
+                # 3. Inicializar en LootBoxVault (solo si se va a usar para cUSD)
+                # Nota: Esto requiere que el vault tenga fondos depositados después
+                try:
+                    reward_amount_wei = int(self.settings.minipay_reward_amount * 1e18)
+                    self.celo_tool.initialize_campaign_vault(
+                        vault_address=self.settings.lootbox_vault_address,
+                        campaign_id=campaign_id,
+                        token_address=self.settings.cusd_address,
+                        reward_per_recipient=reward_amount_wei,
+                    )
+                    logger.info("Campaña %s inicializada en LootBoxVault", campaign_id)
+                except Exception as vault_exc:  # noqa: BLE001
+                    # Si falla, la campaña puede seguir funcionando para NFT y XP
+                    # Solo fallará si intenta distribuir cUSD desde el vault
+                    logger.warning(
+                        "No se pudo inicializar campaña en Vault (puede que ya esté inicializada o falte ownership): %s",
+                        vault_exc
+                    )
+                
+                logger.info("✅ Campaña %s configurada exitosamente en todos los contratos", campaign_id)
             except Exception as exc:  # noqa: BLE001
-                # Si falla la configuración (agente no es owner), usar demo-campaign
-                logger.warning(
-                    "No se pudo configurar la campaña %s (probablemente el agente no es owner). "
-                    "Usando 'demo-campaign' como fallback. Error: %s",
+                # Si falla completamente, usar demo-campaign como fallback
+                logger.error(
+                    "No se pudo configurar la campaña %s. "
+                    "Verifica que el agente sea owner de los contratos. Error: %s",
                     campaign_id, exc
                 )
+                logger.warning("Usando 'demo-campaign' como fallback")
                 campaign_id = "demo-campaign"
         
         # Si reward_type viene del request, usarlo; si no, determinar automáticamente según score
@@ -88,6 +110,25 @@ class RewardDistributorAgent:
         
         if not recipients:
             return {"mode": "noop", "tx_hash": None, "campaign_id": campaign_id}
+
+        # Validaciones de seguridad: verificar duplicados y límites
+        unique_addresses = set()
+        for recipient in recipients:
+            if recipient in unique_addresses:
+                logger.warning("Dirección duplicada detectada: %s. Ignorando duplicado.", recipient)
+                continue
+            unique_addresses.add(recipient)
+        
+        # Aplicar límites de seguridad
+        max_recipients = min(self.settings.max_reward_recipients, 50)  # Límite máximo de 50 por batch
+        if len(unique_addresses) > max_recipients:
+            logger.warning(
+                "Número de recipients (%d) excede el límite (%d). Limitando a los primeros %d.",
+                len(unique_addresses), max_recipients, max_recipients
+            )
+            recipients = list(unique_addresses)[:max_recipients]
+        else:
+            recipients = list(unique_addresses)
 
         minted: dict[str, str] = {}
         micropayments: dict[str, str] = {}

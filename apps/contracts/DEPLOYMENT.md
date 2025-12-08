@@ -45,15 +45,21 @@ print(account.address)
 cd apps/contracts
 
 # Opción 1: Usar el script automático (recomendado)
-./deploy.sh
+./deploy-production.sh
 
 # Opción 2: Manual
-forge script script/DeployAndSetup.s.sol:DeployAndSetup \
+forge script script/DeployProduction.s.sol:DeployProduction \
     --rpc-url $CELO_RPC_URL \
     --broadcast \
     --verify \
     -vvv
 ```
+
+**Nota:** El script `DeployProduction` incluye:
+- ✅ Deployment de los 3 contratos con mejoras de seguridad
+- ✅ Configuración de roles para el agente
+- ✅ Transferencia de ownership al agente (para campañas dinámicas)
+- ✅ Configuración de campaña demo (opcional)
 
 ## 📝 Paso 3: Guardar direcciones en .env
 
