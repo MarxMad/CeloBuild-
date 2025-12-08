@@ -47,8 +47,13 @@ export function TrendingCampaignForm() {
         };
       case "xp":
         return {
-          title: "+XP on-chain",
-          subtitle: "Tu reputación fue actualizada en el registro.",
+          title: "¡XP Otorgado!",
+          subtitle: "Has recibido puntos de experiencia on-chain por tu contribución.",
+        };
+      case "analysis":
+        return {
+          title: "Análisis Completado",
+          subtitle: "Eres elegible. Selecciona tu recompensa abajo.",
         };
       default:
         return {
