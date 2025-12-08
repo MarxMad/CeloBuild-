@@ -1,12 +1,12 @@
 # 🚂 Deployment en Railway - Backend Python
 
-## ⚠️ Problema: Nixpacks Detecta Node.js
+## ⚠️ Problema: Railpack Detecta Node.js
 
-Nixpacks está detectando Node.js del monorepo y está intentando instalar pnpm, lo cual falla.
+Railway ahora usa **Railpack** por defecto (Nixpacks está deprecado). Railpack está detectando Node.js del monorepo y está intentando instalar pnpm, lo cual falla.
 
 ## ✅ Solución: Usar Dockerfile Personalizado
 
-He creado un `Dockerfile` que fuerza solo Python, evitando la detección automática de Node.js.
+He creado un `Dockerfile` que fuerza solo Python, evitando la detección automática de Node.js. Esta es la solución más confiable para monorepos.
 
 ### Paso 1: Verificar Root Directory
 
@@ -19,9 +19,11 @@ He creado un `Dockerfile` que fuerza solo Python, evitando la detección automá
 ### Paso 2: Configurar Builder a Dockerfile
 
 1. En **Settings → Build**
-2. **Builder**: Cambia a **"Dockerfile"** (no "Nixpacks")
+2. **Builder**: Cambia a **"Dockerfile"** (no "Railpack" ni "Nixpacks")
 3. **Dockerfile Path**: `Dockerfile` (debería detectarlo automáticamente)
 4. Guarda
+
+**Nota:** El archivo `railway.json` ya está configurado para usar Dockerfile, pero puedes verificarlo en Settings.
 
 ### Paso 3: Configurar Start Command
 
@@ -35,48 +37,14 @@ He creado un `Dockerfile` que fuerza solo Python, evitando la detección automá
 2. Haz clic en **"Redeploy"**
 3. Ahora debería usar el Dockerfile personalizado (solo Python, sin Node.js)
 
-Si el Root Directory está correcto pero sigue detectando Node.js, entonces:
-
-## ✅ Solución Alternativa: Cambiar Builder Manualmente
-
-### Paso 1: Ir a Settings del Servicio
-
-1. En Railway, ve a tu servicio
-2. Haz clic en **Settings** (icono de engranaje)
-3. Ve a la sección **"Build"**
-
-### Paso 2: Cambiar Builder a Nixpacks
-
-1. Busca **"Builder"** o **"Buildpack"**
-2. Cambia de **"Railpack"** a **"Nixpacks"**
-3. Si no ves la opción, busca **"Override Build Command"** y desactívala
-
-### Paso 3: Configurar Root Directory
-
-1. En **Settings → General**
-2. **Root Directory**: `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
-3. Guarda
-
-### Paso 4: Configurar Start Command
-
-1. En **Settings → Deploy**
-2. **Start Command**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
-3. Guarda
-
-### Paso 5: Redeploy
-
-1. Ve a **Deployments**
-2. Haz clic en **"Redeploy"** del último deployment
-3. Ahora debería usar Nixpacks (Python) en lugar de Railpack (Node.js)
-
 ## 🔍 Verificar que Funciona
 
 Después del redeploy, en los logs deberías ver:
-- ✅ **Builder**: "Nixpacks" (no "Railpack")
-- ✅ **Detecta**: Python 3.11
+- ✅ **Builder**: "Dockerfile" (no "Railpack" ni "Nixpacks")
+- ✅ **Base Image**: `python:3.11-slim`
 - ✅ **Build**: `pip install -r requirements.txt`
 - ✅ **Start**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
-- ❌ **NO** debería intentar `pnpm install`
+- ❌ **NO** debería intentar `pnpm install` ni `npm install`
 
 ## 📋 Setup en Railway
 
@@ -90,11 +58,9 @@ Después del redeploy, en los logs deberías ver:
 ### Paso 2: Configurar el Servicio
 
 1. **Root Directory**: `lootbox-minipay/apps/agents` ⚠️ **CRÍTICO**
-2. **Builder**: "Nixpacks" (no Railpack)
-3. Railway debería detectar automáticamente que es Python por:
-   - `requirements.txt`
-   - `runtime.txt`
-   - `nixpacks.toml`
+2. **Builder**: "Dockerfile" (no Railpack ni Nixpacks)
+3. **Dockerfile Path**: `Dockerfile` (debería detectarlo automáticamente)
+4. El Dockerfile usa `python:3.11-slim` como base image
 
 ### Paso 3: Variables de Entorno
 
@@ -119,18 +85,29 @@ Ver todas las variables en `apps/agents/env.sample`
 2. El comando de inicio será: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
 3. Verifica los logs para confirmar que arrancó correctamente
 
-## 🔧 Si Railway Detecta Node.js en Lugar de Python
+## 🔧 Si Railway Sigue Detectando Node.js
 
-Si Railway detecta Node.js (por el `package.json` en la raíz):
+Si Railway sigue detectando Node.js después de configurar Dockerfile:
 
-1. **Forzar detección de Python:**
-   - Ve a **Settings** del servicio
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
+1. **Verificar Root Directory:**
+   - Asegúrate de que el Root Directory sea exactamente `lootbox-minipay/apps/agents`
+   - El Root Directory debe apuntar al directorio donde está el `Dockerfile`
 
-2. **O usar Nixpacks explícitamente:**
-   - Railway debería usar `nixpacks.toml` automáticamente
-   - Si no, especifica el builder como "Nixpacks" en Settings
+2. **Verificar Builder en Settings:**
+   - Ve a **Settings → Build**
+   - **Builder**: Debe ser "Dockerfile" (no "Railpack" ni "Nixpacks")
+   - Si está en "Railpack", cámbialo manualmente a "Dockerfile"
+
+3. **Forzar Redeploy:**
+   - Ve a **Deployments**
+   - Haz clic en **"Redeploy"** del último deployment
+   - O crea un nuevo deployment desde el commit más reciente
+
+4. **Alternativa: Usar Railpack con Variables de Entorno:**
+   Si prefieres usar Railpack en lugar de Dockerfile, agrega estas variables de entorno en Railway:
+   - `RAILPACK_INSTALL_COMMAND`: `pip install -r requirements.txt`
+   - `RAILPACK_BUILD_COMMAND`: (dejar vacío o `pip install -r requirements.txt`)
+   - Y configura el Builder como "Railpack" en Settings
 
 ## ✅ Verificación
 
@@ -147,8 +124,29 @@ Si Railway detecta Node.js (por el `package.json` en la raíz):
 
 ## 📝 Notas
 
-- Railway detecta automáticamente Python por `requirements.txt`
-- El `nixpacks.toml` ayuda a Railway a configurar correctamente el entorno
-- El `Procfile` es un fallback si Railway no detecta automáticamente
-- El `railway.json` proporciona configuración explícita
+- **Railway ahora usa Railpack por defecto** (Nixpacks está deprecado)
+- **Usar Dockerfile es la solución más confiable** para monorepos con múltiples lenguajes
+- El `Dockerfile` copia solo archivos de Python, evitando la detección de Node.js
+- El `railway.json` y `railway.toml` están configurados para usar Dockerfile
+- El Root Directory **debe** apuntar a `lootbox-minipay/apps/agents` donde está el Dockerfile
+
+## 🆘 Troubleshooting
+
+### Error: "Cannot install with frozen-lockfile because pnpm-lock.yaml is absent"
+
+**Causa:** Railway está usando Railpack y detectando Node.js.
+
+**Solución:**
+1. Cambia el Builder a "Dockerfile" en Settings → Build
+2. Verifica que el Root Directory sea `lootbox-minipay/apps/agents`
+3. Haz un Redeploy
+
+### Error: "The specified Root Directory does not exist"
+
+**Causa:** El Root Directory está mal configurado o Railway está usando un commit antiguo.
+
+**Solución:**
+1. Verifica que el Root Directory sea exactamente `lootbox-minipay/apps/agents` (sin trailing slash)
+2. Haz un nuevo deployment desde el commit más reciente
+3. O desconecta y vuelve a conectar el repositorio en Railway
 
