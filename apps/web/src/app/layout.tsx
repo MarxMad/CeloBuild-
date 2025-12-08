@@ -10,14 +10,30 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Premio.xyz',
-  description: 'Agente Loot Box Social en Celo',
+  description: 'Recompensas virales en Farcaster con Celo MiniPay',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/PremioxyzLogo.svg',
+    shortcut: '/PremioxyzLogo.svg',
+    apple: '/PremioxyzLogo.svg',
+  },
+  openGraph: {
+    title: 'Premio.xyz',
+    description: 'Recompensas virales en Farcaster con Celo MiniPay',
+    images: ['/PremioxyzLogo.svg'],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Premio.xyz',
+    description: 'Recompensas virales en Farcaster con Celo MiniPay',
+    images: ['/PremioxyzLogo.svg'],
+  },
   other: {
     "fc:frame": "vNext",
-    "fc:frame:image": "https://premio.xyz/og.png", // Reemplazar con URL real en prod
+    "fc:frame:image": "https://premio.xyz/PremioxyzLogo.svg",
     "fc:frame:button:1": "Lanzar App",
     "fc:frame:button:1:action": "link", 
-    "fc:frame:button:1:target": "https://premio.xyz", // Reemplazar con URL real
+    "fc:frame:button:1:target": "https://premio.xyz",
   }
 };
 

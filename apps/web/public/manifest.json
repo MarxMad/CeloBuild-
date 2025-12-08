@@ -8,14 +8,20 @@
   "theme_color": "#FCFF52",
   "icons": [
     {
-      "src": "/icon.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "/PremioxyzLogo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
-      "src": "/icon.png",
+      "src": "/PremioxyzLogo.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/PremioxyzLogo.svg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/svg+xml"
     }
   ]
 }

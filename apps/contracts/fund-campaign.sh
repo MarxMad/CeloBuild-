@@ -5,11 +5,30 @@ set -e
 
 # Cargar variables de entorno
 # Buscar en múltiples ubicaciones
+load_env() {
+    local env_file="$1"
+    if [ -f "$env_file" ]; then
+        # Cargar solo líneas válidas (KEY=VALUE, sin comentarios, sin espacios especiales)
+        while IFS= read -r line || [ -n "$line" ]; do
+            # Ignorar comentarios y líneas vacías
+            if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "${line// }" ]]; then
+                continue
+            fi
+            # Solo exportar líneas que tengan formato KEY=VALUE válido
+            if [[ "$line" =~ ^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*= ]]; then
+                # Quitar espacios y comillas alrededor del valor
+                key=$(echo "$line" | cut -d'=' -f1 | tr -d '[:space:]')
+                value=$(echo "$line" | cut -d'=' -f2- | sed 's/^[[:space:]]*["'\'']*//; s/["'\'']*[[:space:]]*$//')
+                export "$key=$value"
+            fi
+        done < "$env_file"
+    fi
+}
+
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    load_env .env
 elif [ -f ../agents/.env ]; then
-    # Cargar desde apps/agents/.env si existe
-    export $(cat ../agents/.env | grep -v '^#' | xargs)
+    load_env ../agents/.env
 fi
 
 # Variables requeridas
