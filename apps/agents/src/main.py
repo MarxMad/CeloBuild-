@@ -39,7 +39,7 @@ class LootboxEvent(BaseModel):
         """Valida que reward_type sea uno de los valores permitidos."""
         if v is None:
             return v
-        allowed = {"nft", "cusd", "xp", "token", "minipay", "reputation"}
+        allowed = {"nft", "cusd", "xp", "token", "minipay", "reputation", "analysis"}
         if v.lower() not in allowed:
             raise ValueError(f"reward_type debe ser uno de: {allowed}")
         return v.lower()
