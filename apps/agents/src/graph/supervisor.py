@@ -150,6 +150,10 @@ class SupervisorOrchestrator:
                 # Default to Mainnet (celoscan.io is the standard for Celo Mainnet)
                 base_explorer = "https://celoscan.io"
             
+            # Ensure tx_hash has 0x prefix
+            if not tx_hash.startswith("0x"):
+                tx_hash = f"0x{tx_hash}"
+            
             explorer_url = f"{base_explorer}/tx/{tx_hash}"
 
         thread_id = payload.get("thread_id") or self.trend_watcher.build_thread_id(payload)
