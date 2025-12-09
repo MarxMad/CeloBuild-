@@ -1,0 +1,18 @@
+{
+    "frame": {
+        "name": "Premio.xyz",
+        "version": "1",
+        "iconUrl": "https://celo-build-web-8rej.vercel.app/PremioxyzLogo.svg",
+        "homeUrl": "https://celo-build-web-8rej.vercel.app",
+        "primaryCategory": "social",
+        "description": "Una plataforma descentralizada que combina el poder de la **Inteligencia Artificial** con la velocidad de **Celo** para crear campañas de recompensas automáticas (\"Loot Boxes\") basadas en tendencias sociales de Farcaster.",
+        "subtitle": "Recompensas virales en Farcaster.",
+        "splashImageUrl": "https://celo-build-web-8rej.vercel.app/PremioxyzLogo.svg",
+        "splashBackgroundColor": "#000000"
+    },
+    "accountAssociation": {
+        "header": "eyJmaWQiOjc0NDI5NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweGY2QzkxQTBmOTEwMkJmMGY1NzgyYmY1NjEwMGM0MDU1Yjg0MzFhQ2EifQ",
+        "payload": "eyJkb21haW4iOiIifQ",
+        "signature": "ApsotdfdNwCe89KjJngjcGtDvW/8XRXbZBxbTFf/soR109uUSQZjMlXZEoZbwLKrBQum9y0dKfFG1OAqK5FzYhs="
+    }
+}
