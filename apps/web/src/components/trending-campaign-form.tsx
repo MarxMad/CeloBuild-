@@ -321,6 +321,11 @@ export function TrendingCampaignForm() {
           </div>
           <p className="text-sm text-orange-400/90 pl-10">
             Hubo un problema enviando tu recompensa on-chain.
+            {result.error && (
+              <span className="block mt-1 font-mono text-xs opacity-80 bg-black/20 p-2 rounded">
+                Error: {result.error}
+              </span>
+            )}
           </p>
         </div>
       )}

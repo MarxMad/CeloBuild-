@@ -14,6 +14,7 @@ export type AgentRunResponse = {
   tx_hash?: string;
   explorer_url?: string;
   mode?: string;
+  error?: string;
   reward_type?: "nft" | "cusd" | "xp" | "analysis";
   user_analysis?: {
     username?: string;
