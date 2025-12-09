@@ -42,7 +42,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative h-16 w-64 mx-auto mb-4 animate-in fade-in slide-in-from-bottom-2 duration-700 drop-shadow-md">
+          <div className="relative h-32 w-full max-w-sm mx-auto mb-6 animate-in fade-in slide-in-from-bottom-2 duration-700 drop-shadow-md">
             <Image
               src="/premio_portada.svg"
               alt="Premio.xyz"
