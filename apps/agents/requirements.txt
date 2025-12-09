@@ -55,7 +55,7 @@ pluggy==1.6.0
 propcache==0.4.1
 proto-plus==1.26.1
 protobuf==6.33.2
-Pillow==10.2.0
+Pillow==10.3.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
 pycryptodome==3.23.0
