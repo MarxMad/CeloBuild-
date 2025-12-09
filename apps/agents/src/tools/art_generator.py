@@ -19,7 +19,7 @@ class ArtGenerator:
         if self.google_api_key:
             try:
                 self.llm = ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash",
+                    model="gemini-1.5-flash-latest",
                     google_api_key=self.google_api_key,
                     temperature=0.7,
                 )
