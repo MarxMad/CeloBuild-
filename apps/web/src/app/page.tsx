@@ -36,11 +36,11 @@ export default function Home() {
       <div className="relative overflow-hidden bg-background/50 pb-8 pt-6 rounded-b-[2.5rem] shadow-2xl border-b border-white/5">
         <div className="container px-4 mx-auto max-w-md relative z-10">
           <div className="flex items-center justify-center gap-2 mb-4">
-             <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-wider text-primary">
-               MiniPay Ready
-             </div>
+            <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-wider text-primary">
+              MiniPay Ready
+            </div>
           </div>
-          
+
           <h1 className="text-4xl font-extrabold text-center tracking-tight mb-2 text-white animate-in fade-in slide-in-from-bottom-2 duration-700 drop-shadow-md">
             Premio.xyz
             <span className="inline-block ml-2 animate-pulse text-[#FCFF52]"></span>
@@ -50,10 +50,10 @@ export default function Home() {
           </p>
 
           {/* Agent Vis - Compact for Mobile */}
-          <div className="relative mx-auto w-full h-[180px] mb-4">
+          <div className="relative mx-auto w-full h-[280px] mb-4">
             <AgentVis />
             <div className="absolute bottom-0 left-0 right-0 text-center text-[10px] text-muted-foreground/60 uppercase tracking-widest">
-               System Online
+              System Online
             </div>
           </div>
 
@@ -68,8 +68,8 @@ export default function Home() {
             onClick={() => setActiveTab("app")}
             className={cn(
               "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
-              activeTab === "app" 
-                ? "bg-background text-foreground shadow-sm" 
+              activeTab === "app"
+                ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -80,8 +80,8 @@ export default function Home() {
             onClick={() => setActiveTab("guide")}
             className={cn(
               "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
-              activeTab === "guide" 
-                ? "bg-background text-foreground shadow-sm" 
+              activeTab === "guide"
+                ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -96,7 +96,7 @@ export default function Home() {
         {activeTab === "app" ? (
           <div className="space-y-8">
             <TrendingCampaignForm />
-            
+
             <Leaderboard />
 
             <div className="text-center">

@@ -80,7 +80,7 @@ export function AgentVis() {
     mainGroup.add(trendAgent.group, eligibilityAgent.group, rewardAgent.group)
 
     // Move the whole group up to center vertically
-    mainGroup.position.y = 1.0
+    mainGroup.position.y = 1.2
 
     // Data Stream Connections (Triangle Lines)
     const lineMaterial = new THREE.LineBasicMaterial({
