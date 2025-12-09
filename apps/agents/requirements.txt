@@ -45,7 +45,7 @@ langgraph-checkpoint==3.0.1
 langgraph-prebuilt==1.0.5
 langgraph-sdk==0.2.14
 langsmith==0.4.56
--e git+https://github.com/MarxMad/CeloBuild-.git@309bcf2c9352f752eaa96916f36479b1613680e7#egg=lootbox_agents&subdirectory=apps/agents
+
 multidict==6.7.0
 orjson==3.11.5
 ormsgpack==1.12.0
