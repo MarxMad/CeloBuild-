@@ -32,71 +32,29 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    // Función para obtener información del usuario de Farcaster
-    const fetchUserInfo = async () => {
+    const init = async () => {
       try {
-        // Obtener el contexto del usuario desde el SDK de Farcaster
+        // 1. Notificar que la app está lista inmediatamente
+        // Esto es crítico para quitar el spinner de carga de Farcaster
+        await sdk.actions.ready();
+        console.log("✅ Farcaster MiniApp ready() called successfully");
+
+        // 2. Obtener contexto del usuario
         const context = await sdk.context;
         if (context?.user) {
           setUserContext({
             fid: context.user.fid || null,
             username: context.user.username || null,
           });
-          console.log("✅ Usuario de Farcaster obtenido:", {
-            fid: context.user.fid,
-            username: context.user.username,
-          });
+          console.log("✅ Usuario de Farcaster obtenido:", context.user);
         }
       } catch (error) {
-        console.log("ℹ️ No se pudo obtener contexto de usuario (normal fuera de Farcaster)");
+        // Ignorar errores si no estamos en Farcaster
+        console.log("ℹ️ Farcaster SDK init skipped (not in frame context)");
       }
     };
 
-    // Función para llamar a ready() de forma segura
-    const callReady = async () => {
-      try {
-        // Verificar que estamos en el cliente
-        if (typeof window === "undefined") return;
-
-        // Llamar a ready() - esto notifica a Farcaster que la MiniApp está lista
-        // Según la documentación: "After your app is fully loaded and ready to display"
-        await sdk.actions.ready();
-        console.log("✅ Farcaster MiniApp ready() called successfully");
-        
-        // Intentar obtener información del usuario después de ready()
-        await fetchUserInfo();
-      } catch (error) {
-        // Si no estamos en un contexto de MiniApp, esto es normal
-        // No mostrar error en consola para no confundir en desarrollo
-        if (process.env.NODE_ENV === "development") {
-          console.log("ℹ️ Not in MiniApp context (normal in browser)");
-        }
-      }
-    };
-
-    // Estrategia: Llamar a ready() cuando el contenido esté completamente renderizado
-    // 1. Si el DOM ya está listo, llamar inmediatamente
-    if (document.readyState === "complete" || document.readyState === "interactive") {
-      // Pequeño delay para asegurar que React haya renderizado todo
-      setTimeout(callReady, 0);
-    } else {
-      // 2. Esperar a que el DOM esté completamente cargado
-      const handleDOMReady = () => {
-        setTimeout(callReady, 0);
-      };
-      document.addEventListener("DOMContentLoaded", handleDOMReady);
-
-      // 3. También llamar cuando la ventana esté completamente cargada (recursos, imágenes, etc.)
-      const handleWindowLoad = () => {
-        setTimeout(callReady, 50);
-      };
-      window.addEventListener("load", handleWindowLoad);
-
-      return () => {
-        document.removeEventListener("DOMContentLoaded", handleDOMReady);
-        window.removeEventListener("load", handleWindowLoad);
-      };
-    }
+    init();
   }, []);
 
   return (
