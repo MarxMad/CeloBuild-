@@ -290,7 +290,7 @@ export function TrendingCampaignForm() {
       {result && (
         <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Success Card */}
-          {result && result.eligible && (
+          {result && result.eligible && result.mode !== "failed" && (
             <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 flex flex-col gap-4">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
@@ -493,6 +493,20 @@ export function TrendingCampaignForm() {
           </p>
           <p className="text-xs text-red-400/70 pl-10 mt-2">
             💡 Consejo: Vincular una cuenta de Farcaster aumenta tu elegibilidad y score de recompensas.
+          </p>
+        </div>
+      )}
+
+      {result && result.mode === "failed" && (
+        <div className="mt-6 rounded-xl bg-orange-500/10 border border-orange-500/30 p-5 text-orange-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+              <span className="text-orange-400 text-lg">⚠️</span>
+            </div>
+            <h4 className="font-bold text-base text-orange-300">Error en la Transacción</h4>
+          </div>
+          <p className="text-sm text-orange-400/90 pl-10">
+            Hubo un problema enviando tu recompensa on-chain. Por favor intenta de nuevo en unos momentos.
           </p>
         </div>
       )}
