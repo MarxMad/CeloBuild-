@@ -92,68 +92,47 @@ class TrendWatcherAgent:
                 seen_users.add(user_id)
                 valid_trends.append(cast)
             
-            # Si ya tenemos 5 tendencias de diferentes usuarios, parar
-            if len(valid_trends) >= 5:
-                break
-        
         if not valid_trends:
             # Si no hay tendencias válidas, usar las top 5 de bajo umbral
-            top_cast = scored_casts[0]
-            logger.info(
-                "Trend encontrado pero bajo el umbral (%.2f < %.2f)",
-                top_cast["trend_score"],
-                self.settings.min_trend_score,
-            )
-            
-            # Recopilar top 5 tendencias débiles para mostrar en el frontend
-            weak_trends = []
-            seen_users_weak: set[int | str] = set()
-            
+            # ... (código existente para caso 0 tendencias válidas) ...
+            # Para simplificar, reutilizamos la lógica de backfill de abajo
+            pass 
+
+        # Backfill: Si tenemos menos de 5 tendencias, rellenar con las siguientes mejores (aunque sean débiles)
+        if len(valid_trends) < 5:
             for cast in scored_casts:
+                # Identificar usuario
                 author = cast.get("author", {})
                 user_id = author.get("fid") or author.get("username") or "unknown"
                 
-                if user_id not in seen_users_weak and len(weak_trends) < 5:
-                    seen_users_weak.add(user_id)
-                    
-                    # Formatear tendencia débil
-                    weak_trends.append({
-                        "frame_id": "cast-" + (cast.get("hash") or "unknown")[:8],
-                        "cast_hash": cast.get("hash"),
-                        "trend_score": round(cast["trend_score"], 3),
-                        "source_text": cast.get("text"),
-                        "ai_analysis": cast.get("text"), # Sin análisis AI profundo para ahorrar tokens
-                        "ai_enabled": False,
-                        "topic_tags": self._extract_tags(cast.get("text", "")),
-                        "channel_id": cast.get("channel_id") or channel_id,
-                        "author": cast.get("author", {}),
-                    })
+                # Si ya está en seen_users, saltar
+                if user_id in seen_users:
+                    continue
                 
-                if len(weak_trends) >= 5:
+                # Agregar a valid_trends
+                seen_users.add(user_id)
+                valid_trends.append(cast)
+                
+                if len(valid_trends) >= 5:
                     break
-
-            # Generar frame_id incluso para tendencias bajo el umbral
-            frame_identifier = "cast-" + (top_cast.get("hash") or "unknown")[:8]
-            # Generar análisis (puede usar AI o fallback)
-            analysis_text, uses_ai = await self._summarize_cast(top_cast)
-            
-            return {
-                **base_context,
-                "status": "trend_below_threshold",
-                "frame_id": frame_identifier,  # Incluir frame_id para que el pipeline funcione
-                "cast_hash": top_cast.get("hash"),
-                "trend_score": top_cast["trend_score"],
-                "source_text": top_cast.get("text"),
-                "ai_analysis": analysis_text,
-                "ai_enabled": uses_ai,  # Indicador si se usó AI o fallback
-                "topic_tags": self._extract_tags(top_cast.get("text", "")),
-                "trends": weak_trends,  # Retornar las tendencias débiles
-            }
         
-        # Procesar cada tendencia válida
+        # Procesar tendencias (ahora valid_trends tiene hasta 5 items, mezclando fuertes y relleno)
         detected_trends = []
         for cast in valid_trends:
-            analysis_text, uses_ai = await self._summarize_cast(cast)
+            # Determinar si usamos AI (solo para las fuertes originales o la primera)
+            # Para optimizar, solo analizamos con AI las que superan el umbral O la primera si ninguna lo supera
+            is_strong = cast["trend_score"] >= self.settings.min_trend_score
+            
+            # Usar AI si es fuerte, o si es la #1 (para tener al menos una con análisis bueno)
+            use_ai_analysis = is_strong or (cast == valid_trends[0])
+            
+            if use_ai_analysis:
+                analysis_text, uses_ai = await self._summarize_cast(cast)
+            else:
+                # Análisis básico para las de relleno para ahorrar tokens/tiempo
+                analysis_text = cast.get("text", "")
+                uses_ai = False
+
             topic_tags = self._extract_tags(cast.get("text", ""))
             frame_identifier = "cast-" + (cast.get("hash") or "unknown")[:8]
             
@@ -163,25 +142,25 @@ class TrendWatcherAgent:
                 "trend_score": round(cast["trend_score"], 3),
                 "source_text": cast.get("text"),
                 "ai_analysis": analysis_text,
-                "ai_enabled": uses_ai,  # Indicador si se usó AI o fallback
+                "ai_enabled": uses_ai,
                 "topic_tags": topic_tags,
                 "channel_id": cast.get("channel_id") or channel_id,
                 "author": cast.get("author", {}),
             })
-        
-        logger.info("Detectadas %d tendencias válidas (score >= %.2f)", len(detected_trends), self.settings.min_trend_score)
+            
+        logger.info("Retornando %d tendencias (mezcla fuertes/relleno)", len(detected_trends))
         
         return {
             **base_context,
-            "status": "trend_detected",
-            "trends": detected_trends,  # Lista de tendencias detectadas
-            # Mantener compatibilidad: también retornar la primera tendencia en campos individuales
+            "status": "trend_detected" if any(t["trend_score"] >= self.settings.min_trend_score for t in detected_trends) else "trend_below_threshold",
+            "trends": detected_trends,
+            # Mantener compatibilidad con campos legacy usando la primera tendencia
             "frame_id": detected_trends[0]["frame_id"],
             "cast_hash": detected_trends[0]["cast_hash"],
             "trend_score": detected_trends[0]["trend_score"],
             "source_text": detected_trends[0]["source_text"],
             "ai_analysis": detected_trends[0]["ai_analysis"],
-            "ai_enabled": detected_trends[0]["ai_enabled"],  # Indicador si se usó AI o fallback
+            "ai_enabled": detected_trends[0]["ai_enabled"],
             "topic_tags": detected_trends[0]["topic_tags"],
             "channel_id": detected_trends[0]["channel_id"],
             "author": detected_trends[0]["author"],
