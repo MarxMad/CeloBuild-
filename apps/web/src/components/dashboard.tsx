@@ -152,9 +152,37 @@ export function Dashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
             >
-                <div className="flex items-center gap-2 mb-4">
-                    <Trophy className="w-5 h-5 text-purple-500" />
-                    <h2 className="text-xl font-bold text-white">My Collection</h2>
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <Trophy className="w-5 h-5 text-purple-500" />
+                        <h2 className="text-xl font-bold text-white">My Collection</h2>
+                    </div>
+
+                    {/* Share Button */}
+                    <button
+                        onClick={() => {
+                            const baseUrl = window.location.origin;
+                            const ogUrl = `${baseUrl}/api/og?title=Loot Box Winner&score=${xp}&reward=${nfts.length > 0 ? 'NFT' : 'XP'}&username=${farcasterUser?.username || 'Explorer'}`;
+                            const text = `I just earned ${xp} XP ${nfts.length > 0 ? 'and a Legendary Artifact' : ''} on Loot Box! 🎁\n\nCheck if you're a winner too! 👇`;
+                            const embedUrl = ogUrl; // Warpcast will unfurl this image
+
+                            // Construct Warpcast intent
+                            // Note: We use the OG image as an embed. Ideally, we'd link to a page that has this OG image, 
+                            // but linking directly to the image also works for visual impact.
+                            // Better yet: Link to the app with a query param that triggers the specific OG image.
+                            // For now, let's link to the app home with the image as a second embed if possible, or just the app link.
+                            // Strategy: Link to App + Text. The App's metadata should ideally be dynamic, but for this "Share Result" specific flow,
+                            // we can try to embed the image URL directly if Warpcast supports it, or just rely on the text.
+                            // The user asked for "Share my result" with a photo.
+
+                            const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(ogUrl)}`;
+                            window.open(shareUrl, '_blank');
+                        }}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-full transition-colors flex items-center gap-2"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                        Share My Result
+                    </button>
                 </div>
 
                 {nfts.length === 0 ? (
