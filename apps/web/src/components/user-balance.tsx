@@ -6,6 +6,7 @@ import { Wallet, CreditCard, Crown, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFarcasterUser } from "./farcaster-provider";
 import { ConnectButton } from "@/components/connect-button";
+import Link from "next/link";
 
 const cUSD_ADDRESS = "0x765de816845861e75a25fca122bb6898b8b1282a";
 
@@ -81,50 +82,52 @@ export function UserBalance() {
     }
 
     return (
-        <div className="w-full bg-background/60 backdrop-blur-xl rounded-2xl border shadow-sm p-4">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-primary/10 rounded-full">
-                        {farcasterUser?.username ? (
-                            <User className="w-3.5 h-3.5 text-primary" />
-                        ) : (
-                            <Wallet className="w-3.5 h-3.5 text-primary" />
-                        )}
+        <Link href="/profile" className="block w-full cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]">
+            <div className="w-full bg-background/60 backdrop-blur-xl rounded-2xl border shadow-sm p-4 hover:border-yellow-500/30 transition-colors">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-primary/10 rounded-full">
+                            {farcasterUser?.username ? (
+                                <User className="w-3.5 h-3.5 text-primary" />
+                            ) : (
+                                <Wallet className="w-3.5 h-3.5 text-primary" />
+                            )}
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-foreground">
+                                {farcasterUser?.username ? `@${farcasterUser.username}` : "Wallet Conectada"}
+                            </span>
+                            <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[100px]">
+                                {address.slice(0, 6)}...{address.slice(-4)}
+                            </span>
+                        </div>
                     </div>
-                    <div className="flex flex-col">
-                        <span className="text-xs font-bold text-foreground">
-                            {farcasterUser?.username ? `@${farcasterUser.username}` : "Wallet Conectada"}
-                        </span>
-                        <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[100px]">
-                            {address.slice(0, 6)}...{address.slice(-4)}
-                        </span>
+                    <div className="flex items-center gap-2">
+                        <div className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/20 text-[10px] font-bold uppercase flex items-center gap-1">
+                            <Crown className="w-3 h-3" />
+                            {xp} XP
+                        </div>
+                        <div className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold uppercase">
+                            Active
+                        </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/20 text-[10px] font-bold uppercase flex items-center gap-1">
-                        <Crown className="w-3 h-3" />
-                        {xp} XP
-                    </div>
-                    <div className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold uppercase">
-                        Active
-                    </div>
-                </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4 divide-x">
-                <BalanceItem
-                    label="Native"
-                    value={parseFloat(celoBalance?.formatted || '0').toFixed(2)}
-                    symbol="CELO"
-                />
-                <div className="pl-4">
+                <div className="grid grid-cols-2 gap-4 divide-x">
                     <BalanceItem
-                        label="Stable"
-                        value={parseFloat(cUSDBalance?.formatted || '0').toFixed(2)}
-                        symbol="cUSD"
+                        label="Native"
+                        value={parseFloat(celoBalance?.formatted || '0').toFixed(2)}
+                        symbol="CELO"
                     />
+                    <div className="pl-4">
+                        <BalanceItem
+                            label="Stable"
+                            value={parseFloat(cUSDBalance?.formatted || '0').toFixed(2)}
+                            symbol="cUSD"
+                        />
+                    </div>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 }
