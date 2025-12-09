@@ -66,6 +66,18 @@ logger = logging.getLogger(__name__)
 try:
     settings = Settings()
     logger.info("✅ Settings cargados correctamente")
+    
+    # Log the backend wallet address for debugging
+    try:
+        from web3 import Web3
+        if settings.celo_private_key:
+            account = Web3().eth.account.from_key(settings.celo_private_key)
+            logger.info(f"🔑 Backend Wallet Address: {account.address}")
+        else:
+            logger.warning("⚠️ No CELO_PRIVATE_KEY configured!")
+    except Exception as e:
+        logger.error(f"Error deriving wallet address: {e}")
+
 except Exception as e:
     logger.warning("⚠️ Error cargando configuración completa: %s", e)
     logger.info("🔄 Intentando cargar con valores por defecto...")
