@@ -23,6 +23,13 @@ export function AnalysisOverlay({ onComplete }: { onComplete: () => void }) {
         }
         return prev + 1;
       });
+    }, 2000); // 2.0s per step (slower for better UX)
+
+    return () => clearInterval(interval);
+  }, [onComplete]);
+
+  return (
+    <div className="absolute inset-0 bg-background/95 backdrop-blur-md z-50 flex flex-col items-center justify-center rounded-3xl p-6">
       <div className="w-full max-w-[280px] space-y-6">
         {STEPS.map((step, index) => {
           const isActive = index === currentStep;
@@ -49,6 +56,6 @@ export function AnalysisOverlay({ onComplete }: { onComplete: () => void }) {
           );
         })}
       </div>
-  </div >
-);
+    </div>
+  );
 }
