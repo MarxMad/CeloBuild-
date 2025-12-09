@@ -49,8 +49,11 @@ class ArtGenerator:
             )
         )
 
+        # Chain the prompt and the LLM
+        chain = prompt | self.llm
+
         try:
-            result = await self.llm.ainvoke({"text": cast_text, "author": author})
+            result = await chain.ainvoke({"text": cast_text, "author": author})
             # Limpiar markdown si Gemini lo incluye
             content = result.content.replace("```json", "").replace("```", "").strip()
             import json
