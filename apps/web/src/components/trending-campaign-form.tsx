@@ -109,69 +109,92 @@ export function TrendingCampaignForm() {
   if (!isClient) return null;
 
   return (
-    <div className="space-y-6 relative">
-      <Card className="w-full bg-black/40 border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden relative group">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+    <div className="space-y-6 relative max-w-md mx-auto">
+      <Card className="w-full bg-black/60 border-white/10 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(252,255,82,0.15)] overflow-hidden relative group ring-1 ring-white/5">
+        <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-transparent opacity-50" />
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10" />
 
-        <CardHeader className="relative z-10">
-          <CardTitle className="flex items-center gap-3 text-xl text-white">
-            <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+        <CardHeader className="relative z-10 pb-2">
+          <CardTitle className="flex items-center gap-3 text-2xl text-white font-bold tracking-tight">
+            <div className="p-2 rounded-lg bg-[#FCFF52]/10 ring-1 ring-[#FCFF52]/20">
+              <Sparkles className="w-5 h-5 text-[#FCFF52] animate-pulse" />
+            </div>
             Verificar Elegibilidad
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-gray-400 text-base">
             Analiza tu participación en Farcaster y obtén recompensas automáticamente.
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-6 relative z-10">
+        <CardContent className="space-y-8 relative z-10 pt-6">
           {!isConnected ? (
-            <div className="p-6 rounded-xl bg-white/5 border border-white/10 text-center space-y-3">
-              <Wallet className="w-10 h-10 text-gray-500 mx-auto mb-2" />
-              <p className="text-gray-300 font-medium">Conecta tu wallet para continuar</p>
-              <p className="text-xs text-gray-500">Necesitas una wallet de Celo para recibir recompensas</p>
+            <div className="py-10 px-6 rounded-2xl bg-white/5 border border-white/10 text-center space-y-4 hover:bg-white/10 transition-colors group/connect">
+              <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mx-auto group-hover/connect:scale-110 transition-transform duration-500">
+                <Wallet className="w-8 h-8 text-gray-500 group-hover/connect:text-white transition-colors" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-white font-medium text-lg">Conecta tu Wallet</p>
+                <p className="text-sm text-gray-500">Necesaria para recibir recompensas en Celo</p>
+              </div>
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Wallet Conectada</span>
-                  <span className="font-mono text-primary bg-primary/10 px-2 py-0.5 rounded text-xs">
+              {/* Info Panel */}
+              <div className="rounded-2xl bg-black/40 border border-white/10 overflow-hidden">
+                {/* Wallet Row */}
+                <div className="p-4 border-b border-white/5 flex items-center justify-between group/item hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="p-1.5 rounded-md bg-blue-500/10 text-blue-400">
+                      <Wallet className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm text-gray-400 font-medium">Wallet</span>
+                  </div>
+                  <span className="font-mono text-[#FCFF52] bg-[#FCFF52]/10 px-3 py-1 rounded-full text-xs border border-[#FCFF52]/20 shadow-[0_0_10px_rgba(252,255,82,0.1)]">
                     {address?.slice(0, 6)}...{address?.slice(-4)}
                   </span>
                 </div>
 
+                {/* Farcaster Row */}
                 {farcasterUser.username && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Usuario Farcaster</span>
-                    <span className="font-medium text-white flex items-center gap-1">
-                      @{farcasterUser.username}
+                  <div className="p-4 flex items-center justify-between group/item hover:bg-white/5 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 rounded-md bg-purple-500/10 text-purple-400">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
+                      <span className="text-sm text-gray-400 font-medium">Farcaster</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-white">@{farcasterUser.username}</span>
                       {farcasterUser.fid && (
-                        <span className="text-[10px] text-gray-500 bg-gray-800 px-1.5 py-0.5 rounded-full">
+                        <span className="text-[10px] text-gray-400 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
                           FID: {farcasterUser.fid}
                         </span>
                       )}
-                    </span>
+                    </div>
                   </div>
                 )}
               </div>
 
               {!result && (
                 <Button
-                  className="w-full bg-primary hover:bg-primary/90 text-black font-bold h-12 text-lg shadow-[0_0_20px_rgba(252,255,82,0.3)] hover:shadow-[0_0_30px_rgba(252,255,82,0.5)] transition-all duration-300"
+                  className="w-full bg-[#FCFF52] hover:bg-[#e6e945] text-black font-black h-14 text-lg shadow-[0_0_30px_rgba(252,255,82,0.3)] hover:shadow-[0_0_50px_rgba(252,255,82,0.5)] transition-all duration-300 rounded-xl relative overflow-hidden group/btn"
                   onClick={handleAnalyzeAndClaim}
                   disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Analizando y Verificando...
-                    </>
-                  ) : (
-                    <>
-                      <Gift className="mr-2 h-5 w-5" />
-                      Verificar y Reclamar Recompensa
-                    </>
-                  )}
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+                  <div className="relative flex items-center justify-center gap-2">
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>Verificando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Gift className="h-5 w-5 group-hover/btn:rotate-12 transition-transform" />
+                        <span>Reclamar Recompensa</span>
+                      </>
+                    )}
+                  </div>
                 </Button>
               )}
             </div>
