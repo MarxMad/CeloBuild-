@@ -26,8 +26,19 @@ export async function GET(
         });
 
         if (!response.ok) {
+            const errorText = await response.text();
+            let errorJson;
+            try {
+                errorJson = JSON.parse(errorText);
+            } catch {
+                errorJson = { detail: errorText };
+            }
+
             return NextResponse.json(
-                { error: "Failed to fetch XP from backend" },
+                {
+                    error: "Failed to fetch XP from backend",
+                    backend_error: errorJson
+                },
                 { status: response.status }
             );
         }
