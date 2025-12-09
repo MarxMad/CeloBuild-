@@ -74,14 +74,15 @@ class EligibilityAgent:
                     logger.info("✅ Usuario encontrado en Farcaster por FID: @%s (FID: %d, Custody: %s, Followers: %d)", 
                                username, user_fid, custody_address, user_info.get("follower_count", 0))
                     
-                    # Usar la custody_address del usuario para análisis on-chain
-                    target_checksum = self.celo_tool.checksum(custody_address) if custody_address else None
+                    # Usar la custody_address del usuario para análisis on-chain por defecto
+                    recipient_address = user_info.get("custody_address")
+                    target_checksum = self.celo_tool.checksum(recipient_address) if recipient_address else None
                     
-                    # Si hay target_address y no coincide con custody_address, usar target_address para recompensa
+                    # Si hay target_address (wallet conectada en frontend), PRIORIZARLA para la recompensa
+                    # Esto asegura que el usuario reciba el XP en la wallet que está usando
                     if target_address:
                         target_checksum = self.celo_tool.checksum(target_address)
-                        logger.info("   Usando target_address para recompensa: %s (custody_address del usuario: %s)", 
-                                   target_checksum, custody_address)
+                        logger.info("   Usando target_address (wallet conectada) para recompensa: %s", target_checksum)
                     
                     # Analizar participación del usuario en la tendencia (si hay cast_hash)
                     participation_data = {}
@@ -107,7 +108,7 @@ class EligibilityAgent:
                         {
                             "fid": target_fid,
                             "username": username,
-                            "address": target_checksum or user_info.get("custody_address"),
+                            "address": target_checksum, # Usar la dirección priorizada (target_address si existe)
                             "score": round(score, 2),
                             "reasons": ["Usuario verificado por FID", f"Engagement: {engagement_weight}"],
                             "follower_count": user_info.get("follower_count", 0),
