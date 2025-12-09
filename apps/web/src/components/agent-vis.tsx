@@ -65,22 +65,22 @@ export function AgentVis() {
 
     // Positioning in a Triangle (Increased spacing for larger spheres)
     // Top
-    trendAgent.group.position.set(0, 1.6, 0)
+    trendAgent.group.position.set(0, 1.8, 0)
     // Bottom Right
-    eligibilityAgent.group.position.set(1.6, -1.0, 0)
+    eligibilityAgent.group.position.set(1.8, -1.2, 0)
     // Bottom Left
-    rewardAgent.group.position.set(-1.6, -1.0, 0)
+    rewardAgent.group.position.set(-1.8, -1.2, 0)
 
-    // Increase scale by 20% (1.5 * 1.2 = 1.8)
-    const scale = 1.8
+    // Increase scale for "larger" look (2.0)
+    const scale = 2.0
     trendAgent.group.scale.setScalar(scale)
     eligibilityAgent.group.scale.setScalar(scale)
     rewardAgent.group.scale.setScalar(scale)
 
     mainGroup.add(trendAgent.group, eligibilityAgent.group, rewardAgent.group)
 
-    // Move the whole group up
-    mainGroup.position.y = 0.5
+    // Move the whole group up to center vertically
+    mainGroup.position.y = 1.0
 
     // Data Stream Connections (Triangle Lines)
     const lineMaterial = new THREE.LineBasicMaterial({
@@ -90,16 +90,16 @@ export function AgentVis() {
       linewidth: 2
     })
     const points = []
-    points.push(new THREE.Vector3(0, 1.6, 0))      // Top
-    points.push(new THREE.Vector3(1.6, -1.0, 0))   // Bottom Right
-    points.push(new THREE.Vector3(-1.6, -1.0, 0))  // Bottom Left
-    points.push(new THREE.Vector3(0, 1.6, 0))      // Back to Top to close loop
+    points.push(new THREE.Vector3(0, 1.8, 0))      // Top
+    points.push(new THREE.Vector3(1.8, -1.2, 0))   // Bottom Right
+    points.push(new THREE.Vector3(-1.8, -1.2, 0))  // Bottom Left
+    points.push(new THREE.Vector3(0, 1.8, 0))      // Back to Top to close loop
 
     const lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
     const lines = new THREE.Line(lineGeometry, lineMaterial)
     mainGroup.add(lines)
 
-    camera.position.z = 7 // Pull back slightly more to fit the larger formation
+    camera.position.z = 8 // Pull back slightly more to fit the larger formation
 
     // Animation
     const animate = () => {
