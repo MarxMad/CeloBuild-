@@ -113,19 +113,24 @@ export function Leaderboard() {
           const trends = (trendsData.items ?? []) as TrendData[];
 
           // Guardar detalles completos de tendencias
-          setTrendDetails(trends);
+          // FIX: En Vercel serverless, a veces recibimos [] si cae en una lambda nueva sin caché.
+          // Para evitar parpadeo, solo actualizamos si hay datos, o si es la carga inicial.
+          if (trends.length > 0) {
+            setTrendDetails(trends);
 
-          // Construir tendencias activas desde los trends detectados
-          const trendSummary = buildTrendSummaryFromTrends(trends);
-          if (trendSummary.length > 0) {
+            // Construir tendencias activas desde los trends detectados
+            const trendSummary = buildTrendSummaryFromTrends(trends);
             setActiveTrends(trendSummary);
-          } else {
-            // Fallback: usar topic_tags del leaderboard si no hay trends recientes
+          } else if (trendDetails.length === 0) {
+            // Solo si no tenemos datos previos, usamos el fallback
             setActiveTrends(buildTrendSummary(leaderboardItems));
           }
+          // Si trends es [] pero ya tenemos trendDetails, mantenemos los viejos (cache visual)
         } else {
-          // Fallback: usar leaderboard si trends falla
-          setActiveTrends(buildTrendSummary(leaderboardItems));
+          // Fallback: usar leaderboard si trends falla y no tenemos datos
+          if (trendDetails.length === 0) {
+            setActiveTrends(buildTrendSummary(leaderboardItems));
+          }
         }
       } catch (error) {
         console.error(error);
@@ -181,8 +186,8 @@ export function Leaderboard() {
             <div
               key={trend.frame_id || trend.cast_hash || index}
               className={`p-2.5 sm:p-3 rounded-lg sm:rounded-xl border mb-2 transition-all hover:scale-[1.01] ${index === 0
-                  ? "bg-gradient-to-br from-[#FCFF52]/10 to-transparent border-[#FCFF52]/20 shadow-sm"
-                  : "bg-white/5 border-white/10"
+                ? "bg-gradient-to-br from-[#FCFF52]/10 to-transparent border-[#FCFF52]/20 shadow-sm"
+                : "bg-white/5 border-white/10"
                 }`}
             >
               {/* Header con score */}
@@ -292,12 +297,12 @@ export function Leaderboard() {
               <div className="flex items-center gap-3">
                 <div
                   className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${index === 0
-                      ? "bg-yellow-500 text-black"
-                      : index === 1
-                        ? "bg-gray-400 text-black"
-                        : index === 2
-                          ? "bg-orange-700 text-white"
-                          : "bg-white/10 text-muted-foreground"
+                    ? "bg-yellow-500 text-black"
+                    : index === 1
+                      ? "bg-gray-400 text-black"
+                      : index === 2
+                        ? "bg-orange-700 text-white"
+                        : "bg-white/10 text-muted-foreground"
                     }`}
                 >
                   {index + 1}
