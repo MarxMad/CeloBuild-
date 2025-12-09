@@ -7,6 +7,7 @@ import { Zap, Info, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserBalance } from "@/components/user-balance";
 import { TrendingCampaignForm } from "@/components/trending-campaign-form";
+import { Dashboard } from "@/components/dashboard";
 import { Instructions } from "@/components/instructions";
 import { AgentVis } from "@/components/agent-vis";
 import { Leaderboard } from "@/components/leaderboard";
@@ -38,7 +39,7 @@ export default function Home() {
         <div className="container px-4 mx-auto max-w-md relative z-10">
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-wider text-primary">
-              MiniPay Ready
+              Recompensas virales en Farcaster
             </div>
           </div>
 
@@ -51,7 +52,7 @@ export default function Home() {
             />
           </div>
           <p className="text-center text-gray-400 text-sm mb-6">
-            Recompensas virales en Farcaster.
+            powered by UTONOMA
           </p>
 
           {/* Agent Vis - Compact for Mobile */}
