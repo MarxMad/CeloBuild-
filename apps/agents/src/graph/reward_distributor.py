@@ -191,6 +191,10 @@ class RewardDistributorAgent:
                         
                         # También otorgar XP como bonus
                         try:
+                            import time
+                            # Esperar un poco para asegurar que el nonce se propague tras el mint
+                            time.sleep(3)
+                            
                             logger.info("Otorgando XP bonus a %s junto con NFT...", address)
                             self.celo_tool.grant_xp(
                                 registry_address=self.settings.registry_address,

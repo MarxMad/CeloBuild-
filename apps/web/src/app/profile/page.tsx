@@ -112,13 +112,13 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] text-white">
+        <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
             {/* Navbar / Header */}
-            <div className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0a]/80 backdrop-blur-xl">
-                <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div className="sticky top-0 z-50 mb-8">
+                <div className="max-w-6xl mx-auto flex items-center justify-between bg-background/60 backdrop-blur-xl rounded-2xl border shadow-sm p-4">
                     <Link
                         href="/"
-                        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5" />
                         <span className="font-medium">Volver</span>
@@ -127,72 +127,68 @@ export default function ProfilePage() {
                         <button
                             onClick={fetchNFTs}
                             disabled={loading}
-                            className="p-2 text-gray-400 hover:text-yellow-500 transition-colors disabled:opacity-50"
+                            className="p-2 text-muted-foreground hover:text-yellow-600 transition-colors disabled:opacity-50"
                             title="Recargar colección"
                         >
                             <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
                         </button>
                         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20">
-                            <Crown className="w-4 h-4 text-yellow-500" />
-                            <span className="text-sm font-bold text-yellow-500 uppercase tracking-wider">Colección</span>
+                            <Crown className="w-4 h-4 text-yellow-600" />
+                            <span className="text-sm font-bold text-yellow-600 uppercase tracking-wider">Colección</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-6xl mx-auto p-4 md:p-8">
-                <header className="mb-12 text-center relative">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-yellow-500/20 blur-[100px] rounded-full pointer-events-none" />
-                    <h1 className="relative text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 mb-4">
+            <div className="max-w-6xl mx-auto">
+                <header className="mb-12 text-center">
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                         Mis Tarjetas Premiadas
                     </h1>
-                    <p className="relative text-gray-400 text-lg max-w-2xl mx-auto">
-                        Explora tu colección de artefactos digitales únicos ganados por tu participación en campañas.
+                    <p className="text-muted-foreground text-lg">
+                        Colección de artefactos digitales ganados en campañas.
                     </p>
                 </header>
 
                 {loading && nfts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-4">
-                        <Loader2 className="w-10 h-10 text-yellow-500 animate-spin" />
-                        <p className="text-gray-500 animate-pulse">Buscando tus tesoros en la blockchain...</p>
+                        <Loader2 className="w-10 h-10 text-yellow-600 animate-spin" />
+                        <p className="text-muted-foreground animate-pulse">Buscando tus tesoros...</p>
                     </div>
                 ) : nfts.length === 0 ? (
-                    <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-                        <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Crown className="w-8 h-8 text-gray-600" />
+                    <div className="text-center py-20 bg-background/60 backdrop-blur-xl rounded-2xl border shadow-sm">
+                        <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Crown className="w-8 h-8 text-muted-foreground" />
                         </div>
-                        <p className="text-xl text-gray-300 mb-2 font-medium">Aún no tienes tarjetas</p>
-                        <p className="text-gray-500">¡Participa en campañas activas para ganar tu primer NFT!</p>
+                        <p className="text-xl text-foreground mb-2 font-medium">Aún no tienes tarjetas</p>
+                        <p className="text-muted-foreground">¡Participa en campañas activas para ganar tu primer NFT!</p>
                         <button
                             onClick={fetchNFTs}
-                            className="mt-6 px-6 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-full text-sm font-bold transition-colors"
+                            className="mt-6 px-6 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 rounded-full text-sm font-bold transition-colors border border-yellow-500/20"
                         >
                             Intentar recargar
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {nfts.map((nft) => (
                             <div
                                 key={nft.tokenId}
-                                className="group relative bg-gradient-to-b from-white/5 to-white/[0.02] rounded-3xl overflow-hidden border border-white/10 hover:border-yellow-500/50 transition-all duration-500 hover:shadow-[0_0_40px_rgba(255,215,0,0.1)] hover:-translate-y-1"
+                                className="group relative bg-background/60 backdrop-blur-xl rounded-2xl border shadow-sm overflow-hidden hover:border-yellow-500/30 transition-all duration-300 hover:shadow-md"
                             >
                                 {/* Image Container */}
-                                <div className="aspect-[2/3] relative overflow-hidden bg-[#1a1a1a]">
+                                <div className="aspect-[2/3] relative overflow-hidden bg-muted">
                                     <img
                                         src={nft.image}
                                         alt={nft.name}
-                                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                                         loading="lazy"
                                     />
 
-                                    {/* Overlay Gradient */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent opacity-60" />
-
                                     {/* Rarity Badge */}
                                     {nft.rarity && (
-                                        <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-yellow-500/30 px-3 py-1 rounded-full shadow-lg">
-                                            <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">
+                                        <div className="absolute top-3 right-3 bg-yellow-500/10 backdrop-blur-md border border-yellow-500/20 px-2 py-0.5 rounded-full shadow-sm">
+                                            <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider">
                                                 {nft.rarity}
                                             </span>
                                         </div>
@@ -200,21 +196,27 @@ export default function ProfilePage() {
                                 </div>
 
                                 {/* Content */}
-                                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/90 to-transparent pt-12">
-                                    <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-yellow-400 transition-colors font-display">
-                                        {nft.name}
-                                    </h3>
-                                    <p className="text-gray-300 text-sm line-clamp-2 mb-4 font-light leading-relaxed">
+                                <div className="p-4">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="text-lg font-bold text-foreground group-hover:text-yellow-600 transition-colors line-clamp-1">
+                                            {nft.name}
+                                        </h3>
+                                        <span className="text-[10px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded">
+                                            #{nft.tokenId}
+                                        </span>
+                                    </div>
+
+                                    <p className="text-muted-foreground text-xs line-clamp-2 mb-4 leading-relaxed">
                                         {nft.description}
                                     </p>
 
-                                    <div className="flex justify-between items-center pt-4 border-t border-white/10">
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                            <span className="text-xs text-green-400 font-medium uppercase tracking-wider">Active</span>
+                                    <div className="pt-3 border-t border-border flex justify-between items-center">
+                                        <div className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold uppercase flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                            Active
                                         </div>
                                         {nft.type && (
-                                            <span className="text-xs text-gray-400 bg-white/10 px-2 py-1 rounded border border-white/5">
+                                            <span className="text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded border border-border/50">
                                                 {nft.type}
                                             </span>
                                         )}
