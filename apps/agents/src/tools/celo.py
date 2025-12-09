@@ -51,7 +51,7 @@ class CeloToolbox:
                     "outputs": [{"name": "", "type": "bool"}],
                 }
             ]
-            contract = self.web3.eth.contract(address=registry_address, abi=abi)
+            contract = self.web3.eth.contract(address=self.checksum(registry_address), abi=abi)
             campaign_bytes = self._campaign_bytes(campaign_id)
             participant_checksum = self.checksum(participant)
             return bool(contract.functions.canClaim(campaign_bytes, participant_checksum).call())
@@ -101,7 +101,7 @@ class CeloToolbox:
                 "stateMutability": "nonpayable",
             }
         ]
-        contract = self.web3.eth.contract(address=registry_address, abi=abi)
+        contract = self.web3.eth.contract(address=self.checksum(registry_address), abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         checksum_recipient = self.checksum(participant)
 
@@ -157,7 +157,7 @@ class CeloToolbox:
                 "stateMutability": "view",
             }
         ]
-        contract = self.web3.eth.contract(address=registry_address, abi=abi)
+        contract = self.web3.eth.contract(address=self.checksum(registry_address), abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         checksum_participant = self.checksum(participant)
         
@@ -197,7 +197,7 @@ class CeloToolbox:
             }
         ]
 
-        contract = self.web3.eth.contract(address=minter_address, abi=abi)
+        contract = self.web3.eth.contract(address=self.checksum(minter_address), abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         
         # Asegurar checksum de la dirección
@@ -281,7 +281,7 @@ class CeloToolbox:
             }
         ]
 
-        contract = self.web3.eth.contract(address=vault_address, abi=abi)
+        contract = self.web3.eth.contract(address=self.checksum(vault_address), abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         checksum_recipients = [self.checksum(r) for r in recipients]
 
@@ -318,7 +318,7 @@ class CeloToolbox:
             }
         ]
         
-        contract = self.web3.eth.contract(address=registry_address, abi=abi)
+        contract = self.web3.eth.contract(address=self.checksum(registry_address), abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         
         # Obtener nonce y gas price con manejo de errores
@@ -384,7 +384,7 @@ class CeloToolbox:
             }
         ]
         
-        contract = self.web3.eth.contract(address=minter_address, abi=abi)
+        contract = self.web3.eth.contract(address=self.checksum(minter_address), abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         
         # Obtener nonce y gas price con manejo de errores
@@ -472,7 +472,7 @@ class CeloToolbox:
             }
         ]
         
-        contract = self.web3.eth.contract(address=vault_address, abi=abi)
+        contract = self.web3.eth.contract(address=self.checksum(vault_address), abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         token_checksum = self.checksum(token_address)
         
