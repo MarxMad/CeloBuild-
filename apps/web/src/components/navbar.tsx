@@ -11,15 +11,18 @@ export function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <div className="relative h-8 w-32">
+          <div className="relative h-8 w-8">
             <Image
-              src="/premio_portada.svg"
-              alt="Premio.xyz"
+              src="/PremioxyzLogo.svg"
+              alt="Premio.xyz Logo"
               fill
-              className="object-contain object-left"
+              className="object-contain"
               priority
             />
           </div>
+          <span className="font-bold text-sm tracking-tight hidden sm:inline-block">
+            Premio.xyz
+          </span>
         </Link>
 
         {/* Actions */}

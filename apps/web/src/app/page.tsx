@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Zap, Info, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserBalance } from "@/components/user-balance";
@@ -41,10 +42,15 @@ export default function Home() {
             </div>
           </div>
 
-          <h1 className="text-4xl font-extrabold text-center tracking-tight mb-2 text-white animate-in fade-in slide-in-from-bottom-2 duration-700 drop-shadow-md">
-            Premio.xyz
-            <span className="inline-block ml-2 animate-pulse text-[#FCFF52]"></span>
-          </h1>
+          <div className="relative h-16 w-64 mx-auto mb-4 animate-in fade-in slide-in-from-bottom-2 duration-700 drop-shadow-md">
+            <Image
+              src="/premio_portada.svg"
+              alt="Premio.xyz"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
           <p className="text-center text-gray-400 text-sm mb-6">
             Recompensas virales en Farcaster.
           </p>
