@@ -74,12 +74,9 @@ class FarcasterToolbox:
         # Este endpoint cuesta 4 créditos por usuario según: https://dev.neynar.com/pricing#product-api
         # FIDs de usuarios populares/activos en Farcaster (puedes ajustar estos)
         # FIDs de usuarios populares/activos en Farcaster para asegurar diversidad
-        # 2: dwr.eth (Farcaster founder)
-        # 3: v (Vitalik Buterin)
-        # 5650: jesse.xyz (Base founder)
-        # 1: fcast (Farcaster team)
-        # 6: c (Celo founder/team member often active)
-        popular_fids = [2, 3, 5650, 1, 6]
+        # 2: dwr.eth, 3: v, 5650: jesse.xyz, 1: fcast, 6: c
+        # 1214: linda, 1689: oyealmond (approx/popular), 60: betashop
+        popular_fids = [2, 3, 5650, 1, 6, 1214, 1689, 60, 10, 31]
         
         all_casts: list[dict[str, Any]] = []
         
