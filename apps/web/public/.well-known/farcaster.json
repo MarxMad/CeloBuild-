@@ -8,7 +8,8 @@
         "splashImageUrl": "https://celo-build-web-8rej.vercel.app/splash.png",
         "splashBackgroundColor": "#000000",
         "webhookUrl": "https://celo-build-web-8rej.vercel.app/api/webhook",
-        "subtitle": "Recompensas virales en Farcaster ",
+        "subtitle": "Recompensas Virales",
+        "buttonTitle": "Lanzar App",
         "description": "Recompensas virales en Farcaster con Celo MiniPay",
         "primaryCategory": "social"
     },
