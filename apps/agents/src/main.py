@@ -421,7 +421,8 @@ async def run_lootbox(event: LootboxEvent):
         import logging
         logger = logging.getLogger(__name__)
         logger.error("Error interno en run_lootbox: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error") from exc
+        # Exponer el error real para debugging (revertir en producción estricta)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(exc)}") from exc
     
     return {
         "thread_id": result.thread_id,
