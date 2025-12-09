@@ -367,6 +367,7 @@ class RewardDistributorAgent:
                     minted[address] = tx_hash
                 except Exception as exc:  # noqa: BLE001
                     logger.error("Fallo al generar/mintear NFT: %s", exc)
+                    self.last_mint_error = str(exc)
 
             extra_targets = recipients[self.settings.max_onchain_rewards :]
             if self.minipay_tool and extra_targets:
@@ -405,6 +406,7 @@ class RewardDistributorAgent:
             "micropayments": micropayments,
             "xp_awards": xp_awards,
             "reward_type": reward_type,
+            "error": self.last_mint_error if hasattr(self, "last_mint_error") else None,
         }
 
     def _record_leaderboard(
