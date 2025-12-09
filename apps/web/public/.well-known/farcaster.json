@@ -2,17 +2,19 @@
     "frame": {
         "name": "Premio.xyz",
         "version": "1",
-        "iconUrl": "https://celo-build-web-8rej.vercel.app/PremioxyzLogo.svg",
+        "iconUrl": "https://celo-build-web-8rej.vercel.app/icon.png",
         "homeUrl": "https://celo-build-web-8rej.vercel.app",
-        "primaryCategory": "social",
-        "description": "Una plataforma descentralizada que combina el poder de la **Inteligencia Artificial** con la velocidad de **Celo** para crear campañas de recompensas automáticas (\"Loot Boxes\") basadas en tendencias sociales de Farcaster.",
-        "subtitle": "Recompensas virales en Farcaster.",
-        "splashImageUrl": "https://celo-build-web-8rej.vercel.app/PremioxyzLogo.svg",
-        "splashBackgroundColor": "#000000"
+        "imageUrl": "https://celo-build-web-8rej.vercel.app/image.png",
+        "splashImageUrl": "https://celo-build-web-8rej.vercel.app/splash.png",
+        "splashBackgroundColor": "#000000",
+        "webhookUrl": "https://celo-build-web-8rej.vercel.app/api/webhook",
+        "subtitle": "Recompensas virales en Farcaster ",
+        "description": "Recompensas virales en Farcaster con Celo MiniPay",
+        "primaryCategory": "social"
     },
     "accountAssociation": {
         "header": "eyJmaWQiOjc0NDI5NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweGY2QzkxQTBmOTEwMkJmMGY1NzgyYmY1NjEwMGM0MDU1Yjg0MzFhQ2EifQ",
-        "payload": "eyJkb21haW4iOiIifQ",
-        "signature": "ApsotdfdNwCe89KjJngjcGtDvW/8XRXbZBxbTFf/soR109uUSQZjMlXZEoZbwLKrBQum9y0dKfFG1OAqK5FzYhs="
+        "payload": "eyJkb21haW4iOiJjZWxvLWJ1aWxkLXdlYi04cmVqLnZlcmNlbC5hcHAifQ",
+        "signature": "l4btGIGwypCL1LU6KghW2loCOMUBczOUyeiT4Fu4g5tbBIri+z+EYhva1p73VoR9Fr8QbXsPdvYiy5ylPpkQURs="
     }
 }
