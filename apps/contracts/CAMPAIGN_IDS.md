@@ -134,3 +134,4 @@ CAMPAIGN_ID="demo-campaign" FUND_AMOUNT_CUSD=100 ./fund-campaign.sh
 Esto permitirá que las recompensas funcionen incluso si las campañas dinámicas no tienen fondos.
 
 
+

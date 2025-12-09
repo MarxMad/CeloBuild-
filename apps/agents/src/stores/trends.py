@@ -72,3 +72,4 @@ def default_trends_store(max_entries: int = 50) -> TrendsStore:
     else:
         base_path = Path(__file__).resolve().parents[1] / "data"
     return TrendsStore(base_path / "trends.json", max_entries=max_entries)
+

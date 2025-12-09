@@ -55,7 +55,7 @@ class TrendWatcherAgent:
             }
 
         logger.info("Analizando conversaciones recientes en Farcaster (canal=%s)...", channel_id)
-        casts = await self.farcaster.fetch_recent_casts(channel_id=channel_id, limit=self.settings.max_recent_casts)
+        casts = await self.farcaster.fetch_recent_casts(channel_id=channel_id, limit=50)
         if not casts:
             return {"status": "no_trends_found", **base_context}
             

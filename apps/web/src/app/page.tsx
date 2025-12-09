@@ -80,7 +80,7 @@ export default function Home() {
             )}
           >
             <PlayCircle className="w-4 h-4" />
-            Simulador
+            Recompensas
           </button>
           <button
             onClick={() => setActiveTab("guide")}
@@ -108,7 +108,7 @@ export default function Home() {
             <div className="text-center">
               <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" asChild>
                 <Link href="https://docs.celo.org/build/build-on-minipay/overview" target="_blank">
-                  Powered by Celo MiniPay
+                  Powered by CriptoUNAM & Celo México
                 </Link>
               </Button>
             </div>

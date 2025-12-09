@@ -90,7 +90,8 @@ class ArtGenerator:
         params = urllib.parse.urlencode({
             "title": title,
             "rarity": rarity,
-            "type": card_type
+            "type": card_type,
+            "description": metadata.get("description", "A mysterious artifact."),
         })
         
         return f"{frontend_url}/api/nft-image?{params}"

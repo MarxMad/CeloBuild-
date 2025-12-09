@@ -188,6 +188,20 @@ class RewardDistributorAgent:
                             metadata_uri=metadata.get("metadata_uri") or self.settings.reward_metadata_uri,
                         )
                         minted[address] = tx_hash
+                        
+                        # También otorgar XP como bonus
+                        try:
+                            logger.info("Otorgando XP bonus a %s junto con NFT...", address)
+                            self.celo_tool.grant_xp(
+                                registry_address=self.settings.registry_address,
+                                campaign_id=campaign_id,
+                                participant=address,
+                                amount=self.settings.xp_reward_amount,
+                            )
+                            xp_awards[address] = "bonus_with_nft"
+                        except Exception as xp_exc:
+                            logger.warning("Fallo otorgando XP bonus con NFT: %s", xp_exc)
+
                     except Exception as exc:  # noqa: BLE001
                         logger.error("Fallo minteando NFT: %s", exc)
                 
@@ -367,6 +381,19 @@ class RewardDistributorAgent:
                         metadata_uri=token_uri, # Usar dynamic URI
                     )
                     minted[address] = tx_hash
+                    
+                    # También otorgar XP como bonus
+                    try:
+                        self.celo_tool.grant_xp(
+                            registry_address=self.settings.registry_address,
+                            campaign_id=campaign_id,
+                            participant=address,
+                            amount=self.settings.xp_reward_amount,
+                        )
+                        xp_awards[address] = "bonus_with_nft"
+                    except Exception as xp_exc:
+                        logger.warning("Fallo otorgando XP bonus con NFT: %s", xp_exc)
+
                 except Exception as exc:  # noqa: BLE001
                     logger.error("Fallo al generar/mintear NFT: %s", exc)
                     self.last_mint_error = str(exc)

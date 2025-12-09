@@ -140,9 +140,16 @@ class SupervisorOrchestrator:
         
         explorer_url = None
         if tx_hash and self.settings:
-            # Construir URL del explorer para Celo Sepolia
-            # Asumimos Sepolia por defecto para el link si no está en config
-            base_explorer = "https://celo-sepolia.blockscout.com"
+            # Determine explorer based on RPC URL
+            rpc_url = self.settings.celo_rpc_url.lower()
+            if "alfajores" in rpc_url:
+                base_explorer = "https://alfajores.celoscan.io"
+            elif "sepolia" in rpc_url:
+                base_explorer = "https://celo-sepolia.blockscout.com"
+            else:
+                # Default to Mainnet (celoscan.io is the standard for Celo Mainnet)
+                base_explorer = "https://celoscan.io"
+            
             explorer_url = f"{base_explorer}/tx/{tx_hash}"
 
         thread_id = payload.get("thread_id") or self.trend_watcher.build_thread_id(payload)
