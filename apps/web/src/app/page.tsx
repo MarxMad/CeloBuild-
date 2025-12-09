@@ -47,7 +47,7 @@ export default function Home() {
             <img
               src="/premio_portada.svg"
               alt="Premio.xyz Portada"
-              className="h-full w-auto object-contain"
+              className="h-full w-auto object-contain rounded-3xl"
             />
           </div>
           <p className="text-center text-gray-400 text-sm mb-6">
