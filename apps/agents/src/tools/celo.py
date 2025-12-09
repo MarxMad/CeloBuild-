@@ -350,6 +350,8 @@ class CeloToolbox:
             signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
             tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
             logger.info("Campaign configured in Registry: %s (tx: %s)", campaign_id, tx_hash.hex())
+            # Esperar confirmación para evitar race conditions
+            self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
             return tx_hash.hex()
         except ValueError as e:
             error_msg = str(e)
@@ -365,6 +367,8 @@ class CeloToolbox:
                 signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
                 tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
                 logger.info("Campaign configured in Registry (retry): %s (tx: %s)", campaign_id, tx_hash.hex())
+                # Esperar confirmación
+                self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
                 return tx_hash.hex()
             raise
 
@@ -416,6 +420,8 @@ class CeloToolbox:
             signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
             tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
             logger.info("Campaign configured in Minter: %s (tx: %s)", campaign_id, tx_hash.hex())
+            # Esperar confirmación para evitar race conditions
+            self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
             return tx_hash.hex()
         except ValueError as e:
             error_msg = str(e)
@@ -433,6 +439,8 @@ class CeloToolbox:
                 signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
                 tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
                 logger.info("Campaign configured in Minter (retry): %s (tx: %s)", campaign_id, tx_hash.hex())
+                # Esperar confirmación
+                self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
                 return tx_hash.hex()
             raise
 
@@ -510,6 +518,8 @@ class CeloToolbox:
                 "Campaign initialized in Vault: %s (token: %s, reward: %s wei) (tx: %s)",
                 campaign_id, token_address, reward_per_recipient, tx_hash.hex()
             )
+            # Esperar confirmación para evitar race conditions
+            self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
             return tx_hash.hex()
         except (ValueError, Exception) as e:  # noqa: BLE001
             error_msg = str(e)
@@ -548,6 +558,8 @@ class CeloToolbox:
                 signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
                 tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
                 logger.info("Campaign initialized in Vault (retry): %s (tx: %s)", campaign_id, tx_hash.hex())
+                # Esperar confirmación
+                self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
                 return tx_hash.hex()
             raise
 
