@@ -33,6 +33,8 @@ class RewardDistributorAgent:
 
     async def handle(self, eligibility: dict[str, Any]) -> dict[str, Any]:
         """Ejecuta la distribución de recompensas on-chain."""
+        self.last_mint_error = None
+
 
         recipients = eligibility.get("recipients", [])
         campaign_id = eligibility.get("campaign_id", "demo-campaign")

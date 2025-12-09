@@ -435,6 +435,7 @@ async def run_lootbox(event: LootboxEvent):
         "trend_info": result.trend_info,  # Información de la tendencia
         "eligible": result.eligible,  # Si el usuario es elegible
         "eligibility_message": result.eligibility_message,  # Mensaje de elegibilidad
+        "error": result.error,  # Mensaje de error si hubo fallo
     }
 
 

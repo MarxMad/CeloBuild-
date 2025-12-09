@@ -21,6 +21,10 @@ class RunResult:
     trend_info: dict[str, Any] | None = None  # Información de la tendencia detectada
     eligible: bool | None = None  # Si el usuario es elegible (None = no verificado, True/False = resultado)
     eligibility_message: str | None = None  # Mensaje explicando por qué no es elegible
+    error: str | None = None  # Mensaje de error específico si falla la transacción
+
+
+
 
 
 class SupervisorOrchestrator:
@@ -173,5 +177,6 @@ class SupervisorOrchestrator:
             } if trend_context.get("status") in ("trend_detected", "trend_below_threshold") else None,
             eligible=True,
             eligibility_message=eligible_users.get("message"),
+            error=distribution.get("error"),
         )
 
