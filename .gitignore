@@ -14,6 +14,8 @@ build/
 .env.test.local
 .env.production.local
 .env.bak
+*.backup*
+*.bak
 
 # Logs
 npm-debug.log*
@@ -110,3 +112,7 @@ venv/
 
 # Agent runtime data
 apps/agents/src/data/
+
+# Foundry Broadcast Logs
+broadcast/
+apps/contracts/broadcast/

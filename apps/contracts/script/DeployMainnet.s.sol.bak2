@@ -13,8 +13,8 @@ import {LootBoxMinter} from "../src/LootBoxMinter.sol";
  * Este script:
  * 1. Despliega los 3 contratos con mejoras de seguridad
  * 2. Configura roles para el agente
- * 3. Transfiere ownership al agente (para campañas dinámicas)
- * 4. Configura campaña demo (opcional)
+ * 3. Transfiere ownership al agente (para campanas dinámicas)
+ * 4. Configura campana demo (opcional)
  * 
  * IMPORTANTE: El usuario NO necesita firmar transacciones para recibir premios.
  * El backend (agente) distribuye automáticamente usando su private key.
@@ -59,13 +59,11 @@ contract DeployMainnet is Script {
         console.log("cUSD address:", cusdAddress);
         console.log("");
         
-        
-        // 1. Desplegar contratos con el agente como owner desde el inicio
+        // 1. Desplegar contratos
         console.log("1. Desplegando contratos...");
-        console.log("   Owner inicial: Agent address");
-        LootBoxVault vault = new LootBoxVault(agentAddress);
-        LootAccessRegistry registry = new LootAccessRegistry(agentAddress);
-        LootBoxMinter minter = new LootBoxMinter(agentAddress);
+        LootBoxVault vault = new LootBoxVault(msg.sender);
+        LootAccessRegistry registry = new LootAccessRegistry(msg.sender);
+        LootBoxMinter minter = new LootBoxMinter(msg.sender);
         
         deployedVault = address(vault);
         deployedRegistry = address(registry);
@@ -76,18 +74,55 @@ contract DeployMainnet is Script {
         console.log("   LootBoxMinter:", deployedMinter);
         console.log("");
         
-        console.log("2. Contratos desplegados con Agent como owner");
-        console.log("   [OK] Agent tiene control completo desde el inicio");
+        // 2. Configurar roles para el agente (antes de transferir ownership)
+        console.log("2. Configurar roles para el agente...");
+        
+        // LootBoxMinter: dar rol "agent" al backend
+        minter.setAgent(agentAddress, true);
+        console.log("   [OK] Rol agent otorgado en LootBoxMinter");
+        
+        // LootAccessRegistry: dar rol "reporter" al backend
+        registry.setReporter(agentAddress, true);
+        console.log("   [OK] Rol reporter otorgado en LootAccessRegistry");
+        
+        // LootBoxVault: dar rol "agent" al backend
+        vault.setAgent(agentAddress, true);
+        console.log("   [OK] Rol agent otorgado en LootBoxVault");
         console.log("");
         
-        // 3. Configurar campaña demo (opcional, para testing)
-        console.log("3. Configurando campana demo (opcional)...");
+        // 3. Transferir ownership al agente (para campanas dinámicas)
+        console.log("3. Transfiriendo ownership al agente...");
+        console.log("   ADVERTENCIA: El agente tendra control completo de los contratos");
+        
+        vault.transferOwnership(agentAddress);
+        console.log("   [OK] Ownership de LootBoxVault transferido");
+        
+        registry.transferOwnership(agentAddress);
+        console.log("   [OK] Ownership de LootAccessRegistry transferido");
+        
+        minter.transferOwnership(agentAddress);
+        console.log("   [OK] Ownership de LootBoxMinter transferido");
+        console.log("");
+        
+        // 4. Configurar campana demo (opcional, para testing)
+        console.log("4. Configurar campana demo (opcional)...");
         bytes32 demoCampaignId = keccak256("demo-campaign");
         
-        // NOTA: No podemos configurar la campaña ahora porque el deployer no es el owner
-        // El agente tendrá que configurar la campaña después del deployment
-        console.log("   [INFO] El agente configurara la campana automaticamente");
-        console.log("");
+        // LootAccessRegistry: configurar campana con cooldown de 1 día
+        registry.configureCampaign(demoCampaignId, 86400);
+        console.log("   [OK] Campaign demo configured in Registry");
+        
+        // LootBoxMinter: configurar campana con metadata base
+        minter.configureCampaign(demoCampaignId, "ipfs://QmExample/");
+        console.log("   [OK] Campaign demo configured in Minter");
+        
+        // LootBoxVault: inicializar campana demo (requiere cUSD address)
+        if (cusdAddress != address(0)) {
+            vault.initializeCampaign(demoCampaignId, cusdAddress, 0.15 * 1e18); // 0.15 cUSD
+            console.log("   [OK] Campaign demo initialized in Vault");
+        } else {
+            console.log("   [SKIP] cUSD address no configurada, saltando inicialización de Vault");
+        }
         
         vm.stopBroadcast();
         
@@ -101,7 +136,7 @@ contract DeployMainnet is Script {
         console.log("MINTER_ADDRESS=", deployedMinter);
         console.log("");
         console.log("Agrega estas direcciones a tu archivo .env");
-        console.log("El agente ahora puede crear campanas dinamicas automaticamente");
+        console.log("El agente ahora puede crear campanas dinámicas automáticamente");
         console.log("");
         console.log("Explorer links (Celo Mainnet):");
         console.log("  Vault: https://celoscan.io/address/", deployedVault);
@@ -109,3 +144,4 @@ contract DeployMainnet is Script {
         console.log("  Minter: https://celoscan.io/address/", deployedMinter);
     }
 }
+

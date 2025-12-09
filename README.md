@@ -33,17 +33,26 @@ La capa de seguridad y liquidación, actualmente desplegada en **Celo Sepolia**:
 *   **`LootAccessRegistry`**: Registro on-chain que evita el "doble gasto" de recompensas y otorga XP.
 *   **`LootBoxMinter`**: Contrato ERC721 optimizado para emitir NFTs conmemorativos.
 
-**🚀 Deployment:** Los contratos se despliegan automáticamente usando el script `apps/contracts/script/DeployProduction.s.sol` que incluye mejoras de seguridad y configuración automática. Ver [DEPLOYMENT.md](apps/contracts/DEPLOYMENT.md) para más detalles.
+**🚀 Deployment:** Los contratos se despliegan automáticamente usando el script `apps/contracts/script/Deploy Mainnet.s.sol` que incluye mejoras de seguridad y configuración automática. Ver [DEPLOYMENT.md](apps/contracts/DEPLOYMENT.md) para más detalles.
 
-#### 📍 Direcciones Desplegadas (Celo Sepolia) - PRODUCCIÓN
+#### 📍 Direcciones Desplegadas (Celo Mainnet) - PRODUCCIÓN 🎉
 
 | Contrato | Dirección | Explorer |
 |----------|-----------|----------|
-| **LootBoxVault** | `0x3808D0C3525C4F85F1f8c9a881E3949327FB9cF7` | [Ver en Blockscout](https://celo-sepolia.blockscout.com/address/0x3808D0C3525C4F85F1f8c9a881E3949327FB9cF7) |
-| **LootAccessRegistry** | `0x86C878108798e2Ce39B783127955B8F8A18ae2BE` | [Ver en Blockscout](https://celo-sepolia.blockscout.com/address/0x86C878108798e2Ce39B783127955B8F8A18ae2BE) |
-| **LootBoxMinter** | `0x0d7370f79f77Ee701C5F40443F8C8969C28b3412` | [Ver en Blockscout](https://celo-sepolia.blockscout.com/address/0x0d7370f79f77Ee701C5F40443F8C8969C28b3412) |
+| **LootBoxVault** | `0x4f7aa310c1f90e435f292f5d9ba07cb102409990` | [Ver en Celoscan](https://celoscan.io/address/0x4f7aa310c1f90e435f292f5d9ba07cb102409990) |
+| **LootAccessRegistry** | `0x28a499be43d2e9720e129725e052781746e59d1d` | [Ver en Celoscan](https://celoscan.io/address/0x28a499be43d2e9720e129725e052781746e59d1d) |
+| **LootBoxMinter** | `0x39b93bac43ed50df42ea9e0dde38bcd072f0a771` | [Ver en Celoscan](https://celoscan.io/address/0x39b93bac43ed50df42ea9e0dde38bcd072f0a771) |
 
-**Nota:** Estos contratos están desplegados y configurados con los roles necesarios para que el agente pueda distribuir recompensas automáticamente. El usuario **NO necesita firmar transacciones** - todo es automático.
+**Nota:** Estos contratos están desplegados en **Celo Mainnet** y verificados en Sourcify. El agente tiene control completo para distribuir recompensas automáticamente. El usuario **NO necesita firmar transacciones** - todo es automático.
+
+<details>
+<summary>📍 Direcciones en Celo Mainnet </summary>
+
+🏦 LootBoxVault: 0x2c8c787af0d123a7bedf20064f3ad45aaafd6020
+📜 LootAccessRegistry: 0x4a948a06422116fcd8dcd9eacac32e5c40b0e400
+🎨 LootBoxMinter: 0x455fa0b0de62fead3032f8485cddd9e606cc7c7d
+
+</details>
 
 ### 📊 Flujo del Sistema
 
@@ -270,7 +279,7 @@ El `MINIPAY_PROJECT_ID` y `MINIPAY_PROJECT_SECRET` son para usar la **API de Min
 *   [x] **Despliegue en Testnet**: Contratos activos en Celo Sepolia.
 *   [x] **Integración Real**: Agentes conectados a Neynar API y firmando transacciones reales.
 *   [x] **UX/UI Pro**: Rebranding a Premio.xyz, Dark Mode, Animaciones 3D y leaderboard vivo.
-*   [ ] **Mainnet Launch**: Despliegue en Celo Mainnet.
+*   [x] **Mainnet Launch**: ✅ Contratos desplegados en Celo Mainnet - [Ver direcciones](#-direcciones-desplegadas-celo-mainnet---producción-)
 *   [ ] **ZK Proofs**: Integrar Semaphore para privacidad.
 
 ---
