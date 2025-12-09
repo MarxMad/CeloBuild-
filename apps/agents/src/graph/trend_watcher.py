@@ -96,6 +96,7 @@ class TrendWatcherAgent:
             if len(valid_trends) >= 5:
                 break
         
+        if not valid_trends:
             # Si no hay tendencias válidas, usar las top 5 de bajo umbral
             top_cast = scored_casts[0]
             logger.info(
