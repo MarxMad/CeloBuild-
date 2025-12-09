@@ -1,19 +1,7 @@
-import base64
-import io
 import logging
-import random
-from typing import Any, Optional
+import urllib.parse
+from typing import Any
 
-# Try to import PIL, but handle failure gracefully
-try:
-    from PIL import Image, ImageDraw, ImageFont
-    PIL_AVAILABLE = True
-except ImportError:
-    PIL_AVAILABLE = False
-    # Dummy classes to prevent NameError in type hints if not used at runtime
-    class Image:
-        class Image: pass
-    
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -22,7 +10,7 @@ from ..config import Settings
 logger = logging.getLogger(__name__)
 
 class ArtGenerator:
-    """Genera arte y metadatos para NFTs estilo Yu-Gi-Oh usando Gemini y PIL."""
+    """Genera metadatos para NFTs y construye la URL de la imagen dinámica."""
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -46,7 +34,6 @@ class ArtGenerator:
                 "description": f"A legendary moment captured from {author}'s cast.",
                 "rarity": "Common",
                 "type": "Spell Caster",
-                "prompt": f"Cyberpunk style digital art representing: {cast_text[:50]}..."
             }
 
         prompt = ChatPromptTemplate.from_template(
@@ -58,8 +45,7 @@ class ArtGenerator:
                 "- title: Título épico y corto (max 25 chars)\n"
                 "- description: Lore de la carta (max 100 chars)\n"
                 "- rarity: Common, Rare, Epic, Legendary (basado en el texto)\n"
-                "- type: Monster, Spell, Trap, Artifact\n"
-                "- prompt: Un prompt detallado para generar la imagen de la carta con IA (en inglés, estilo cyberpunk/fantasy)"
+                "- type: Monster, Spell, Trap, Artifact"
             )
         )
 
@@ -76,116 +62,32 @@ class ArtGenerator:
                 "description": "A mysterious artifact from the decentralized web.",
                 "rarity": "Rare",
                 "type": "Artifact",
-                "prompt": "Abstract digital art, blockchain nodes connecting, glowing neon lines, dark background"
             }
 
     def generate_image(self, prompt: str) -> Any:
         """
-        Genera una imagen basada en el prompt.
-        Retorna un objeto Image de PIL o None si PIL no está disponible.
+        Deprecado: Ya no generamos imágenes en el backend.
+        Retorna None para mantener compatibilidad si es necesario.
         """
-        if not PIL_AVAILABLE:
-            logger.warning("PIL no está disponible. Saltando generación de imagen.")
-            return None
-
-        # Generar imagen abstracta procedural
-        width, height = 400, 400
-        image = Image.new('RGB', (width, height), color='black')
-        draw = ImageDraw.Draw(image)
-        
-        # Seed basado en el prompt para consistencia
-        random.seed(prompt)
-        
-        # Dibujar patrones abstractos
-        for _ in range(50):
-            x1 = random.randint(0, width)
-            y1 = random.randint(0, height)
-            x2 = random.randint(0, width)
-            y2 = random.randint(0, height)
-            color = (
-                random.randint(50, 255),
-                random.randint(50, 255),
-                random.randint(50, 255)
-            )
-            width_line = random.randint(1, 5)
-            draw.line([(x1, y1), (x2, y2)], fill=color, width=width_line)
-            
-            if random.random() > 0.8:
-                radius = random.randint(10, 50)
-                draw.ellipse(
-                    [(x1-radius, y1-radius), (x1+radius, y1+radius)],
-                    outline=color,
-                    width=2
-                )
-
-        return image
+        return None
 
     def compose_card(self, art_image: Any, metadata: dict[str, Any]) -> str:
         """
-        Compone la carta final estilo Yu-Gi-Oh y retorna la imagen en base64.
-        Si PIL no está disponible, retorna una imagen placeholder por defecto.
+        Construye la URL de la imagen dinámica servida por el frontend.
         """
-        if not PIL_AVAILABLE or art_image is None:
-            logger.warning("PIL no disponible o imagen nula. Retornando placeholder.")
-            # Retornar un placeholder transparente o genérico en base64
-            # 1x1 pixel transparente
-            return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-
-        # Dimensiones de carta estándar (proporción 59:86)
-        card_w, card_h = 590, 860
-        card = Image.new('RGB', (card_w, card_h), color='#1a1a1a')
-        draw = ImageDraw.Draw(card)
-
-        # Colores según rareza
-        rarity_colors = {
-            "Common": "#A0A0A0",
-            "Rare": "#0070DD",
-            "Epic": "#A335EE",
-            "Legendary": "#FF8000"
-        }
-        border_color = rarity_colors.get(metadata.get("rarity", "Common"), "#A0A0A0")
-
-        # Marco
-        draw.rectangle([(20, 20), (card_w-20, card_h-20)], outline=border_color, width=10)
+        # Base URL del frontend (debería venir de settings, pero usamos fallback)
+        # En producción, esto debe ser la URL real de la app
+        frontend_url = "https://celo-build-web-8rej.vercel.app"
         
-        # Título
-        try:
-            # Intentar cargar fuente default o usar básica
-            font_title = ImageFont.truetype("Arial", 40)
-        except:
-            font_title = ImageFont.load_default()
-            
-        draw.text((40, 40), metadata.get("title", "Unknown Card"), fill=border_color, font=font_title)
-
-        # Imagen de Arte (centrada)
-        art_resized = art_image.resize((510, 510))
-        card.paste(art_resized, (40, 100))
-
-        # Caja de descripción
-        draw.rectangle([(40, 630), (card_w-40, card_h-40)], outline=border_color, width=3)
+        title = metadata.get("title", "Unknown Artifact")
+        rarity = metadata.get("rarity", "Common")
+        card_type = metadata.get("type", "Item")
         
-        # Tipo y Rareza
-        draw.text((50, 640), f"[{metadata.get('type', 'Monster')}] - {metadata.get('rarity', 'Common')}", fill="white")
+        # Codificar parámetros
+        params = urllib.parse.urlencode({
+            "title": title,
+            "rarity": rarity,
+            "type": card_type
+        })
         
-        # Descripción (simple wrap manual)
-        desc = metadata.get("description", "")
-        words = desc.split()
-        lines = []
-        current_line = []
-        for word in words:
-            current_line.append(word)
-            if len(" ".join(current_line)) > 40: # Aprox chars per line
-                lines.append(" ".join(current_line[:-1]))
-                current_line = [word]
-        lines.append(" ".join(current_line))
-        
-        y_text = 680
-        for line in lines:
-            draw.text((50, y_text), line, fill="white")
-            y_text += 25
-
-        # Convertir a base64
-        buffered = io.BytesIO()
-        card.save(buffered, format="PNG")
-        img_str = base64.b64encode(buffered.getvalue()).decode()
-        return f"data:image/png;base64,{img_str}"
+        return f"{frontend_url}/api/nft-image?{params}"
