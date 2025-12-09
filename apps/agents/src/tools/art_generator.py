@@ -4,7 +4,16 @@ import logging
 import random
 from typing import Any, Optional
 
-from PIL import Image, ImageDraw, ImageFont
+# Try to import PIL, but handle failure gracefully
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    # Dummy classes to prevent NameError in type hints if not used at runtime
+    class Image:
+        class Image: pass
+    
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -70,14 +79,15 @@ class ArtGenerator:
                 "prompt": "Abstract digital art, blockchain nodes connecting, glowing neon lines, dark background"
             }
 
-    def generate_image(self, prompt: str) -> Image.Image:
+    def generate_image(self, prompt: str) -> Any:
         """
         Genera una imagen basada en el prompt.
-        Nota: Como no tenemos acceso garantizado a Imagen API, generaremos
-        una imagen abstracta procedural con PIL basada en el hash del prompt.
+        Retorna un objeto Image de PIL o None si PIL no está disponible.
         """
-        # En el futuro: Integrar llamada a DALL-E o Gemini Imagen aquí
-        
+        if not PIL_AVAILABLE:
+            logger.warning("PIL no está disponible. Saltando generación de imagen.")
+            return None
+
         # Generar imagen abstracta procedural
         width, height = 400, 400
         image = Image.new('RGB', (width, height), color='black')
@@ -110,10 +120,17 @@ class ArtGenerator:
 
         return image
 
-    def compose_card(self, art_image: Image.Image, metadata: dict[str, Any]) -> str:
+    def compose_card(self, art_image: Any, metadata: dict[str, Any]) -> str:
         """
         Compone la carta final estilo Yu-Gi-Oh y retorna la imagen en base64.
+        Si PIL no está disponible, retorna una imagen placeholder por defecto.
         """
+        if not PIL_AVAILABLE or art_image is None:
+            logger.warning("PIL no disponible o imagen nula. Retornando placeholder.")
+            # Retornar un placeholder transparente o genérico en base64
+            # 1x1 pixel transparente
+            return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+
         # Dimensiones de carta estándar (proporción 59:86)
         card_w, card_h = 590, 860
         card = Image.new('RGB', (card_w, card_h), color='#1a1a1a')

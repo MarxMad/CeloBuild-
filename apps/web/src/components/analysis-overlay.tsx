@@ -23,13 +23,6 @@ export function AnalysisOverlay({ onComplete }: { onComplete: () => void }) {
         }
         return prev + 1;
       });
-    }, 1200); // 1.2s per step
-
-    return () => clearInterval(interval);
-  }, [onComplete]);
-
-  return (
-    <div className="absolute inset-0 bg-background/95 backdrop-blur-md z-50 flex flex-col items-center justify-center rounded-3xl p-6">
       <div className="w-full max-w-[280px] space-y-6">
         {STEPS.map((step, index) => {
           const isActive = index === currentStep;
@@ -37,15 +30,14 @@ export function AnalysisOverlay({ onComplete }: { onComplete: () => void }) {
           const Icon = step.icon;
 
           return (
-            <div 
-                key={step.id} 
-                className={`flex items-center gap-4 transition-all duration-500 ${
-                    isActive || isCompleted ? "opacity-100 translate-x-0" : "opacity-30 translate-x-4"
+            <div
+              key={step.id}
+              className={`flex items-center gap-4 transition-all duration-500 ${isActive || isCompleted ? "opacity-100 translate-x-0" : "opacity-30 translate-x-4"
                 }`}
             >
               <div className={`
                 w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500
-                ${isActive ? "border-[#FCFF52] bg-[#FCFF52]/10 scale-100 shadow-[0_0_10px_rgba(252,255,82,0.2)]" : 
+                ${isActive ? "border-[#FCFF52] bg-[#FCFF52]/10 scale-100 shadow-[0_0_10px_rgba(252,255,82,0.2)]" :
                   isCompleted ? "border-green-500 bg-green-500/10 text-green-500" : "border-white/10 text-muted-foreground"}
               `}>
                 <Icon className={`w-5 h-5 ${isActive && step.id === 2 ? "animate-spin" : ""}`} />
@@ -57,6 +49,6 @@ export function AnalysisOverlay({ onComplete }: { onComplete: () => void }) {
           );
         })}
       </div>
-    </div>
-  );
+  </div >
+);
 }
