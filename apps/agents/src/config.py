@@ -34,8 +34,8 @@ class Settings(BaseSettings):
     auto_scan_interval_minutes: int = 30
     
     # Sistema de Tiers y Ponderaciones
-    tier_nft_threshold: float = 85.0  # Score mínimo para NFT
-    tier_cusd_threshold: float = 60.0  # Score mínimo para cUSD
+    tier_nft_threshold: float = 80.0  # Score mínimo para NFT (reducido de 85.0)
+    tier_cusd_threshold: float = 50.0  # Score mínimo para cUSD (reducido de 60.0)
     # XP se otorga a todos los que pasan el umbral mínimo
     
     # Ponderaciones para calcular user_score
