@@ -25,7 +25,10 @@ class EligibilityAgent:
     async def handle(self, context: dict[str, Any]) -> dict[str, Any]:
         """Evalúa usuarios analizando su participación en tendencias globales."""
 
-        campaign_id = f"{context.get('frame_id', 'global')}-loot"
+        # Usar 'demo-campaign' fijo para que todo el XP se acumule en una sola campaña
+        # y sea visible en el frontend (que consulta 'demo-campaign' por defecto).
+        # En el futuro, esto podría ser dinámico si el frontend soporta múltiples campañas.
+        campaign_id = "demo-campaign"
         trend_score = context.get("trend_score", 0.0)
         cast_hash = context.get("cast_hash")
         topic_tags = context.get("topic_tags", [])
