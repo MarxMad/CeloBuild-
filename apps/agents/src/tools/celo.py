@@ -230,8 +230,10 @@ class CeloToolbox:
             
             logger.info(f"NFT mint transaction sent: {tx_hash.hex()}")
             return tx_hash.hex()
+            raise
         except Exception as exc:  # noqa: BLE001
             error_str = str(exc)
+            logger.error(f"FULL ERROR MINTING NFT: {error_str}")
             # Decodificar códigos de error comunes
             if "0x477a3e50" in error_str:
                 logger.error(
