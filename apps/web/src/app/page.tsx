@@ -42,13 +42,12 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative h-32 w-full max-w-sm mx-auto mb-6 animate-in fade-in slide-in-from-bottom-2 duration-700 drop-shadow-md">
-            <Image
+          <div className="relative h-32 w-full max-w-sm mx-auto mb-6 animate-in fade-in slide-in-from-bottom-2 duration-700 drop-shadow-md flex items-center justify-center">
+            {/* Usamos img normal para evitar problemas de optimización con SVGs grandes */}
+            <img
               src="/premio_portada.svg"
-              alt="Premio.xyz"
-              fill
-              className="object-contain"
-              priority
+              alt="Premio.xyz Portada"
+              className="h-full w-auto object-contain"
             />
           </div>
           <p className="text-center text-gray-400 text-sm mb-6">
