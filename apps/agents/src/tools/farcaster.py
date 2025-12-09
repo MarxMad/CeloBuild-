@@ -73,14 +73,20 @@ class FarcasterToolbox:
         # Estrategia: Usar /feed/user/casts con usuarios populares conocidos de Farcaster
         # Este endpoint cuesta 4 créditos por usuario según: https://dev.neynar.com/pricing#product-api
         # FIDs de usuarios populares/activos en Farcaster (puedes ajustar estos)
-        popular_fids = [2, 3, 1593, 5650]  # Ejemplos: dwr.eth, v, y otros usuarios activos
+        # FIDs de usuarios populares/activos en Farcaster para asegurar diversidad
+        # 2: dwr.eth (Farcaster founder)
+        # 3: v (Vitalik Buterin)
+        # 5650: jesse.xyz (Base founder)
+        # 1: fcast (Farcaster team)
+        # 6: c (Celo founder/team member often active)
+        popular_fids = [2, 3, 5650, 1, 6]
         
         all_casts: list[dict[str, Any]] = []
         
         async with httpx.AsyncClient(timeout=10) as client:
             # Obtener casts de múltiples usuarios populares con rate limiting
-            # Limitar a 1 usuario para evitar rate limits (429) en plan gratuito
-            for idx, fid in enumerate(popular_fids[:1]):  # Solo 1 usuario para evitar rate limits
+            # Iterar sobre todos los FIDs definidos
+            for idx, fid in enumerate(popular_fids):
                 # Agregar delay entre requests para evitar rate limiting (429)
                 if idx > 0:
                     await asyncio.sleep(1.0)  # Esperar 1 segundo entre requests
