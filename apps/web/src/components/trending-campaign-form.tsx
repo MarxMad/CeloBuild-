@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { DEFAULT_EVENT, type AgentRunResponse, type LootboxEventPayload } from "@/lib/lootbox";
 import { useAccount } from "wagmi";
 import { useFarcasterUser } from "./farcaster-provider";
+import { AnalysisOverlay } from "./analysis-overlay";
 
 type FormState = {
   frameId: string;
@@ -22,6 +23,8 @@ export function TrendingCampaignForm() {
   const farcasterUser = useFarcasterUser();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnimationComplete, setIsAnimationComplete] = useState(false);
+  const [pendingResult, setPendingResult] = useState<AgentRunResponse | null>(null);
   const [result, setResult] = useState<AgentRunResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +32,16 @@ export function TrendingCampaignForm() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Effect to handle completion when both API and Animation are done
+  useEffect(() => {
+    if (isAnimationComplete && pendingResult) {
+      setResult(pendingResult);
+      setIsLoading(false);
+    } else if (isAnimationComplete && error) {
+      setIsLoading(false);
+    }
+  }, [isAnimationComplete, pendingResult, error]);
 
   const getRewardDisplay = (type?: AgentRunResponse["reward_type"]) => {
     switch (type) {
@@ -55,8 +68,10 @@ export function TrendingCampaignForm() {
     if (!address) return;
 
     setIsLoading(true);
-    setError(null);
+    setIsAnimationComplete(false);
+    setPendingResult(null);
     setResult(null);
+    setError(null);
 
     try {
       const payload: LootboxEventPayload = {
@@ -90,19 +105,15 @@ export function TrendingCampaignForm() {
         throw new Error(errorMessage);
       }
 
-      setResult(resultData);
-
-      // Determinar mensaje de éxito
-      const display = getRewardDisplay(resultData.reward_type);
-
-
+      setPendingResult(resultData);
 
     } catch (err) {
       console.error("❌ Error:", err);
       setError(err instanceof Error ? err.message : "Hubo un problema procesando tu solicitud");
-
-    } finally {
-      setIsLoading(false);
+      // If error occurs, we still wait for animation or show error immediately?
+      // Let's show error immediately if animation is taking too long? 
+      // Or just let animation finish then show error. 
+      // For better UX, let's wait for animation to finish so it doesn't flash.
     }
   };
 
@@ -110,6 +121,9 @@ export function TrendingCampaignForm() {
 
   return (
     <div className="space-y-6 relative max-w-md mx-auto">
+      {isLoading && (
+        <AnalysisOverlay onComplete={() => setIsAnimationComplete(true)} />
+      )}
       <Card className="w-full bg-black/60 border-white/10 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(252,255,82,0.15)] overflow-hidden relative group ring-1 ring-white/5">
         <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-transparent opacity-50" />
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10" />
