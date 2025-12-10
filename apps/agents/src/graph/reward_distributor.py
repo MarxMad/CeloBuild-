@@ -540,28 +540,81 @@ class RewardDistributorAgent:
                 # Si no recibió recompensa, no lo registramos
                 continue
 
-            # Calculate granted XP (delta)
-            granted_xp = 0
-            if address in xp_awards:
-                granted_xp = self.settings.xp_reward_amount
-            elif address in minted: # Bonus XP with NFT
-                 granted_xp = self.settings.xp_reward_amount
-            
-            # Use increment_score to safely accumulate XP locally
-            # This avoids resetting score if on-chain fetch fails (returns 0)
-            self.leaderboard.increment_score(
-                {
-                    "username": entry.get("username"),
-                    "address": address,
-                    "fid": entry.get("fid"),
-                    "score": entry.get("score"),
-                    # "xp" is not passed here as absolute value, but handled by increment_score
-                    "reward_type": entry_reward_type,
-                    "tx_hash": tx_hash,
-                    "campaign_id": campaign_id,
-                    "topic_tags": metadata.get("topic_tags", []),
-                    "ai_analysis": metadata.get("ai_analysis"),
-                    "participation": entry.get("participation", {}),
-                },
-                xp_increment=granted_xp
-            )
+            # ---------------------------------------------------------
+            # CRITICAL: Fetch authoritative XP from Blockchain
+            # ---------------------------------------------------------
+            # The user wants the leaderboard to reflect the TRUE on-chain score,
+            # not just a local accumulation.
+            try:
+                # Wait a moment for the chain to index the recent grant
+                import time
+                time.sleep(2) 
+                
+                final_onchain_xp = self.celo_tool.get_xp_balance(
+                    registry_address=self.settings.registry_address,
+                    campaign_id=campaign_id,
+                    participant=address
+                )
+                
+                if final_onchain_xp > 0:
+                    logger.info("✅ Synced authoritative XP for %s: %d", address, final_onchain_xp)
+                    # Use record() to update. Since we want to enforce on-chain truth,
+                    # we might want to bypass the 'max' logic if we trust the chain 100%.
+                    # But for safety against RPC returning 0, we only update if > 0.
+                    # And we use increment_score with 0 increment just to ensure existence, 
+                    # then update the XP value directly in the store if needed?
+                    # Actually, let's just use record() but we need to ensure it takes this value.
+                    # My previous record() uses max(). 
+                    # If local is 0 (because file is empty), max(0, 200) = 200. Perfect.
+                    # If local is 50 and chain is 200, max(50, 200) = 200. Perfect.
+                    
+                    self.leaderboard.record(
+                        {
+                            "username": entry.get("username"),
+                            "address": address,
+                            "fid": entry.get("fid"),
+                            "score": entry.get("score"),
+                            "xp": final_onchain_xp, # Authoritative value
+                            "reward_type": entry_reward_type,
+                            "tx_hash": tx_hash,
+                            "campaign_id": campaign_id,
+                            "topic_tags": metadata.get("topic_tags", []),
+                            "ai_analysis": metadata.get("ai_analysis"),
+                            "participation": entry.get("participation", {}),
+                        }
+                    )
+                else:
+                    # Fallback: If RPC fails (returns 0), use local accumulation
+                    logger.warning("⚠️ On-chain XP returned 0. Falling back to local accumulation.")
+                    self.leaderboard.increment_score(
+                        {
+                            "username": entry.get("username"),
+                            "address": address,
+                            "fid": entry.get("fid"),
+                            "score": entry.get("score"),
+                            "reward_type": entry_reward_type,
+                            "tx_hash": tx_hash,
+                            "campaign_id": campaign_id,
+                            "topic_tags": metadata.get("topic_tags", []),
+                            "ai_analysis": metadata.get("ai_analysis"),
+                            "participation": entry.get("participation", {}),
+                        },
+                        xp_increment=granted_xp
+                    )
+            except Exception as e:
+                logger.error("Failed to sync on-chain XP: %s. Using local accumulation.", e)
+                self.leaderboard.increment_score(
+                    {
+                        "username": entry.get("username"),
+                        "address": address,
+                        "fid": entry.get("fid"),
+                        "score": entry.get("score"),
+                        "reward_type": entry_reward_type,
+                        "tx_hash": tx_hash,
+                        "campaign_id": campaign_id,
+                        "topic_tags": metadata.get("topic_tags", []),
+                        "ai_analysis": metadata.get("ai_analysis"),
+                        "participation": entry.get("participation", {}),
+                    },
+                    xp_increment=granted_xp
+                )
