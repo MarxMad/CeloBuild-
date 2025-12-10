@@ -540,28 +540,28 @@ class RewardDistributorAgent:
                 # Si no recibió recompensa, no lo registramos
                 continue
 
-            # Calculate final XP
-            current_xp = initial_xp_balances.get(address, 0)
+            # Calculate granted XP (delta)
             granted_xp = 0
             if address in xp_awards:
                 granted_xp = self.settings.xp_reward_amount
             elif address in minted: # Bonus XP with NFT
                  granted_xp = self.settings.xp_reward_amount
             
-            final_xp = current_xp + granted_xp
-
-            self.leaderboard.record(
+            # Use increment_score to safely accumulate XP locally
+            # This avoids resetting score if on-chain fetch fails (returns 0)
+            self.leaderboard.increment_score(
                 {
                     "username": entry.get("username"),
                     "address": address,
                     "fid": entry.get("fid"),
                     "score": entry.get("score"),
-                    "xp": final_xp,
+                    # "xp" is not passed here as absolute value, but handled by increment_score
                     "reward_type": entry_reward_type,
                     "tx_hash": tx_hash,
                     "campaign_id": campaign_id,
                     "topic_tags": metadata.get("topic_tags", []),
                     "ai_analysis": metadata.get("ai_analysis"),
                     "participation": entry.get("participation", {}),
-                }
+                },
+                xp_increment=granted_xp
             )

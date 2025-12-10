@@ -75,6 +75,40 @@ class LeaderboardStore:
             data.sort(key=lambda item: (item.get("xp", 0), item.get("score", 0)), reverse=True)
             self._write(data[: self.max_entries])
 
+    def increment_score(self, entry: dict[str, Any], xp_increment: int) -> None:
+        """Incrementa el XP de un usuario existente o crea uno nuevo."""
+        entry.setdefault("timestamp", int(time.time()))
+        address = entry.get("address", "").lower()
+        if not address:
+            return
+
+        with self._lock:
+            data = self._read()
+            user_map = {}
+            
+            # 1. Load existing
+            for item in data:
+                item_addr = item.get("address", "").lower()
+                if item_addr:
+                    user_map[item_addr] = item
+            
+            # 2. Update or Create
+            if address in user_map:
+                current = user_map[address]
+                # Accumulate XP
+                current["xp"] = current.get("xp", 0) + xp_increment
+                # Update other metadata
+                current.update({k: v for k, v in entry.items() if k != "xp"})
+            else:
+                # New entry
+                entry["xp"] = xp_increment
+                user_map[address] = entry
+            
+            # 3. Save
+            data = list(user_map.values())
+            data.sort(key=lambda item: (item.get("xp", 0), item.get("score", 0)), reverse=True)
+            self._write(data[: self.max_entries])
+
     def top(self, limit: int = 5) -> list[dict[str, Any]]:
         with self._lock:
             data = self._read()
