@@ -56,6 +56,9 @@ export function UserBalance() {
             const handleRefresh = () => {
                 console.log("Refreshing XP...");
                 fetchXp();
+                // Retry a few times to account for RPC latency
+                setTimeout(fetchXp, 2000);
+                setTimeout(fetchXp, 5000);
             };
             window.addEventListener('refresh-xp', handleRefresh);
 

@@ -10,23 +10,29 @@ const STEPS = [
   { id: 4, label: "Calculando Recompensas...", icon: CheckCircle2 },
 ];
 
-export function AnalysisOverlay({ onComplete }: { onComplete: () => void }) {
+export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onComplete: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStep((prev) => {
+        // If we are at the last step
         if (prev >= STEPS.length - 1) {
-          clearInterval(interval);
-          setTimeout(onComplete, 800); // Wait a bit before finishing
+          // Only finish if the parent says it's done
+          if (isDone) {
+            clearInterval(interval);
+            setTimeout(onComplete, 800);
+            return prev;
+          }
+          // Otherwise, stay on the last step (or we could loop, but staying with spinner is better)
           return prev;
         }
         return prev + 1;
       });
-    }, 2000); // 2.0s per step (slower for better UX)
+    }, 2000);
 
     return () => clearInterval(interval);
-  }, [onComplete]);
+  }, [isDone, onComplete]);
 
   return (
     <div className="absolute inset-0 bg-background/95 backdrop-blur-md z-50 flex flex-col items-center justify-center rounded-3xl p-6">
@@ -35,6 +41,9 @@ export function AnalysisOverlay({ onComplete }: { onComplete: () => void }) {
           const isActive = index === currentStep;
           const isCompleted = index < currentStep;
           const Icon = step.icon;
+
+          // If we are on the last step and waiting, force the spinner
+          const isLastStepWaiting = isActive && index === STEPS.length - 1 && !isDone;
 
           return (
             <div
@@ -47,7 +56,7 @@ export function AnalysisOverlay({ onComplete }: { onComplete: () => void }) {
                 ${isActive ? "border-[#FCFF52] bg-[#FCFF52]/10 scale-100 shadow-[0_0_10px_rgba(252,255,82,0.2)]" :
                   isCompleted ? "border-green-500 bg-green-500/10 text-green-500" : "border-white/10 text-muted-foreground"}
               `}>
-                <Icon className={`w-5 h-5 ${isActive && step.id === 2 ? "animate-spin" : ""}`} />
+                <Icon className={`w-5 h-5 ${(isActive && step.id === 2) || isLastStepWaiting ? "animate-spin" : ""}`} />
               </div>
               <span className={`font-medium text-sm ${isActive ? "text-[#FCFF52]" : isCompleted ? "text-green-500" : "text-muted-foreground"}`}>
                 {step.label}

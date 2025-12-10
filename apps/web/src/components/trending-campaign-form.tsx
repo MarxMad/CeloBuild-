@@ -127,7 +127,10 @@ export function TrendingCampaignForm() {
   return (
     <div className="space-y-6 relative max-w-md mx-auto">
       {isLoading && (
-        <AnalysisOverlay onComplete={() => setIsAnimationComplete(true)} />
+        <AnalysisOverlay
+          isDone={!!pendingResult || !!error}
+          onComplete={() => setIsAnimationComplete(true)}
+        />
       )}
       <Card className="w-full bg-black/60 border-white/10 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(252,255,82,0.15)] overflow-hidden relative group ring-1 ring-white/5">
         <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-transparent opacity-50" />
@@ -238,20 +241,32 @@ export function TrendingCampaignForm() {
               </div>
 
               {/* NFT Image Display */}
-              {result.nft_images && address && result.nft_images[address] && (
-                <div className="rounded-xl overflow-hidden border border-white/10 shadow-lg relative aspect-[2/3] mx-auto w-2/3">
-                  <img
-                    src={result.nft_images[address]}
-                    alt="NFT Reward"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-                  <div className="absolute bottom-2 left-0 right-0 text-center">
-                    <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm border border-yellow-500/20">
-                      New Artifact
-                    </span>
-                  </div>
-                </div>
+              {result.nft_images && (
+                (() => {
+                  // Try to find image by address (case insensitive) or fallback to first available image
+                  const userAddress = address?.toLowerCase();
+                  const imageUri = Object.entries(result.nft_images || {}).find(([addr]) => addr.toLowerCase() === userAddress)?.[1]
+                    || Object.values(result.nft_images || {})[0];
+
+                  if (imageUri) {
+                    return (
+                      <div className="rounded-xl overflow-hidden border border-white/10 shadow-lg relative aspect-[2/3] mx-auto w-2/3">
+                        <img
+                          src={imageUri}
+                          alt="NFT Reward"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                        <div className="absolute bottom-2 left-0 right-0 text-center">
+                          <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm border border-yellow-500/20">
+                            New Artifact
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()
               )}
 
               {/* Transaction Link */}
