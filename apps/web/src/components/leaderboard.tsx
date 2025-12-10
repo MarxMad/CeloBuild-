@@ -127,9 +127,10 @@ export function Leaderboard() {
         }
 
         // Procesar trends
+        let trendsData: { items: TrendData[] } | null = null;
         if (trendsResp.ok) {
-          const trendsData = await trendsResp.json();
-          const trends = (trendsData.items ?? []) as TrendData[];
+          trendsData = await trendsResp.json();
+          const trends = (trendsData?.items ?? []) as TrendData[];
 
           // Guardar detalles completos de tendencias
           // FIX: En Vercel serverless, a veces recibimos [] si cae en una lambda nueva sin caché.
@@ -164,7 +165,10 @@ export function Leaderboard() {
         const canScan = !lastScan || (now - parseInt(lastScan) > sixHours);
 
         // Si no hay trends cargados (o son muy pocos) y podemos escanear
-        if (canScan && (!trendsResp.ok || (await trendsResp.clone().json()).items?.length === 0)) {
+        // FIX: Usar trendsData que ya fue leída, no intentar clonar response consumido
+        const trendsEmpty = !trendsResp.ok || (trendsData?.items?.length ?? 0) === 0;
+
+        if (canScan && trendsEmpty) {
           console.log("🚀 Auto-scanning trends for first time user...");
           // Trigger scan in background
           fetch("/api/lootbox/scan", { method: "POST" }).then(res => {

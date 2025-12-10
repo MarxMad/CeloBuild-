@@ -1,39 +1,57 @@
 "use client";
 
-import { CheckCircle2, Loader2, Search, ShieldCheck } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { CheckCircle2, Loader2, Search, ShieldCheck, Zap, Database, Coins } from "lucide-react";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const STEPS = [
   {
     id: 1,
-    label: "Escaneando Farcaster...",
+    label: "Conectando a Farcaster",
     icon: Search,
-    logs: ["Conectando a Hub...", "Leyendo últimos casts...", "Filtrando spam...", "Verificando firmas..."]
+    color: "text-blue-400",
+    logs: ["Iniciando handshake...", "Autenticando API...", "Verificando nodo...", "Sincronizando estado..."]
   },
   {
     id: 2,
-    label: "Analizando Viralidad...",
-    icon: Loader2,
-    logs: ["Calculando engagement...", "Midiendo alcance...", "Detectando tendencias...", "Evaluando impacto..."]
+    label: "Recuperando Historial",
+    icon: Database,
+    color: "text-purple-400",
+    logs: ["Leyendo últimos casts...", "Filtrando spam...", "Indexando interacciones...", "Recuperando grafo social..."]
   },
   {
     id: 3,
-    label: "Verificando Reputación...",
-    icon: ShieldCheck,
-    logs: ["Consultando Power Badge...", "Verificando antigüedad...", "Analizando grafo social...", "Validando score..."]
+    label: "Analizando Viralidad",
+    icon: Zap,
+    color: "text-yellow-400",
+    logs: ["Calculando engagement...", "Midiendo alcance...", "Detectando patrones...", "Evaluando impacto..."]
   },
   {
     id: 4,
-    label: "Calculando Recompensas...",
-    icon: CheckCircle2,
-    logs: ["Generando semilla aleatoria...", "Consultando oráculo de precios...", "Minteando NFT...", "Firmando transacción..."]
+    label: "Verificando Reputación",
+    icon: ShieldCheck,
+    color: "text-green-400",
+    logs: ["Consultando Power Badge...", "Verificando antigüedad...", "Analizando comportamiento...", "Validando score..."]
+  },
+  {
+    id: 5,
+    label: "Calculando Recompensas",
+    icon: Coins,
+    color: "text-orange-400",
+    logs: ["Generando semilla aleatoria...", "Consultando oráculo...", "Determinando rareza...", "Asignando valor..."]
+  },
+  {
+    id: 6,
+    label: "Finalizando Transacción",
+    icon: Loader2,
+    color: "text-[#FCFF52]",
+    logs: ["Preparando payload...", "Firmando transacción...", "Minteando activos...", "Confirmando en bloque..."]
   },
 ];
 
 export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onComplete: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [currentLog, setCurrentLog] = useState("");
-  const ticksInLastStep = useRef(0);
 
   // Step progression logic
   useEffect(() => {
@@ -41,23 +59,20 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
       setCurrentStep((prev) => {
         // Normal progression
         if (prev < STEPS.length - 1) {
-          ticksInLastStep.current = 0;
           return prev + 1;
         }
 
         // At last step
         if (isDone) {
           clearInterval(interval);
-          setTimeout(onComplete, 800);
+          setTimeout(onComplete, 1000);
           return prev;
         }
 
-        // Not done, increment wait counter
-        // STAY at the last step. Do NOT loop back.
-        // The user hates the loop.
+        // Stay at last step if not done
         return prev;
       });
-    }, 2500); // Slightly slower step progression to let logs breathe
+    }, 2000); // 2 seconds per step = ~12 seconds total minimum
 
     return () => clearInterval(interval);
   }, [isDone, onComplete]);
@@ -66,60 +81,74 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
   useEffect(() => {
     const stepLogs = STEPS[currentStep].logs;
     let logIndex = 0;
-
-    // Set initial log immediately
     setCurrentLog(stepLogs[0]);
 
     const logInterval = setInterval(() => {
       logIndex = (logIndex + 1) % stepLogs.length;
       setCurrentLog(stepLogs[logIndex]);
-    }, 400); // Change log every 400ms
+    }, 400);
 
     return () => clearInterval(logInterval);
   }, [currentStep]);
 
+  const activeStep = STEPS[currentStep];
+  const Icon = activeStep.icon;
+
   return (
-    <div className="absolute inset-0 bg-background/95 backdrop-blur-md z-50 flex flex-col items-center justify-center rounded-3xl p-6">
-      <div className="w-full max-w-[300px] space-y-6">
-        {STEPS.map((step, index) => {
-          const isActive = index === currentStep;
-          const isCompleted = index < currentStep;
-          const Icon = step.icon;
+    <div className="absolute inset-0 bg-background/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-sm relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeStep.id}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 1.05 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col items-center text-center space-y-8"
+          >
+            {/* Large Icon Card */}
+            <div className="relative">
+              <div className={`w-32 h-32 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl backdrop-blur-sm ${activeStep.color}`}>
+                <Icon className="w-16 h-16 animate-pulse" />
+              </div>
+              {/* Decorative rings */}
+              <div className={`absolute inset-0 rounded-3xl border border-current opacity-20 animate-ping ${activeStep.color}`} />
+            </div>
 
-          // If we are on the last step and waiting, force the spinner
-          const isLastStepWaiting = isActive && index === STEPS.length - 1 && !isDone;
-
-          return (
-            <div
-              key={step.id}
-              className={`flex flex-col gap-1 transition-all duration-500 ${isActive || isCompleted ? "opacity-100 translate-x-0" : "opacity-30 translate-x-4"
-                }`}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`
-                  w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 relative
-                  ${isActive ? "border-[#FCFF52] bg-[#FCFF52]/10 scale-100 shadow-[0_0_15px_rgba(252,255,82,0.3)]" :
-                    isCompleted ? "border-green-500 bg-green-500/10 text-green-500" : "border-white/10 text-muted-foreground"}
-                `}>
-                  {isActive && (
-                    <div className="absolute inset-0 rounded-full border border-[#FCFF52] animate-ping opacity-20" />
-                  )}
-                  <Icon className={`w-5 h-5 ${(isActive && step.id === 2) || isLastStepWaiting ? "animate-spin" : ""}`} />
-                </div>
-                <div className="flex flex-col">
-                  <span className={`font-medium text-sm ${isActive ? "text-[#FCFF52]" : isCompleted ? "text-green-500" : "text-muted-foreground"}`}>
-                    {step.label}
-                  </span>
-                  {isActive && (
-                    <span className="text-[10px] font-mono text-gray-400 animate-pulse h-4 block">
-                      {">"} {currentLog}
-                    </span>
-                  )}
-                </div>
+            {/* Text Content */}
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight text-white">
+                {activeStep.label}
+              </h2>
+              <div className="h-6">
+                <p className="text-xs font-mono text-muted-foreground animate-pulse">
+                  {">"} {currentLog}
+                </p>
               </div>
             </div>
-          );
-        })}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Progress Bar */}
+        <div className="mt-12 w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-[#FCFF52]"
+            initial={{ width: "0%" }}
+            animate={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
+            transition={{ duration: 0.5 }}
+          />
+        </div>
+
+        {/* Step Dots */}
+        <div className="flex justify-center gap-2 mt-4">
+          {STEPS.map((step, idx) => (
+            <div
+              key={step.id}
+              className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${idx <= currentStep ? "bg-[#FCFF52]" : "bg-white/10"
+                }`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
