@@ -43,6 +43,7 @@ export const metadata: Metadata = {
     "fc:frame:button:1": "Lanzar App",
     "fc:frame:button:1:action": "link",
     "fc:frame:button:1:target": "https://celo-build-web-8rej.vercel.app",
+    "fc:frame:post_url": "https://celo-build-web-8rej.vercel.app/api/webhook",
 
     // MiniApp specific tags
     "fc:miniapp": "v1",
@@ -51,6 +52,7 @@ export const metadata: Metadata = {
     "fc:miniapp:button:1": "Lanzar App",
     "fc:miniapp:button:1:action": "link",
     "fc:miniapp:button:1:target": "https://celo-build-web-8rej.vercel.app",
+    "fc:miniapp:post_url": "https://celo-build-web-8rej.vercel.app/api/webhook",
   }
 };
 
