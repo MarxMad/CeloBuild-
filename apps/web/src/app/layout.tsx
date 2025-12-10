@@ -9,6 +9,7 @@ import { FarcasterProvider } from "@/components/farcaster-provider";
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://celo-build-web-8rej.vercel.app'),
   title: 'Premio.xyz',
   description: 'Recompensas virales en Farcaster con Celo MiniPay',
   manifest: '/manifest.json',
@@ -20,13 +21,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Premio.xyz',
     description: 'Recompensas virales en Farcaster con Celo MiniPay',
-    images: ['https://celo-build-web-8rej.vercel.app/image.png'],
+    images: ['/image.png'],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Premio.xyz',
     description: 'Recompensas virales en Farcaster con Celo MiniPay',
-    images: ['https://celo-build-web-8rej.vercel.app/image.png'],
+    images: ['/image.png'],
   },
   other: {
     "fc:frame": "vNext",
@@ -34,6 +35,7 @@ export const metadata: Metadata = {
     "fc:frame:button:1": "Lanzar App",
     "fc:frame:button:1:action": "link",
     "fc:frame:button:1:target": "https://celo-build-web-8rej.vercel.app",
+    "fc:frame:post_url": "https://celo-build-web-8rej.vercel.app/api/webhook",
   }
 };
 
