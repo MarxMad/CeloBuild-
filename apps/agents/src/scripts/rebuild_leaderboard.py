@@ -59,8 +59,8 @@ async def rebuild_leaderboard():
     # Get current block
     current_block = w3.eth.block_number
     
-    # Scan last 10k blocks for ANY log to debug
-    from_block = max(0, current_block - 10_000)
+    # Scan last 500k blocks (approx 1 month) to ensure we catch all users
+    from_block = max(0, current_block - 500_000)
     
     participants = set()
     
@@ -111,11 +111,6 @@ async def rebuild_leaderboard():
         return
 
     # Now fetch current balance for each participant
-    store = default_store(settings.leaderboard_max_entries)
-    
-    # Clear existing data? The user said "borres los usuarios del leaderboard actual"
-    # We can just overwrite the file with the new list.
-    new_entries = []
     
     # Contract ABI for getXpBalance
     abi = [
@@ -131,54 +126,70 @@ async def rebuild_leaderboard():
         }
     ]
     contract = w3.eth.contract(address=w3.to_checksum_address(registry_address), abi=abi)
-    campaign_id_bytes = w3.keccak(text="demo-campaign") # Assuming demo-campaign for now or we could extract from logs
+    campaign_id_bytes = w3.keccak(text="demo-campaign") 
     
-    logger.info("Fetching current XP balances...")
+    logger.info("Fetching current XP balances and Farcaster profiles...")
     
-    for i, address in enumerate(participants):
+    # Initialize Farcaster Tool
+    from src.tools.farcaster import FarcasterToolbox
+    farcaster_tool = FarcasterToolbox(
+        base_url=settings.farcaster_hub_api or "https://api.neynar.com/v2",
+        neynar_key=settings.neynar_api_key
+    )
+    
+    leaderboard_data = []
+    
+    for i, participant in enumerate(participants):
+        # 1. Get XP
+        xp = 0
         try:
-            # We assume 'demo-campaign' is the main one. 
-            # If users participated in multiple, we might need to sum them or check logs for campaignIds.
-            # For simplicity and this specific user request, we check 'demo-campaign'.
-            
-            balance = contract.functions.getXpBalance(campaign_id_bytes, address).call()
-            
-            if balance > 0:
-                logger.info(f"[{i+1}/{len(participants)}] {address}: {balance} XP")
-                
-                # Create entry
-                # We don't have username/metadata from chain. 
-                # We'll try to preserve existing metadata if available in the old file?
-                # Or just create a skeleton entry.
-                # The user said "borres los usuarios", so maybe skeleton is fine.
-                # But username is nice.
-                # Let's try to read the OLD file first to recover usernames map.
-                
-                new_entries.append({
-                    "address": address,
-                    "xp": balance,
-                    "score": 0.0, # Unknown
-                    "username": f"User {address[:6]}", # Placeholder
-                    "campaign_id": "demo-campaign",
-                    "reward_type": "xp",
-                    "timestamp": int(os.times().elapsed) # Just now
-                })
+            xp = contract.functions.getXpBalance(campaign_id_bytes, participant).call()
         except Exception as e:
-            logger.error(f"Error fetching balance for {address}: {e}")
+            logger.error(f"Error fetching XP for {participant}: {e}")
+            
+        # 2. Get Farcaster Profile
+        username = f"User {participant[:6]}"
+        fid = None
+        
+        try:
+            # Add delay to avoid rate limits
+            if i > 0:
+                await asyncio.sleep(0.5)
+                
+            fc_user = await farcaster_tool.fetch_user_by_address(participant)
+            if fc_user:
+                username = fc_user.get("username")
+                fid = fc_user.get("fid")
+                logger.info(f"✅ Resolved {participant} -> @{username} (FID: {fid})")
+            else:
+                logger.info(f"⚠️ No Farcaster user found for {participant}")
+        except Exception as e:
+            logger.warning(f"Failed to resolve Farcaster user for {participant}: {e}")
+
+        logger.info(f"[{i+1}/{len(participants)}] {participant}: {xp} XP (@{username})")
+        
+        leaderboard_data.append({
+            "address": participant,
+            "xp": xp,
+            "score": 0.0, 
+            "username": username,
+            "fid": fid,
+            "campaign_id": "demo-campaign",
+            "reward_type": "xp",
+            "timestamp": int(os.times().elapsed) # Just now (using os.times().elapsed as roughly current time relative to start, but time.time() is better)
+        })
+        # Fix timestamp to use time.time()
+        leaderboard_data[-1]["timestamp"] = int(__import__("time").time())
 
     # Sort by XP
-    new_entries.sort(key=lambda x: x["xp"], reverse=True)
+    leaderboard_data.sort(key=lambda x: x["xp"], reverse=True)
     
-    # Write to store
-    # We need to access the internal _write or just use record iteratively?
-    # record() merges. If we want to CLEAR, we should write directly to the file.
-    
-    logger.info(f"Saving {len(new_entries)} entries to leaderboard...")
+    logger.info(f"Saving {len(leaderboard_data)} entries to leaderboard...")
     
     # Direct write to ensure clean state
     data_path = Path(__file__).resolve().parents[1] / "data" / "leaderboard.json"
     with open(data_path, "w") as f:
-        json.dump(new_entries, f, indent=2)
+        json.dump(leaderboard_data, f, indent=2)
         
     logger.info("✅ Leaderboard rebuilt successfully!")
 

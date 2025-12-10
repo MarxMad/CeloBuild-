@@ -487,10 +487,17 @@ class RewardDistributorAgent:
             or next(iter(micropayments.values()), None)
             or next(iter(xp_awards.values()), None)
         )
+        
+        # Determine mode based on reward type
         if reward_type == "xp":
             mode = "xp_granted" if xp_awards else "failed"
         elif reward_type == "cusd":
             mode = "micropayments" if micropayments else "failed"
+        elif reward_type == "nft":
+            mode = "nft_minted" if minted else "failed"
+        else:
+            mode = "completed" if (minted or micropayments or xp_awards) else "noop"
+
         # Si hubo éxito (alguna transacción), registrar cooldown para todos los recipients
         if mode != "failed" and mode != "noop":
             for recipient in recipients:
@@ -521,6 +528,9 @@ class RewardDistributorAgent:
         initial_xp_balances: dict[str, int],
     ) -> None:
         """Registra cada ganador en el leaderboard con su reward_type específico."""
+        # Define granted_xp amount locally since it's constant from settings
+        granted_xp = self.settings.xp_reward_amount
+
         for entry in rankings:
             address = entry["address"]
             tx_hash = None
