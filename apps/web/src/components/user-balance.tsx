@@ -56,9 +56,12 @@ export function UserBalance() {
             const handleRefresh = () => {
                 console.log("Refreshing XP...");
                 fetchXp();
-                // Retry a few times to account for RPC latency
+                // Retry multiple times to account for blockchain latency (up to 20s)
                 setTimeout(fetchXp, 2000);
                 setTimeout(fetchXp, 5000);
+                setTimeout(fetchXp, 10000);
+                setTimeout(fetchXp, 15000);
+                setTimeout(fetchXp, 20000);
             };
             window.addEventListener('refresh-xp', handleRefresh);
 

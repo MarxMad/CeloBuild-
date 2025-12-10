@@ -40,7 +40,24 @@ export function Dashboard() {
             };
             fetchXp();
             const interval = setInterval(fetchXp, 10000);
-            return () => clearInterval(interval);
+
+            // Listen for manual refresh events
+            const handleRefresh = () => {
+                console.log("Refreshing Dashboard XP...");
+                fetchXp();
+                // Retry multiple times to account for blockchain latency (up to 20s)
+                setTimeout(fetchXp, 2000);
+                setTimeout(fetchXp, 5000);
+                setTimeout(fetchXp, 10000);
+                setTimeout(fetchXp, 15000);
+                setTimeout(fetchXp, 20000);
+            };
+            window.addEventListener('refresh-xp', handleRefresh);
+
+            return () => {
+                clearInterval(interval);
+                window.removeEventListener('refresh-xp', handleRefresh);
+            };
         }
     }, [address]);
 

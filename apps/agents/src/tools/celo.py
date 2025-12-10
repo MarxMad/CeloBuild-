@@ -17,7 +17,16 @@ class CeloToolbox:
     private_key: str | None = None
 
     def __post_init__(self) -> None:
-        self.web3 = Web3(Web3.HTTPProvider(self.rpc_url))
+        if self.rpc_url.startswith("wss://") or self.rpc_url.startswith("ws://"):
+            try:
+                self.web3 = Web3(Web3.LegacyWebSocketProvider(self.rpc_url))
+            except AttributeError:
+                # Fallback for older web3 versions or if Legacy is not found directly
+                from web3.providers.websocket import WebSocketProvider
+                self.web3 = Web3(WebSocketProvider(self.rpc_url))
+        else:
+            self.web3 = Web3(Web3.HTTPProvider(self.rpc_url))
+            
         # Inyectar middleware para compatibilidad con redes POA como Alfajores/Sepolia
         self.web3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
         
