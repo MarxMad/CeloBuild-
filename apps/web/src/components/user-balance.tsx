@@ -38,10 +38,19 @@ export function UserBalance() {
         if (address) {
             const fetchXp = async () => {
                 try {
+                    console.log(`🔍 Checking XP balance for ${address}...`);
                     const res = await fetch(`/api/lootbox/xp/${address}`);
                     if (res.ok) {
                         const data = await res.json();
-                        setXp(data.xp || 0);
+                        const newXp = data.xp || 0;
+                        console.log(`✅ XP Balance fetched: ${newXp}`);
+
+                        setXp((prev) => {
+                            if (newXp > prev) {
+                                console.log(`🎉 XP Increased! ${prev} -> ${newXp}`);
+                            }
+                            return newXp;
+                        });
                     }
                 } catch (e) {
                     console.error("Error fetching XP:", e);

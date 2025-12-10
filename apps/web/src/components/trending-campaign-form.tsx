@@ -109,6 +109,7 @@ export function TrendingCampaignForm() {
 
       // Trigger XP refresh
       if (typeof window !== 'undefined') {
+        console.log("🎁 Reward processed. Triggering XP refresh...");
         window.dispatchEvent(new Event('refresh-xp'));
       }
 
