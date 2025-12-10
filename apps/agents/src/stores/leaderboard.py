@@ -29,7 +29,26 @@ class LeaderboardStore:
         return []
 
     def _write(self, entries: list[dict[str, Any]]) -> None:
-        self.storage_path.write_text(json.dumps(entries, indent=2), "utf-8")
+        """Escribe el archivo de forma atómica para evitar lecturas corruptas."""
+        import os
+        import tempfile
+        
+        # Crear archivo temporal en el mismo directorio para asegurar que el rename sea atómico
+        dir_path = self.storage_path.parent
+        with tempfile.NamedTemporaryFile("w", dir=dir_path, delete=False, encoding="utf-8") as tmp:
+            json.dump(entries, tmp, indent=2)
+            tmp_path = Path(tmp.name)
+            
+        # Renombrar atómicamente (POSIX)
+        try:
+            tmp_path.replace(self.storage_path)
+        except Exception as e:
+            logger.error("Error en escritura atómica del leaderboard: %s", e)
+            # Intentar borrar el temporal si falló
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
 
     def record(self, entry: dict[str, Any]) -> None:
         """Guarda un nuevo ganador y mantiene el límite configurado."""
