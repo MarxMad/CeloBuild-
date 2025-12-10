@@ -35,7 +35,7 @@ class LeaderboardSyncer:
                 contract = self.w3.eth.contract(address=self.w3.to_checksum_address(registry_address), abi=abi)
                 current_block = self.w3.eth.block_number
                 from_block = settings.deployment_block
-                return contract.events.GrantXp.get_logs(fromBlock=from_block, toBlock=current_block)
+                return contract.events.GrantXp.get_logs(from_block=from_block, to_block=current_block)
 
             # Run blocking web3 call in executor
             logs = await loop.run_in_executor(None, fetch_logs_blocking)
