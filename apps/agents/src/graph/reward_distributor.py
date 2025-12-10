@@ -169,6 +169,7 @@ class RewardDistributorAgent:
         minted: dict[str, str] = {}
         micropayments: dict[str, str] = {}
         xp_awards: dict[str, str] = {}
+        nft_images: dict[str, str] = {}
         
         # Si reward_type no fue determinado, asignar por usuario según score (tiers)
         if reward_type is None:
@@ -358,6 +359,7 @@ class RewardDistributorAgent:
                     
                     # 3. Componer Carta
                     card_data_uri = art_gen.compose_card(art_image, card_meta)
+                    nft_images[address] = card_data_uri
                     
                     # 4. Construir Metadata JSON final
                     nft_metadata = {
@@ -439,6 +441,7 @@ class RewardDistributorAgent:
             "micropayments": micropayments,
             "xp_awards": xp_awards,
             "reward_type": reward_type,
+            "nft_images": nft_images if 'nft_images' in locals() else {},
             "error": self.last_mint_error if hasattr(self, "last_mint_error") else None,
         }
 

@@ -107,6 +107,11 @@ export function TrendingCampaignForm() {
 
       setPendingResult(resultData);
 
+      // Trigger XP refresh
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('refresh-xp'));
+      }
+
     } catch (err) {
       console.error("❌ Error:", err);
       setError(err instanceof Error ? err.message : "Hubo un problema procesando tu solicitud");
@@ -231,6 +236,23 @@ export function TrendingCampaignForm() {
                   <p className="text-xs text-muted-foreground">{getRewardDisplay(result.reward_type).subtitle}</p>
                 </div>
               </div>
+
+              {/* NFT Image Display */}
+              {result.nft_images && address && result.nft_images[address] && (
+                <div className="rounded-xl overflow-hidden border border-white/10 shadow-lg relative aspect-[2/3] mx-auto w-2/3">
+                  <img
+                    src={result.nft_images[address]}
+                    alt="NFT Reward"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                  <div className="absolute bottom-2 left-0 right-0 text-center">
+                    <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm border border-yellow-500/20">
+                      New Artifact
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Transaction Link */}
               {result.explorer_url && (

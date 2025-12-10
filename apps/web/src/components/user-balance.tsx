@@ -51,7 +51,18 @@ export function UserBalance() {
             fetchXp();
             // Poll XP every 10 seconds
             const interval = setInterval(fetchXp, 10000);
-            return () => clearInterval(interval);
+
+            // Listen for manual refresh events
+            const handleRefresh = () => {
+                console.log("Refreshing XP...");
+                fetchXp();
+            };
+            window.addEventListener('refresh-xp', handleRefresh);
+
+            return () => {
+                clearInterval(interval);
+                window.removeEventListener('refresh-xp', handleRefresh);
+            };
         }
     }, [address]);
 
