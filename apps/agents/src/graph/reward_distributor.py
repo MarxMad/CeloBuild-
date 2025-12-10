@@ -153,15 +153,15 @@ class RewardDistributorAgent:
         unique_addresses = set()
         for recipient in recipients:
             # Check Cooldown
-            remaining = self.cooldown_store.check_cooldown(recipient)
-            if remaining > 0:
-                hours = remaining / 3600
-                logger.warning("Usuario %s en cooldown. Restan %.2f horas.", recipient, hours)
-                return {
-                    "mode": "failed", 
-                    "error": f"Cooldown activo. Vuelve en {int(remaining/60)} minutos.",
-                    "campaign_id": campaign_id
-                }
+            # remaining = self.cooldown_store.check_cooldown(recipient)
+            # if remaining > 0:
+            #     hours = remaining / 3600
+            #     logger.warning("Usuario %s en cooldown. Restan %.2f horas.", recipient, hours)
+            #     return {
+            #         "mode": "failed", 
+            #         "error": f"Cooldown activo. Vuelve en {int(remaining/60)} minutos.",
+            #         "campaign_id": campaign_id
+            #     }
 
             if recipient in unique_addresses:
                 logger.warning("Dirección duplicada detectada: %s. Ignorando duplicado.", recipient)

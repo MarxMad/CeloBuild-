@@ -472,10 +472,12 @@ async def run_lootbox(event: LootboxEvent):
     except Exception as exc:  # pragma: no cover - logging pendiente
         # No exponer detalles internos en producción
         import logging
+        import traceback
         logger = logging.getLogger(__name__)
         logger.error("Error interno en run_lootbox: %s", exc, exc_info=True)
         # Exponer el error real para debugging (revertir en producción estricta)
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(exc)}") from exc
+        error_detail = f"Internal server error: {str(exc)}\nTraceback: {traceback.format_exc()}"
+        raise HTTPException(status_code=500, detail=error_detail) from exc
     
     return {
         "thread_id": result.thread_id,

@@ -72,7 +72,7 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
         // Stay at last step if not done
         return prev;
       });
-    }, 2000); // 2 seconds per step = ~12 seconds total minimum
+    }, 6000); // 6 seconds per step as requested
 
     return () => clearInterval(interval);
   }, [isDone, onComplete]);
