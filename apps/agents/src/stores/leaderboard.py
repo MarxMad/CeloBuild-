@@ -93,6 +93,39 @@ class LeaderboardStore:
             # Sort by XP (descending), then Score (descending)
             data.sort(key=lambda item: (item.get("xp", 0), item.get("score", 0)), reverse=True)
             self._write(data[: self.max_entries])
+        with self._lock:
+            data = self._read()
+            
+            # Normalizar dirección a minúsculas para consistencia
+            address = entry.get("address", "").lower()
+            if not address:
+                return
+
+            # Buscar si ya existe
+            user_map = {item["address"].lower(): item for item in data if "address" in item}
+            
+            if address in user_map:
+                current = user_map[address]
+                # Merge new entry data
+                # Mantener el XP más alto (on-chain truth vs local accumulation)
+                new_xp = max(current.get("xp", 0), entry.get("xp", 0))
+                
+                current.update(entry)
+                current["address"] = address # Asegurar que se guarde en lowercase
+                current["xp"] = new_xp
+            else:
+                # Add new
+                entry["address"] = address # Asegurar que se guarde en lowercase
+                data.append(entry)
+            
+            # Sort by XP (desc) then Score (desc)
+            data.sort(key=lambda x: (x.get("xp", 0), x.get("score", 0)), reverse=True)
+            
+            # Trim to max entries
+            if len(data) > self.max_entries:
+                data = data[:self.max_entries]
+                
+            self._write(data)
 
     def increment_score(self, entry: dict[str, Any], xp_increment: int) -> None:
         """Incrementa el XP de un usuario existente o crea uno nuevo."""
@@ -128,20 +161,19 @@ class LeaderboardStore:
             data.sort(key=lambda item: (item.get("xp", 0), item.get("score", 0)), reverse=True)
             self._write(data[: self.max_entries])
 
-    def top(self, limit: int = 5) -> list[dict[str, Any]]:
+    def top(self, limit: int = 10) -> list[dict[str, Any]]:
+        """Retorna el top N del leaderboard."""
         with self._lock:
-            data = self._read()
-        return data[:limit]
+            return self._read()[:limit]
 
     def get_rank(self, address: str) -> int | None:
-        """Retorna el rango (1-based) de una dirección, o None si no está en el leaderboard."""
+        """Retorna el ranking (1-based) de una dirección."""
+        if not address:
+            return None
+            
         address = address.lower()
         with self._lock:
             data = self._read()
-            # Asegurar que está ordenado (aunque _read lee lo que _write escribió ordenado, 
-            # es mejor prevenir si se editó manualmente)
-            # data.sort(key=lambda item: (item.get("xp", 0), item.get("score", 0)), reverse=True)
-            
             for index, entry in enumerate(data):
                 if entry.get("address", "").lower() == address:
                     return index + 1
