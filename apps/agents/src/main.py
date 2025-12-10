@@ -480,7 +480,26 @@ async def run_lootbox(event: LootboxEvent):
                 detail=error_msg
             )
             
-        result = await active_supervisor.run(event.model_dump())
+        from fastapi.encoders import jsonable_encoder
+        
+        response_data = {
+            "thread_id": result.thread_id,
+            "summary": result.summary,
+            "tx_hash": result.tx_hash,
+            "explorer_url": result.explorer_url,
+            "mode": result.mode,
+            "reward_type": result.reward_type,
+            "user_analysis": result.user_analysis,
+            "trend_info": result.trend_info,
+            "eligible": result.eligible,
+            "eligibility_message": result.eligibility_message,
+            "error": result.error,
+            "nft_images": result.nft_images,
+        }
+        
+        # Forzar serialización aquí para capturar errores
+        return jsonable_encoder(response_data)
+
     except ValueError as exc:
         # Errores de validación (direcciones inválidas, etc.)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -493,21 +512,6 @@ async def run_lootbox(event: LootboxEvent):
         # Exponer el error real para debugging (revertir en producción estricta)
         error_detail = f"Internal server error: {str(exc)}\nTraceback: {traceback.format_exc()}"
         raise HTTPException(status_code=500, detail=error_detail) from exc
-    
-    return {
-        "thread_id": result.thread_id,
-        "summary": result.summary,
-        "tx_hash": result.tx_hash,
-        "explorer_url": result.explorer_url,
-        "mode": result.mode,
-        "reward_type": result.reward_type,
-        "user_analysis": result.user_analysis,  # Información del usuario analizado
-        "trend_info": result.trend_info,  # Información de la tendencia
-        "eligible": result.eligible,  # Si el usuario es elegible
-        "eligibility_message": result.eligibility_message,  # Mensaje de elegibilidad
-        "error": result.error,  # Mensaje de error si hubo fallo
-        "nft_images": result.nft_images,  # Imágenes de NFTs minteados
-    }
 
 
 def run_cli() -> None:
