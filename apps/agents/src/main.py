@@ -448,3 +448,57 @@ def run_cli() -> None:
     sample_event = LootboxEvent(frame_id="sample", channel_id="test", trend_score=0.91)
     asyncio.run(supervisor.run(sample_event.model_dump()))
 
+
+# Webhook para notificaciones de Farcaster
+@app.post("/api/webhook")
+async def farcaster_webhook(request: Request):
+    """Maneja eventos de webhooks de Farcaster (miniapp_added, notifications_enabled, etc)."""
+    try:
+        data = await request.json()
+        event_type = data.get("event")
+        
+        logger.info("🔔 Webhook recibido: %s", event_type)
+        logger.debug("Payload: %s", data)
+        
+        # TODO: Verificar firma del evento (X-Farcaster-Signature)
+        # Por ahora confiamos en que viene del proxy de Next.js
+        
+        from .stores.notifications import get_notification_store
+        store = get_notification_store()
+        
+        if event_type == "miniapp_added" or event_type == "notifications_enabled":
+            details = data.get("notificationDetails", {})
+            token = details.get("token")
+            url = details.get("url")
+            
+            # El FID debería venir en el evento, pero Neynar/Farcaster a veces lo ponen en header o signer
+            # Si usamos Neynar managed, el evento tiene estructura específica.
+            # Si es directo de Farcaster, necesitamos decodificar el signer o confiar en el payload si trae fid.
+            # Asumimos que el payload trae 'fid' o lo extraemos del header en el futuro.
+            # FIX: Por ahora, logueamos para ver qué trae y guardamos si hay fid.
+            # En la spec de Farcaster, el evento viene firmado y el FID está en el signer.
+            # Para este MVP, si no podemos extraer FID fácilmente, solo logueamos.
+            
+            # Intentar extraer FID del payload si existe (algunos clientes lo mandan)
+            fid = data.get("fid") 
+            if not fid and "user" in data:
+                fid = data["user"].get("fid")
+                
+            if fid and token and url:
+                store.add_token(int(fid), token, url)
+                logger.info("✅ Token guardado para FID %s", fid)
+            else:
+                logger.warning("⚠️ Datos incompletos en webhook: fid=%s, token=%s", fid, bool(token))
+                
+        elif event_type == "miniapp_removed" or event_type == "notifications_disabled":
+            fid = data.get("fid")
+            if fid:
+                store.remove_token(int(fid))
+                logger.info("🗑️ Token eliminado para FID %s", fid)
+                
+        return {"status": "success"}
+        
+    except Exception as exc:
+        logger.error("Error procesando webhook: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+

@@ -647,3 +647,36 @@ class FarcasterToolbox:
                 logger.error("Error enviando notificación: %s", exc)
                 return {"status": "error", "message": str(exc)}
 
+    async def send_notification_custom(
+        self,
+        token: str,
+        url: str,
+        title: str,
+        body: str,
+        target_url: str,
+        notification_id: str,
+    ) -> dict[str, Any]:
+        """Envía notificación usando un token específico (Self-hosted)."""
+        
+        # Validaciones
+        if len(title) > 32: title = title[:32]
+        if len(body) > 128: body = body[:128]
+        
+        payload = {
+            "notificationId": notification_id,
+            "title": title,
+            "body": body,
+            "targetUrl": target_url,
+            "tokens": [token]
+        }
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            try:
+                logger.info("📡 Enviando notificación custom a %s", url)
+                resp = await client.post(url, json=payload)
+                resp.raise_for_status()
+                return resp.json()
+            except Exception as exc:
+                logger.error("Error enviando notificación custom: %s", exc)
+                return {"status": "error", "message": str(exc)}
+

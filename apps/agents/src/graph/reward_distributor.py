@@ -182,20 +182,57 @@ class RewardDistributorAgent:
                     # Tier 1: NFT para scores altos
                     try:
                         logger.info("Minteando NFT (tier 1) para %s (score: %.2f)...", address, user_score)
+                        
+                        # Generar arte AI para el NFT
+                        from ..tools.art_generator import ArtGenerator
+                        art_gen = ArtGenerator(self.settings)
+                        
+                        # 1. Generar Metadata
+                        user_info = next((r for r in rankings if r["address"] == address), {})
+                        username = user_info.get("username", "Unknown")
+                        cast_text = metadata.get("source_text") or f"Reward for {username}"
+                        
+                        card_meta = await art_gen.generate_card_metadata(cast_text, username)
+                        
+                        # 2. Generar Imagen
+                        art_image = art_gen.generate_image(card_meta.get("prompt", "Abstract art"))
+                        
+                        # 3. Componer Carta
+                        card_data_uri = art_gen.compose_card(art_image, card_meta)
+                        nft_images[address] = card_data_uri
+                        
+                        # 4. Construir Metadata JSON
+                        nft_metadata = {
+                            "name": card_meta.get("title"),
+                            "description": card_meta.get("description"),
+                            "image": card_data_uri,
+                            "attributes": [
+                                {"trait_type": "Rarity", "value": card_meta.get("rarity")},
+                                {"trait_type": "Type", "value": card_meta.get("type")},
+                                {"trait_type": "Artist", "value": "Gemini AI"},
+                                {"trait_type": "Score", "value": str(int(user_score))},
+                            ]
+                        }
+                        
+                        # Codificar metadata
+                        import json
+                        import base64
+                        meta_json = json.dumps(nft_metadata)
+                        meta_b64 = base64.b64encode(meta_json.encode()).decode()
+                        token_uri = f"data:application/json;base64,{meta_b64}"
+
                         tx_hash = self.celo_tool.mint_nft(
                             minter_address=self.settings.minter_address,
                             campaign_id=campaign_id,
                             recipient=address,
-                            metadata_uri=metadata.get("metadata_uri") or self.settings.reward_metadata_uri,
+                            metadata_uri=token_uri,
                         )
                         minted[address] = tx_hash
                         
                         # También otorgar XP como bonus
                         try:
                             import time
-                            # Esperar un poco para asegurar que el nonce se propague tras el mint
                             time.sleep(3)
-                            
                             logger.info("Otorgando XP bonus a %s junto con NFT...", address)
                             self.celo_tool.grant_xp(
                                 registry_address=self.settings.registry_address,
