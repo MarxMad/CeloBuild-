@@ -92,34 +92,13 @@ export function Leaderboard() {
   };
 
   // Load cached data on mount
+  // REMOVED: User wants fresh blockchain data every time. Caching was causing confusion.
+  /*
   useEffect(() => {
     const cachedEntries = localStorage.getItem("leaderboard_entries");
-    const cachedTrends = localStorage.getItem("leaderboard_trends");
-    const cachedTrendDetails = localStorage.getItem("leaderboard_trend_details");
-
-    if (cachedEntries) {
-      try {
-        setEntries(JSON.parse(cachedEntries));
-      } catch (e) { console.error("Error parsing cached entries", e); }
-    }
-
-    if (cachedTrends) {
-      try {
-        setActiveTrends(JSON.parse(cachedTrends));
-      } catch (e) { console.error("Error parsing cached trends", e); }
-    }
-
-    if (cachedTrendDetails) {
-      try {
-        setTrendDetails(JSON.parse(cachedTrendDetails));
-      } catch (e) { console.error("Error parsing cached trend details", e); }
-    }
-
-    // If we have cached data, we are not "loading" in the UI sense (content is visible)
-    if (cachedEntries || cachedTrends) {
-      setLoading(false);
-    }
+    // ...
   }, []);
+  */
 
   useEffect(() => {
     const fetchData = async () => {
