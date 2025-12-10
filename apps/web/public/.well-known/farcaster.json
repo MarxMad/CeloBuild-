@@ -11,7 +11,20 @@
         "subtitle": "Recompensas Virales",
         "buttonTitle": "Lanzar App",
         "description": "Recompensas virales en Farcaster con Celo MiniPay",
-        "primaryCategory": "social"
+        "primaryCategory": "social",
+        "screenshotUrls": [
+            "https://celo-build-web-8rej.vercel.app/image.png"
+        ],
+        "tags": [
+            "rewards",
+            "celo",
+            "social"
+        ],
+        "heroImageUrl": "https://celo-build-web-8rej.vercel.app/image.png",
+        "tagline": "Tu viralidad tiene valor",
+        "ogTitle": "Premio.xyz",
+        "ogDescription": "Descubre tu puntaje de viralidad y gana recompensas en Celo.",
+        "ogImageUrl": "https://celo-build-web-8rej.vercel.app/image.png"
     },
     "accountAssociation": {
         "header": "eyJmaWQiOjc0NDI5NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweGY2QzkxQTBmOTEwMkJmMGY1NzgyYmY1NjEwMGM0MDU1Yjg0MzFhQ2EifQ",
