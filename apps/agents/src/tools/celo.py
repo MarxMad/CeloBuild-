@@ -5,6 +5,7 @@ import json
 import logging
 from typing import Any
 from web3 import Web3
+from web3.exceptions import Web3RPCError
 from web3.middleware import ExtraDataToPOAMiddleware
 
 logger = logging.getLogger(__name__)
@@ -115,11 +116,18 @@ class CeloToolbox:
         checksum_recipient = self.checksum(participant)
 
         # Reintentos robustos para manejar race conditions de nonce
+        # Reintentos robustos para manejar race conditions de nonce
         max_retries = 3
+        manual_nonce = None
+        
         for attempt in range(max_retries):
             try:
                 # Usar nonce "pending" para incluir transacciones pendientes
-                nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
+                # Si tenemos un manual_nonce (por error previo), usarlo. Si no, consultar red.
+                if manual_nonce is not None:
+                    nonce = manual_nonce
+                else:
+                    nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
                 
                 # Si es un reintento, aumentar gas price
                 gas_price = self.web3.eth.gas_price
@@ -139,7 +147,7 @@ class CeloToolbox:
                 logger.info("XP grant transaction sent: %s", tx_hash.hex())
                 return tx_hash.hex()
             
-            except ValueError as e:
+            except (ValueError, Web3RPCError) as e:
                 error_msg = str(e)
                 is_retryable = (
                     "replacement transaction underpriced" in error_msg.lower() or 
@@ -158,10 +166,11 @@ class CeloToolbox:
                     # Si nuestra intención es una NUEVA transacción (no reemplazar), debemos incrementar el nonce.
                     if "replacement transaction underpriced" in error_msg.lower():
                          logger.info("Detectado conflicto de nonce. Incrementando nonce manualmente para el reintento.")
-                         # Forzamos una actualización del nonce, y si sigue igual, sumamos 1
-                         current_pending_nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
-                         if current_pending_nonce <= nonce:
-                             nonce = nonce + 1
+                         # Usar el nonce que falló + 1
+                         manual_nonce = nonce + 1
+                    else:
+                        # Para otros errores, limpiar manual_nonce para volver a consultar a la red
+                        manual_nonce = None
                     
                     continue
                 
