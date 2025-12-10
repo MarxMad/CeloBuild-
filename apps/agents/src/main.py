@@ -303,7 +303,7 @@ async def get_xp(wallet_address: str, campaign_id: str = Query(default="demo-cam
 
 
 @app.get("/api/lootbox/leaderboard")
-async def leaderboard(limit: int = Query(5, ge=1, le=25)) -> dict[str, list[dict[str, object]]]:
+async def leaderboard(limit: int = Query(50, ge=1, le=100)) -> dict[str, list[dict[str, object]]]:
     """Devuelve el top de ganadores recientes."""
     try:
         # Usar supervisor del scheduler si está disponible, sino el global

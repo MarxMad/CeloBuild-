@@ -34,9 +34,25 @@ class LeaderboardStore:
     def record(self, entry: dict[str, Any]) -> None:
         """Guarda un nuevo ganador y mantiene el límite configurado."""
         entry.setdefault("timestamp", int(time.time()))
+        address = entry.get("address", "").lower()
+        
         with self._lock:
             data = self._read()
-            data.append(entry)
+            
+            # Check if user already exists
+            existing_index = next((i for i, item in enumerate(data) if item.get("address", "").lower() == address), -1)
+            
+            if existing_index != -1:
+                # Update existing entry (keep highest XP/Score)
+                current = data[existing_index]
+                # Merge data, preferring new values but keeping highest XP
+                new_xp = max(current.get("xp", 0), entry.get("xp", 0))
+                data[existing_index].update(entry)
+                data[existing_index]["xp"] = new_xp
+            else:
+                # Append new entry
+                data.append(entry)
+            
             # Sort by XP (descending), then Score (descending)
             data.sort(key=lambda item: (item.get("xp", 0), item.get("score", 0)), reverse=True)
             self._write(data[: self.max_entries])

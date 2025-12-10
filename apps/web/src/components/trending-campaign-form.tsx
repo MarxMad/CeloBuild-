@@ -64,6 +64,8 @@ export function TrendingCampaignForm() {
     }
   };
 
+  const [progressStep, setProgressStep] = useState<'idle' | 'analyzing' | 'verifying' | 'minting' | 'completed'>('idle');
+
   const handleAnalyzeAndClaim = async () => {
     if (!address) return;
 
@@ -72,15 +74,24 @@ export function TrendingCampaignForm() {
     setPendingResult(null);
     setResult(null);
     setError(null);
+    setProgressStep('analyzing');
 
     try {
+      // Simulate progress steps for better UX
+      const progressInterval = setInterval(() => {
+        setProgressStep((prev) => {
+          if (prev === 'analyzing') return 'verifying';
+          if (prev === 'verifying') return 'minting';
+          return prev;
+        });
+      }, 2000); // Change step every 2s
+
       const payload: LootboxEventPayload = {
         frameId: undefined,
         channelId: "global",
         trendScore: 0, // El backend calculará esto
         targetAddress: address,
         targetFid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined,
-        // rewardType omitido para selección automática
       };
 
       console.log("🚀 Enviando solicitud de análisis y recompensa:", payload);
@@ -91,17 +102,17 @@ export function TrendingCampaignForm() {
         body: JSON.stringify(payload),
       });
 
+      clearInterval(progressInterval);
+      setProgressStep('completed');
+
       const resultData = await response.json();
       console.log("✅ Resultado:", resultData);
 
       if (!response.ok) {
         const errorMessage = resultData?.error || resultData?.detail || "Error en la solicitud";
-
-        // Manejo específico de errores de configuración
         if (errorMessage.includes("Backend no configurado")) {
           throw new Error("Error de configuración del backend. Por favor contacta al administrador.");
         }
-
         throw new Error(errorMessage);
       }
 
@@ -116,10 +127,7 @@ export function TrendingCampaignForm() {
     } catch (err) {
       console.error("❌ Error:", err);
       setError(err instanceof Error ? err.message : "Hubo un problema procesando tu solicitud");
-      // If error occurs, we still wait for animation or show error immediately?
-      // Let's show error immediately if animation is taking too long? 
-      // Or just let animation finish then show error. 
-      // For better UX, let's wait for animation to finish so it doesn't flash.
+      setProgressStep('idle');
     }
   };
 
@@ -198,7 +206,33 @@ export function TrendingCampaignForm() {
                 )}
               </div>
 
-              {!result && (
+              {/* Progress Stepper */}
+              {isLoading && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground uppercase font-bold tracking-wider">
+                    <span className={progressStep === 'analyzing' ? 'text-[#FCFF52]' : ''}>Analizando</span>
+                    <span className={progressStep === 'verifying' ? 'text-[#FCFF52]' : ''}>Verificando</span>
+                    <span className={progressStep === 'minting' ? 'text-[#FCFF52]' : ''}>Minting</span>
+                  </div>
+                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#FCFF52] transition-all duration-500 ease-out"
+                      style={{
+                        width: progressStep === 'analyzing' ? '33%' :
+                          progressStep === 'verifying' ? '66%' :
+                            progressStep === 'minting' ? '90%' : '100%'
+                      }}
+                    />
+                  </div>
+                  <p className="text-center text-xs text-gray-400 animate-pulse">
+                    {progressStep === 'analyzing' && "Buscando tus mejores casts..."}
+                    {progressStep === 'verifying' && "Calculando tu score viral..."}
+                    {progressStep === 'minting' && "Generando tu recompensa on-chain..."}
+                  </p>
+                </div>
+              )}
+
+              {!result && !isLoading && (
                 <Button
                   className="w-full bg-[#FCFF52] hover:bg-[#e6e945] text-black font-black h-14 text-lg shadow-[0_0_30px_rgba(252,255,82,0.3)] hover:shadow-[0_0_50px_rgba(252,255,82,0.5)] transition-all duration-300 rounded-xl relative overflow-hidden group/btn"
                   onClick={handleAnalyzeAndClaim}
@@ -206,17 +240,8 @@ export function TrendingCampaignForm() {
                 >
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
                   <div className="relative flex items-center justify-center gap-2">
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        <span>Verificando...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Gift className="h-5 w-5 group-hover/btn:rotate-12 transition-transform" />
-                        <span>Reclamar Recompensa</span>
-                      </>
-                    )}
+                    <Gift className="h-5 w-5 group-hover/btn:rotate-12 transition-transform" />
+                    <span>Reclamar Recompensa</span>
                   </div>
                 </Button>
               )}
