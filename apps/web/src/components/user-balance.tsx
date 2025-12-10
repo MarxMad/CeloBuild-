@@ -130,33 +130,32 @@ export function UserBalance() {
                             </span>
                         </div>
                     </div>
-                    <div className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/20 text-[10px] font-bold uppercase flex items-center gap-1">
-                        <Crown className="w-3 h-3" />
-                        {xp} XP
-                    </div>
-                    {rank !== null && (
-                        <div className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20 text-[10px] font-bold uppercase">
-                            #{rank} Rank
+                    <div className="flex items-center gap-2">
+                        <div className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/20 text-[10px] font-bold uppercase flex items-center gap-1">
+                            <Crown className="w-3 h-3" />
+                            {xp} XP
                         </div>
-                    )}
-                    <div className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold uppercase">
-                        Active
+                        {rank !== null && (
+                            <div className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20 text-[10px] font-bold uppercase">
+                                #{rank} Rank
+                            </div>
+                        )}
                     </div>
                 </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4 divide-x">
-                <BalanceItem
-                    label="Native"
-                    value={parseFloat(celoBalance?.formatted || '0').toFixed(2)}
-                    symbol="CELO"
-                />
-                <div className="pl-4">
+                <div className="grid grid-cols-2 gap-4 divide-x pt-2 border-t border-border/50">
                     <BalanceItem
-                        label="Stable"
-                        value={parseFloat(cUSDBalance?.formatted || '0').toFixed(2)}
-                        symbol="cUSD"
+                        label="Native"
+                        value={parseFloat(celoBalance?.formatted || '0').toFixed(2)}
+                        symbol="CELO"
                     />
+                    <div className="pl-4">
+                        <BalanceItem
+                            label="Stable"
+                            value={parseFloat(cUSDBalance?.formatted || '0').toFixed(2)}
+                            symbol="cUSD"
+                        />
+                    </div>
                 </div>
             </div>
         </Link>

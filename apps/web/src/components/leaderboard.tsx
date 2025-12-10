@@ -170,6 +170,27 @@ export function Leaderboard() {
             setActiveTrends(buildTrendSummary(leaderboardItems));
           }
         }
+
+        // AUTO-SCAN: Si no hay trends y no hay cooldown, escanear automáticamente
+        // Esto soluciona el problema de "iniciando por primera vez no hay tendencias"
+        const lastScan = localStorage.getItem("lastTrendScanTime");
+        const now = Date.now();
+        const sixHours = 6 * 60 * 60 * 1000;
+        const canScan = !lastScan || (now - parseInt(lastScan) > sixHours);
+
+        // Si no hay trends cargados (o son muy pocos) y podemos escanear
+        if (canScan && (!trendsResp.ok || (await trendsResp.clone().json()).items?.length === 0)) {
+          console.log("🚀 Auto-scanning trends for first time user...");
+          // Trigger scan in background
+          fetch("/api/lootbox/scan", { method: "POST" }).then(res => {
+            if (res.ok) {
+              localStorage.setItem("lastTrendScanTime", Date.now().toString());
+              // Reload data after scan
+              setTimeout(() => window.location.reload(), 2000);
+            }
+          });
+        }
+
       } catch (error) {
         console.error(error);
       } finally {
