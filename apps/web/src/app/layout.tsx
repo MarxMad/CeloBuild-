@@ -43,6 +43,14 @@ export const metadata: Metadata = {
     "fc:frame:button:1": "Lanzar App",
     "fc:frame:button:1:action": "link",
     "fc:frame:button:1:target": "https://celo-build-web-8rej.vercel.app",
+
+    // MiniApp specific tags
+    "fc:miniapp": "v1",
+    "fc:miniapp:image": "https://celo-build-web-8rej.vercel.app/image.png",
+    "fc:miniapp:image:aspect_ratio": "1.91:1",
+    "fc:miniapp:button:1": "Lanzar App",
+    "fc:miniapp:button:1:action": "link",
+    "fc:miniapp:button:1:target": "https://celo-build-web-8rej.vercel.app",
   }
 };
 
