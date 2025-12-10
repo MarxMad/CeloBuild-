@@ -66,9 +66,9 @@ class LeaderboardSyncer:
                 fid = None
                 
                 try:
-                    # Add small delay to be nice to API even with bulk endpoint
+                    # Add delay to be nice to API even with bulk endpoint
                     if i > 0:
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(1.0)  # Aumentado a 1s para evitar 429
                         
                     fc_user = await self.farcaster.fetch_user_by_address(participant)
                     if fc_user:

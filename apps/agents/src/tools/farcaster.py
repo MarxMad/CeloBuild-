@@ -372,39 +372,56 @@ class FarcasterToolbox:
             logger.warning("⚠️ Formato de dirección inválido: %s", custody_address)
             return None
         
-        async with httpx.AsyncClient(timeout=10) as client:
-            try:
-                params = {"addresses": custody_address_lower}
-                logger.info("🔍 Buscando usuario en Farcaster por address: %s", custody_address_lower)
-                
-                resp = await client.get(url, headers=headers, params=params)
-                
-                if resp.status_code == 402:
-                    raise ValueError("Neynar API: Payment Required (402).")
-                
-                resp.raise_for_status()
-                data = resp.json()
-                
-                # La respuesta es un mapa { "address": [user_obj, ...] }
-                # Puede devolver una lista vacía si no encuentra usuarios
-                users_list = data.get(custody_address_lower, [])
-                
-                if not users_list or len(users_list) == 0:
-                    logger.warning("⚠️ Usuario no encontrado en Farcaster para address: %s", custody_address)
-                    return None
-                
-                # Tomamos el primer usuario encontrado (usualmente el más relevante)
-                user_data = users_list[0]
-                
-                # Normalizar usando la función helper
-                normalized = _normalize_user(user_data)
-                logger.info("✅ Usuario encontrado: @%s (FID: %s)", 
-                           normalized.get("username"), normalized.get("fid"))
-                return normalized
-                
-            except Exception as exc:
-                logger.error("❌ Error obteniendo usuario por address %s: %s", custody_address, exc)
-                return None
+        # Retry logic for 429 Too Many Requests
+        max_retries = 3
+        base_delay = 2.0
+        
+        for attempt in range(max_retries):
+            async with httpx.AsyncClient(timeout=10) as client:
+                try:
+                    params = {"addresses": custody_address_lower}
+                    logger.info("🔍 Buscando usuario en Farcaster por address: %s (Intento %d/%d)", 
+                               custody_address_lower, attempt + 1, max_retries)
+                    
+                    resp = await client.get(url, headers=headers, params=params)
+                    
+                    if resp.status_code == 429:
+                        wait_time = base_delay * (2 ** attempt)
+                        logger.warning("⚠️ Rate limit (429) alcanzado. Esperando %.1fs...", wait_time)
+                        await asyncio.sleep(wait_time)
+                        continue
+                    
+                    if resp.status_code == 402:
+                        raise ValueError("Neynar API: Payment Required (402).")
+                    
+                    resp.raise_for_status()
+                    data = resp.json()
+                    
+                    # La respuesta es un mapa { "address": [user_obj, ...] }
+                    # Puede devolver una lista vacía si no encuentra usuarios
+                    users_list = data.get(custody_address_lower, [])
+                    
+                    if not users_list or len(users_list) == 0:
+                        logger.warning("⚠️ Usuario no encontrado en Farcaster para address: %s", custody_address)
+                        return None
+                    
+                    # Tomamos el primer usuario encontrado (usualmente el más relevante)
+                    user_data = users_list[0]
+                    
+                    # Normalizar usando la función helper
+                    normalized = _normalize_user(user_data)
+                    logger.info("✅ Usuario encontrado: @%s (FID: %s)", 
+                               normalized.get("username"), normalized.get("fid"))
+                    return normalized
+                    
+                except Exception as exc:
+                    if attempt == max_retries - 1:
+                        logger.error("❌ Error obteniendo usuario por address %s tras %d intentos: %s", 
+                                   custody_address, max_retries, exc)
+                        return None
+                    logger.warning("Error temporal obteniendo usuario: %s. Reintentando...", exc)
+                    await asyncio.sleep(1.0)
+        return None
 
     async def fetch_user_by_fid(self, fid: int) -> dict[str, Any] | None:
         """Obtiene información de un usuario de Farcaster por su FID.
