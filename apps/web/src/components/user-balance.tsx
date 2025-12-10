@@ -159,7 +159,6 @@ export function UserBalance() {
                     />
                 </div>
             </div>
-        </div>
-        </Link >
+        </Link>
     );
 }
