@@ -135,9 +135,15 @@ export function Leaderboard() {
         if (leaderboardResp.ok) {
           const leaderboardData = await leaderboardResp.json();
           leaderboardItems = (leaderboardData.items ?? []) as LeaderboardEntry[];
-          if (leaderboardItems.length > 0) {
-            setEntries(leaderboardItems);
-            localStorage.setItem("leaderboard_entries", JSON.stringify(leaderboardItems));
+
+          // Deduplicate items by address (frontend safety net)
+          const uniqueItems = Array.from(
+            new Map(leaderboardItems.map(item => [item.address.toLowerCase(), item])).values()
+          );
+
+          if (uniqueItems.length > 0) {
+            setEntries(uniqueItems);
+            localStorage.setItem("leaderboard_entries", JSON.stringify(uniqueItems));
           }
         }
 

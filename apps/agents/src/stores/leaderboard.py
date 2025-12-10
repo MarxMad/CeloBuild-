@@ -39,19 +39,37 @@ class LeaderboardStore:
         with self._lock:
             data = self._read()
             
-            # Check if user already exists
-            existing_index = next((i for i, item in enumerate(data) if item.get("address", "").lower() == address), -1)
+            # Rebuild list using a dictionary to enforce uniqueness by address
+            user_map = {}
             
-            if existing_index != -1:
-                # Update existing entry (keep highest XP/Score)
-                current = data[existing_index]
-                # Merge data, preferring new values but keeping highest XP
-                new_xp = max(current.get("xp", 0), entry.get("xp", 0))
-                data[existing_index].update(entry)
-                data[existing_index]["xp"] = new_xp
-            else:
-                # Append new entry
-                data.append(entry)
+            # 1. Process existing data
+            for item in data:
+                item_addr = item.get("address", "").lower()
+                if not item_addr:
+                    continue
+                
+                if item_addr in user_map:
+                    # Merge with existing: keep max XP
+                    existing = user_map[item_addr]
+                    existing["xp"] = max(existing.get("xp", 0), item.get("xp", 0))
+                    # Keep the most recent timestamp if available
+                    existing["timestamp"] = max(existing.get("timestamp", 0), item.get("timestamp", 0))
+                else:
+                    user_map[item_addr] = item
+            
+            # 2. Process the new entry
+            if address:
+                if address in user_map:
+                    current = user_map[address]
+                    # Merge new entry data
+                    new_xp = max(current.get("xp", 0), entry.get("xp", 0))
+                    current.update(entry)
+                    current["xp"] = new_xp
+                else:
+                    user_map[address] = entry
+            
+            # Convert back to list
+            data = list(user_map.values())
             
             # Sort by XP (descending), then Score (descending)
             data.sort(key=lambda item: (item.get("xp", 0), item.get("score", 0)), reverse=True)
