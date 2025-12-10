@@ -46,6 +46,20 @@ class LeaderboardStore:
             data = self._read()
         return data[:limit]
 
+    def get_rank(self, address: str) -> int | None:
+        """Retorna el rango (1-based) de una dirección, o None si no está en el leaderboard."""
+        address = address.lower()
+        with self._lock:
+            data = self._read()
+            # Asegurar que está ordenado (aunque _read lee lo que _write escribió ordenado, 
+            # es mejor prevenir si se editó manualmente)
+            # data.sort(key=lambda item: (item.get("xp", 0), item.get("score", 0)), reverse=True)
+            
+            for index, entry in enumerate(data):
+                if entry.get("address", "").lower() == address:
+                    return index + 1
+        return None
+
 
 def default_store(max_entries: int = 100) -> LeaderboardStore:
     import os

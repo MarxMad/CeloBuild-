@@ -27,6 +27,7 @@ export function UserBalance() {
     const { address, isConnected } = useAccount();
     const farcasterUser = useFarcasterUser();
     const [xp, setXp] = useState(0);
+    const [rank, setRank] = useState<number | null>(null);
 
     // Evitar hydration mismatch
     useEffect(() => {
@@ -43,7 +44,8 @@ export function UserBalance() {
                     if (res.ok) {
                         const data = await res.json();
                         const newXp = data.xp || 0;
-                        console.log(`✅ XP Balance fetched: ${newXp}`);
+                        setRank(data.rank || null);
+                        console.log(`✅ XP Balance fetched: ${newXp}, Rank: ${data.rank}`);
 
                         setXp((prev) => {
                             if (newXp > prev) {
@@ -128,32 +130,36 @@ export function UserBalance() {
                             </span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/20 text-[10px] font-bold uppercase flex items-center gap-1">
-                            <Crown className="w-3 h-3" />
-                            {xp} XP
-                        </div>
-                        <div className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold uppercase">
-                            Active
-                        </div>
+                    <div className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/20 text-[10px] font-bold uppercase flex items-center gap-1">
+                        <Crown className="w-3 h-3" />
+                        {xp} XP
                     </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 divide-x">
-                    <BalanceItem
-                        label="Native"
-                        value={parseFloat(celoBalance?.formatted || '0').toFixed(2)}
-                        symbol="CELO"
-                    />
-                    <div className="pl-4">
-                        <BalanceItem
-                            label="Stable"
-                            value={parseFloat(cUSDBalance?.formatted || '0').toFixed(2)}
-                            symbol="cUSD"
-                        />
+                    {rank !== null && (
+                        <div className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 border border-purple-500/20 text-[10px] font-bold uppercase">
+                            #{rank} Rank
+                        </div>
+                    )}
+                    <div className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold uppercase">
+                        Active
                     </div>
                 </div>
             </div>
-        </Link>
+
+            <div className="grid grid-cols-2 gap-4 divide-x">
+                <BalanceItem
+                    label="Native"
+                    value={parseFloat(celoBalance?.formatted || '0').toFixed(2)}
+                    symbol="CELO"
+                />
+                <div className="pl-4">
+                    <BalanceItem
+                        label="Stable"
+                        value={parseFloat(cUSDBalance?.formatted || '0').toFixed(2)}
+                        symbol="cUSD"
+                    />
+                </div>
+            </div>
+        </div>
+        </Link >
     );
 }

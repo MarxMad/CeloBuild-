@@ -126,7 +126,7 @@ export function Leaderboard() {
       try {
         // Fetch leaderboard y trends en paralelo
         const [leaderboardResp, trendsResp] = await Promise.all([
-          fetch("/api/lootbox/leaderboard?limit=5", { cache: "no-store" }),
+          fetch("/api/lootbox/leaderboard?limit=15", { cache: "no-store" }),
           fetch("/api/lootbox/trends?limit=5", { cache: "no-store" }),
         ]);
 

@@ -279,10 +279,20 @@ async def get_xp(wallet_address: str, campaign_id: str = Query(default="demo-cam
             participant=wallet_address,
         )
         
+        # Obtener rango del leaderboard
+        rank = None
+        try:
+            active_supervisor = scheduler_supervisor or supervisor
+            if active_supervisor:
+                rank = active_supervisor.leaderboard.get_rank(wallet_address)
+        except Exception as e:
+            logger.warning("Error obteniendo rango para %s: %s", wallet_address, e)
+
         return {
             "xp": xp_balance,
             "wallet": wallet_address,
             "campaign_id": campaign_id,
+            "rank": rank,
         }
     except Exception as exc:
         logger.error("Error leyendo XP para %s: %s", wallet_address, exc, exc_info=True)
