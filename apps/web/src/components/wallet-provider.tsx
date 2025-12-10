@@ -73,7 +73,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          <WalletProviderInner>{children}</WalletProviderInner>
+          {mounted && <WalletProviderInner>{children}</WalletProviderInner>}
+          {!mounted && children}
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

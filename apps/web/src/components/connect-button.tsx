@@ -28,7 +28,7 @@ export function ConnectButton() {
         authenticationStatus,
         mounted,
       }) => {
-        const ready = mounted && authenticationStatus !== 'loading';
+        const ready = mounted;
         const connected =
           ready &&
           account &&
@@ -50,8 +50,8 @@ export function ConnectButton() {
             {(() => {
               if (!connected) {
                 return (
-                  <button 
-                    onClick={openConnectModal} 
+                  <button
+                    onClick={openConnectModal}
                     type="button"
                     className="bg-[#FCFF52] text-black font-bold py-2.5 px-6 rounded-xl hover:bg-[#e6e94b] transition-colors shadow-lg shadow-yellow-400/20 text-sm"
                   >
@@ -62,8 +62,8 @@ export function ConnectButton() {
 
               if (chain.unsupported) {
                 return (
-                  <button 
-                    onClick={openChainModal} 
+                  <button
+                    onClick={openChainModal}
                     type="button"
                     className="bg-red-500 text-white font-bold py-2 px-4 rounded-xl text-sm"
                   >
@@ -103,8 +103,8 @@ export function ConnectButton() {
                     {chain.name}
                   </button>
 
-                  <button 
-                    onClick={openAccountModal} 
+                  <button
+                    onClick={openAccountModal}
                     type="button"
                     className="bg-white/10 text-white font-medium py-2 px-3 rounded-xl text-sm hover:bg-white/20 transition-colors"
                   >
