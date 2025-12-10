@@ -13,27 +13,27 @@ export const metadata: Metadata = {
   description: 'Recompensas virales en Farcaster con Celo MiniPay',
   manifest: '/manifest.json',
   icons: {
-    icon: '/PremioxyzLogo.svg',
-    shortcut: '/PremioxyzLogo.svg',
-    apple: '/PremioxyzLogo.svg',
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
   },
   openGraph: {
     title: 'Premio.xyz',
     description: 'Recompensas virales en Farcaster con Celo MiniPay',
-    images: ['/PremioxyzLogo.svg'],
+    images: ['https://celo-build-web-8rej.vercel.app/image.png'],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'Premio.xyz',
     description: 'Recompensas virales en Farcaster con Celo MiniPay',
-    images: ['/PremioxyzLogo.svg'],
+    images: ['https://celo-build-web-8rej.vercel.app/image.png'],
   },
   other: {
     "fc:frame": "vNext",
-    "fc:frame:image": "https://premio.xyz/PremioxyzLogo.svg",
+    "fc:frame:image": "https://celo-build-web-8rej.vercel.app/image.png",
     "fc:frame:button:1": "Lanzar App",
-    "fc:frame:button:1:action": "link", 
-    "fc:frame:button:1:target": "https://premio.xyz",
+    "fc:frame:button:1:action": "link",
+    "fc:frame:button:1:target": "https://celo-build-web-8rej.vercel.app",
   }
 };
 
