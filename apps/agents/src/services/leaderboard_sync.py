@@ -19,21 +19,24 @@ class LeaderboardSyncer:
         logger.info("🔄 Iniciando Sincronización de Leaderboard desde bloque %s...", settings.deployment_block)
         
         try:
-            # 1. Fetch participants from events
+            # 1. Fetch participants from events (BLOCKING CALL -> ThreadPool)
             registry_address = settings.registry_address
             if not registry_address:
                 logger.warning("⚠️ Registry address no configurado, saltando sync.")
                 return
 
-            abi = [{"anonymous": False, "inputs": [{"indexed": True, "name": "campaignId", "type": "bytes32"}, {"indexed": True, "name": "recipient", "type": "address"}, {"indexed": False, "name": "amount", "type": "uint256"}], "name": "GrantXp", "type": "event"}]
-            contract = self.w3.eth.contract(address=self.w3.to_checksum_address(registry_address), abi=abi)
+            loop = asyncio.get_running_loop()
             
-            current_block = self.w3.eth.block_number
-            from_block = settings.deployment_block
+            def fetch_logs_blocking():
+                abi = [{"anonymous": False, "inputs": [{"indexed": True, "name": "campaignId", "type": "bytes32"}, {"indexed": True, "name": "recipient", "type": "address"}, {"indexed": False, "name": "amount", "type": "uint256"}], "name": "GrantXp", "type": "event"}]
+                contract = self.w3.eth.contract(address=self.w3.to_checksum_address(registry_address), abi=abi)
+                current_block = self.w3.eth.block_number
+                from_block = settings.deployment_block
+                return contract.events.GrantXp.get_logs(fromBlock=from_block, toBlock=current_block)
+
+            # Run blocking web3 call in executor
+            logs = await loop.run_in_executor(None, fetch_logs_blocking)
             
-            # Fetch logs
-            # TODO: Pagination if range is too large, but for 160k blocks it should be fine on Celo
-            logs = contract.events.GrantXp.get_logs(fromBlock=from_block, toBlock=current_block)
             participants = set()
             for log in logs:
                 participants.add(log["args"]["recipient"])
@@ -48,21 +51,24 @@ class LeaderboardSyncer:
             leaderboard_data = []
             
             for i, participant in enumerate(participants):
-                # Get XP
+                # Get XP (BLOCKING CALL -> ThreadPool)
                 try:
-                    xp = xp_contract.functions.getXpBalance(campaign_id_bytes, participant).call()
+                    def get_xp_blocking():
+                        return xp_contract.functions.getXpBalance(campaign_id_bytes, participant).call()
+                    
+                    xp = await loop.run_in_executor(None, get_xp_blocking)
                 except Exception as e:
                     logger.error(f"Error fetching XP for {participant}: {e}")
                     xp = 0
                 
-                # Get User Info
+                # Get User Info (Async - Non-blocking)
                 username = f"User {participant[:6]}"
                 fid = None
                 
                 try:
                     # Add small delay to be nice to API even with bulk endpoint
                     if i > 0:
-                        await asyncio.sleep(0.2)
+                        await asyncio.sleep(0.1)
                         
                     fc_user = await self.farcaster.fetch_user_by_address(participant)
                     if fc_user:

@@ -221,8 +221,17 @@ export function Leaderboard() {
         </CardHeader>
         <CardContent className="space-y-2 sm:space-y-3 px-3 sm:px-6 pb-4 sm:pb-6 max-h-[600px] sm:max-h-[700px] overflow-y-auto scrollbar-thin scrollbar-thumb-[#FCFF52]/20 scrollbar-track-transparent">
           {loading && (
-            <div className="text-[10px] sm:text-xs text-muted-foreground text-center py-2">
-              Escaneando Farcaster...
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="p-3 rounded-xl border border-white/5 bg-white/5 animate-pulse">
+                  <div className="flex justify-between mb-2">
+                    <div className="h-3 w-20 bg-white/10 rounded" />
+                    <div className="h-3 w-8 bg-white/10 rounded" />
+                  </div>
+                  <div className="h-3 w-16 bg-white/10 rounded mb-2" />
+                  <div className="h-8 w-full bg-white/5 rounded" />
+                </div>
+              ))}
             </div>
           )}
           {!loading && topTrends.length === 0 && (
@@ -337,12 +346,25 @@ export function Leaderboard() {
         </CardHeader>
         <CardContent className="space-y-3">
           {loading && (
-            <div className="text-xs text-muted-foreground">Compilando registros on-chain...</div>
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-2 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-white/10" />
+                    <div className="flex flex-col gap-1">
+                      <div className="h-4 w-24 bg-white/10 rounded" />
+                      <div className="h-3 w-16 bg-white/5 rounded" />
+                    </div>
+                  </div>
+                  <div className="h-4 w-12 bg-white/10 rounded" />
+                </div>
+              ))}
+            </div>
           )}
           {!loading && entries.length === 0 && (
             <div className="text-xs text-muted-foreground">Aún no hay ganadores.</div>
           )}
-          {entries.map((winner, index) => (
+          {!loading && entries.map((winner, index) => (
             <div key={`${winner.address}-${index}`} className="flex items-center justify-between p-2">
               <div className="flex items-center gap-3">
                 <div
