@@ -436,6 +436,7 @@ async def run_lootbox(event: LootboxEvent):
         "eligible": result.eligible,  # Si el usuario es elegible
         "eligibility_message": result.eligibility_message,  # Mensaje de elegibilidad
         "error": result.error,  # Mensaje de error si hubo fallo
+        "nft_images": result.nft_images,  # Imágenes de NFTs minteados
     }
 
 

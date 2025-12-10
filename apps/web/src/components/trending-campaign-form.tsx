@@ -285,8 +285,8 @@ export function TrendingCampaignForm() {
                 onClick={() => {
                   const score = result.user_analysis?.score?.toFixed(0) || "0";
                   const rewardName = getRewardDisplay(result.reward_type).title;
-                  const text = `¡Acabo de ganar ${rewardName} en Premio.xyz! 🏆\n\nMi nivel de viralidad es: ${score}/100 🚀\n\nDescubre tu nivel y gana recompensas en crypto y NFTs aquí: https://premio.xyz`;
-                  const embed = "https://premio.xyz";
+                  const text = `¡Acabo de ganar ${rewardName} en Premio.xyz! 🏆\n\nMi nivel de viralidad es: ${score}/100 🚀\n\nDescubre tu nivel y gana recompensas en crypto y NFTs aquí: https://celo-build-web-8rej.vercel.app`;
+                  const embed = "https://celo-build-web-8rej.vercel.app";
                   const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
 
                   // Try SDK first, fallback to window.open

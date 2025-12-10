@@ -54,8 +54,19 @@ class TrendWatcherAgent:
                 "status": "analyzed",
             }
 
-        logger.info("Analizando conversaciones recientes en Farcaster (canal=%s)...", channel_id)
-        casts = await self.farcaster.fetch_recent_casts(channel_id=channel_id, limit=50)
+        logger.info("Consultando feed de tendencias de Neynar (canal=%s)...", channel_id)
+        try:
+            # Intentar usar el feed de tendencias oficial (más calidad)
+            casts = await self.farcaster.fetch_trending_feed(
+                channel_id=channel_id, 
+                limit=20, 
+                time_window="24h"
+            )
+        except Exception as exc:
+            logger.warning("⚠️ Error obteniendo trending feed: %s. Usando fallback a recent casts.", exc)
+            # Fallback a la lógica manual si falla el endpoint de tendencias (ej. sin créditos)
+            casts = await self.farcaster.fetch_recent_casts(channel_id=channel_id, limit=50)
+
         if not casts:
             return {"status": "no_trends_found", **base_context}
             
@@ -149,6 +160,25 @@ class TrendWatcherAgent:
             })
             
         logger.info("Retornando %d tendencias (mezcla fuertes/relleno)", len(detected_trends))
+        
+        # Notificar al usuario si se detectó una tendencia fuerte y hay un target_fid
+        top_trend = detected_trends[0] if detected_trends else None
+        is_strong_trend = any(t["trend_score"] >= self.settings.min_trend_score for t in detected_trends)
+        
+        if is_strong_trend and top_trend and payload.get("target_fid"):
+            try:
+                target_fid = int(payload["target_fid"])
+                topic = top_trend.get("topic_tags", ["General"])[0] if top_trend.get("topic_tags") else "General"
+                
+                logger.info("🔔 Enviando notificación de tendencia a FID %d...", target_fid)
+                await self.farcaster.publish_frame_notification(
+                    target_fids=[target_fid],
+                    title="🔥 Tendencia Detectada",
+                    body=f"Nuevo tema viral: #{topic}. ¡Crea tu Lootbox ahora!",
+                    target_url=f"https://celo-build-web-8rej.vercel.app/?trend={top_trend['frame_id']}"
+                )
+            except Exception as exc:
+                logger.warning("Error enviando notificación: %s", exc)
         
         return {
             **base_context,

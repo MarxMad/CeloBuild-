@@ -22,9 +22,7 @@ class RunResult:
     eligible: bool | None = None  # Si el usuario es elegible (None = no verificado, True/False = resultado)
     eligibility_message: str | None = None  # Mensaje explicando por qué no es elegible
     error: str | None = None  # Mensaje de error específico si falla la transacción
-
-
-
+    nft_images: dict[str, str] | None = None  # URLs de las imágenes generadas/minteadas
 
 
 class SupervisorOrchestrator:

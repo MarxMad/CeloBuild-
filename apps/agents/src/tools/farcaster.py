@@ -525,3 +525,125 @@ class FarcasterToolbox:
         delta = datetime.now(timezone.utc) - dt
         return max(delta.total_seconds() / 3600, 0.0)
 
+    async def fetch_trending_feed(
+        self, 
+        limit: int = 10, 
+        time_window: str = "24h", 
+        channel_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Obtiene el feed de tendencias de Farcaster usando Neynar API.
+        
+        Args:
+            limit: Cantidad de casts a retornar (max 100)
+            time_window: Ventana de tiempo ('1h', '24h', '7d')
+            channel_id: (Opcional) Filtrar por canal específico
+        """
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            raise ValueError("NEYNAR_API_KEY requerida para obtener tendencias.")
+        
+        headers = {"accept": "application/json", "api_key": self.neynar_key}
+        url = "https://api.neynar.com/v2/farcaster/feed/trending"
+        
+        params = {
+            "limit": limit,
+            "time_window": time_window,
+            "provider": "neynar" # Usar algoritmo de Neynar por defecto
+        }
+        
+        if channel_id and channel_id != "global":
+            params["channel_id"] = channel_id
+
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(url, headers=headers, params=params)
+            
+            if resp.status_code == 402:
+                raise ValueError("Neynar API: Payment Required (402). Verifica tu plan.")
+            
+            resp.raise_for_status()
+            data = resp.json()
+            
+        casts = data.get("casts", [])
+        
+        # Normalizar estructura para que coincida con fetch_recent_casts
+        normalized_casts = []
+        for cast in casts:
+            author = cast.get("author", {})
+            normalized_casts.append({
+                "hash": cast.get("hash"),
+                "text": cast.get("text", ""),
+                "author": {
+                    "username": author.get("username"),
+                    "fid": author.get("fid"),
+                    "custody_address": author.get("custody_address"),
+                    "pfp_url": author.get("pfp_url"),
+                    "follower_count": author.get("follower_count"),
+                },
+                "reactions": {
+                    "likes": cast.get("reactions", {}).get("likes_count", 0),
+                    "recasts": cast.get("reactions", {}).get("recasts_count", 0),
+                    "replies": cast.get("reactions", {}).get("replies_count", 0),
+                },
+                "timestamp": cast.get("timestamp"),
+                "channel_id": cast.get("channel", {}).get("id") if cast.get("channel") else "global",
+                "trend_score": cast.get("score", 0), # Neynar a veces devuelve un score
+            })
+            
+        return normalized_casts
+
+    async def publish_frame_notification(
+        self,
+        target_fids: list[int],
+        title: str,
+        body: str,
+        target_url: str,
+    ) -> dict[str, Any]:
+        """Envía una notificación de Frame a usuarios específicos.
+        
+        Args:
+            target_fids: Lista de FIDs de usuarios a notificar
+            title: Título de la notificación (max 32 chars)
+            body: Cuerpo de la notificación (max 128 chars)
+            target_url: URL que se abre al hacer click (debe ser parte del dominio de la MiniApp)
+        """
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            logger.warning("NEYNAR_API_KEY no configurada, no se pueden enviar notificaciones")
+            return {"status": "skipped", "reason": "missing_api_key"}
+
+        # Validaciones básicas
+        if len(title) > 32:
+            title = title[:32]
+        if len(body) > 128:
+            body = body[:128]
+            
+        headers = {
+            "accept": "application/json", 
+            "content-type": "application/json",
+            "x-api-key": self.neynar_key # Endpoint de notificaciones suele requerir x-api-key
+        }
+        
+        url = "https://api.neynar.com/v2/farcaster/frame/notifications"
+        
+        payload = {
+            "notification": {
+                "title": title,
+                "body": body,
+                "target_url": target_url,
+                "target_fids": target_fids
+            }
+        }
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            try:
+                resp = await client.post(url, headers=headers, json=payload)
+                
+                if resp.status_code == 402:
+                    logger.error("Neynar API: Sin créditos para notificaciones (402)")
+                    return {"status": "error", "code": 402, "message": "Payment Required"}
+                
+                resp.raise_for_status()
+                return resp.json()
+                
+            except Exception as exc:
+                logger.error("Error enviando notificación: %s", exc)
+                return {"status": "error", "message": str(exc)}
+

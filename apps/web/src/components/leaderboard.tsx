@@ -90,13 +90,43 @@ export function Leaderboard() {
     }
   };
 
+  // Load cached data on mount
+  useEffect(() => {
+    const cachedEntries = localStorage.getItem("leaderboard_entries");
+    const cachedTrends = localStorage.getItem("leaderboard_trends");
+    const cachedTrendDetails = localStorage.getItem("leaderboard_trend_details");
+
+    if (cachedEntries) {
+      try {
+        setEntries(JSON.parse(cachedEntries));
+      } catch (e) { console.error("Error parsing cached entries", e); }
+    }
+
+    if (cachedTrends) {
+      try {
+        setActiveTrends(JSON.parse(cachedTrends));
+      } catch (e) { console.error("Error parsing cached trends", e); }
+    }
+
+    if (cachedTrendDetails) {
+      try {
+        setTrendDetails(JSON.parse(cachedTrendDetails));
+      } catch (e) { console.error("Error parsing cached trend details", e); }
+    }
+
+    // If we have cached data, we are not "loading" in the UI sense (content is visible)
+    if (cachedEntries || cachedTrends) {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch leaderboard y trends en paralelo
         const [leaderboardResp, trendsResp] = await Promise.all([
-          fetch("/api/leaderboard?limit=5", { cache: "no-store" }),
-          fetch("/api/trends?limit=5", { cache: "no-store" }),
+          fetch("/api/lootbox/leaderboard?limit=5", { cache: "no-store" }),
+          fetch("/api/lootbox/trends?limit=5", { cache: "no-store" }),
         ]);
 
         // Procesar leaderboard y guardar datos para reutilizar
@@ -104,7 +134,10 @@ export function Leaderboard() {
         if (leaderboardResp.ok) {
           const leaderboardData = await leaderboardResp.json();
           leaderboardItems = (leaderboardData.items ?? []) as LeaderboardEntry[];
-          setEntries(leaderboardItems);
+          if (leaderboardItems.length > 0) {
+            setEntries(leaderboardItems);
+            localStorage.setItem("leaderboard_entries", JSON.stringify(leaderboardItems));
+          }
         }
 
         // Procesar trends
@@ -117,13 +150,17 @@ export function Leaderboard() {
           // Para evitar parpadeo, solo actualizamos si hay datos, o si es la carga inicial.
           if (trends.length > 0) {
             setTrendDetails(trends);
+            localStorage.setItem("leaderboard_trend_details", JSON.stringify(trends));
 
             // Construir tendencias activas desde los trends detectados
             const trendSummary = buildTrendSummaryFromTrends(trends);
             setActiveTrends(trendSummary);
+            localStorage.setItem("leaderboard_trends", JSON.stringify(trendSummary));
           } else if (trendDetails.length === 0) {
             // Solo si no tenemos datos previos, usamos el fallback
-            setActiveTrends(buildTrendSummary(leaderboardItems));
+            const fallbackTrends = buildTrendSummary(leaderboardItems);
+            setActiveTrends(fallbackTrends);
+            // No guardamos fallback en cache para intentar obtener reales luego
           }
           // Si trends es [] pero ya tenemos trendDetails, mantenemos los viejos (cache visual)
         } else {
@@ -138,6 +175,8 @@ export function Leaderboard() {
         setLoading(false);
       }
     };
+
+    // Initial fetch
     fetchData();
 
     // Refrescar cada 30 segundos
