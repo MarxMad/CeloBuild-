@@ -251,58 +251,92 @@ class CeloToolbox:
         # Construir transacción
         metadata_uri = metadata_uri or "ipfs://QmExample"
         
-        try:
-            # Usar nonce "pending" para incluir transacciones pendientes
-            nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
-            tx = contract.functions.mintBatch(
-                campaign_bytes,
-                [checksum_recipient],
-                [metadata_uri],
-                [False] # Transferible
-            ).build_transaction({
-                "from": self.account.address,
-                "nonce": nonce,
-                "gasPrice": self.web3.eth.gas_price,
-            })
-
-            # Firmar y enviar
-            signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
-            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            
-            logger.info(f"NFT mint transaction sent: {tx_hash.hex()}")
-            return tx_hash.hex()
-            raise
-        except Exception as exc:  # noqa: BLE001
-            error_str = str(exc)
-            
-            # Handle "already known" (transaction already in mempool)
-            if "already known" in error_str.lower():
-                logger.info("Transacción NFT ya conocida en mempool, retornando hash existente.")
-                # En este punto signed_tx ya está definido
-                return signed_tx.hash.hex()
+        # Reintentos robustos para manejar race conditions de nonce
+        max_retries = 3
+        manual_nonce = None
+        
+        for attempt in range(max_retries):
+            try:
+                # Usar nonce "pending" para incluir transacciones pendientes
+                if manual_nonce is not None:
+                    nonce = manual_nonce
+                else:
+                    nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
                 
-            logger.error(f"FULL ERROR MINTING NFT: {error_str}")
-            # Decodificar códigos de error comunes
-            if "0x477a3e50" in error_str:
-                logger.error(
-                    "LootBoxMinter: Error al mintear NFT. "
-                    "Posibles causas: contrato no desplegado, dirección incorrecta, falta de permisos (minter role), "
-                    "o campaña no configurada. Minter: %s, Campaign: %s, Recipient: %s",
-                    minter_address, campaign_id, recipient
+                # Si es un reintento, aumentar gas price
+                gas_price = self.web3.eth.gas_price
+                if attempt > 0:
+                    gas_price = int(gas_price * (1.2 ** attempt))
+                    logger.info("Reintento NFT %d/%d con gas price aumentado: %s", attempt + 1, max_retries, gas_price)
+
+                tx = contract.functions.mintBatch(
+                    campaign_bytes,
+                    [checksum_recipient],
+                    [metadata_uri],
+                    [False] # Transferible
+                ).build_transaction({
+                    "from": self.account.address,
+                    "nonce": nonce,
+                    "gasPrice": gas_price,
+                })
+
+                # Firmar y enviar
+                signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
+                tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+                
+                logger.info(f"NFT mint transaction sent: {tx_hash.hex()}")
+                return tx_hash.hex()
+            
+            except Exception as exc:  # noqa: BLE001
+                error_str = str(exc)
+                
+                # Handle "already known" (transaction already in mempool)
+                if "already known" in error_str.lower():
+                    logger.info("Transacción NFT ya conocida en mempool, retornando hash existente.")
+                    # En este punto signed_tx ya está definido si falló en send_raw_transaction
+                    if 'signed_tx' in locals():
+                        return signed_tx.hash.hex()
+                    else:
+                        # Si falló antes de firmar (raro para already known), no podemos recuperar el hash
+                        raise
+
+                is_retryable = (
+                    "replacement transaction underpriced" in error_str.lower() or 
+                    "nonce too low" in error_str.lower()
                 )
-            elif "0x050aad92" in error_str:
-                logger.error(
-                    "LootBoxMinter: Error de acceso o permisos. "
-                    "Verifica que la cuenta tenga el rol 'minter' en el contrato. "
-                    "Minter: %s, Campaign: %s",
-                    minter_address, campaign_id
-                )
-            else:
-                logger.error(
-                    "Error al mintear NFT: %s. Minter: %s, Campaign: %s, Recipient: %s",
-                    exc, minter_address, campaign_id, recipient
-                )
-            raise
+                
+                if is_retryable and attempt < max_retries - 1:
+                    wait_time = 2 * (attempt + 1)
+                    logger.warning("Transacción NFT rechazada (nonce/gas), reintentando en %ds... (%s)", wait_time, error_str)
+                    import time
+                    time.sleep(wait_time)
+                    
+                    if "replacement transaction underpriced" in error_str.lower():
+                         logger.info("Detectado conflicto de nonce en NFT. Incrementando nonce manualmente.")
+                         manual_nonce = nonce + 1
+                    else:
+                        manual_nonce = None
+                    
+                    continue
+                    
+                logger.error(f"FULL ERROR MINTING NFT: {error_str}")
+                # Decodificar códigos de error comunes
+                if "0x477a3e50" in error_str:
+                    logger.error(
+                        "LootBoxMinter: Error al mintear NFT. "
+                        "Posibles causas: contrato no desplegado, dirección incorrecta, falta de permisos (minter role), "
+                        "o campaña no configurada. Minter: %s, Campaign: %s, Recipient: %s",
+                        minter_address, campaign_id, recipient
+                    )
+                elif "0x050aad92" in error_str:
+                    logger.error(
+                        "LootBoxMinter: Error de acceso o permisos. "
+                        "Verifica que la cuenta tenga el rol 'minter' en el contrato. "
+                        "Minter: %s, Campaign: %s",
+                        minter_address, campaign_id
+                    )
+                raise
+
 
     def distribute_cusd(
         self,
