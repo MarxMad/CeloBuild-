@@ -37,12 +37,33 @@ export const metadata: Metadata = {
     images: ['/image.png'],
   },
   other: {
-    "fc:frame": "vNext",
-    "fc:frame:image": "https://celo-build-web-8rej.vercel.app/image.png",
-    "fc:frame:button:1": "Lanzar App",
-    "fc:frame:button:1:action": "link",
-    "fc:frame:button:1:target": "https://celo-build-web-8rej.vercel.app",
-    "fc:frame:post_url": "https://celo-build-web-8rej.vercel.app/api/webhook",
+    "fc:miniapp": JSON.stringify({
+      version: "1",
+      imageUrl: "https://celo-build-web-8rej.vercel.app/image.png",
+      button: {
+        title: "Lanzar App",
+        action: {
+          type: "launch_miniapp",
+          url: "https://celo-build-web-8rej.vercel.app",
+          splashImageUrl: "https://celo-build-web-8rej.vercel.app/splash.png",
+          splashBackgroundColor: "#000000"
+        }
+      }
+    }),
+    "fc:frame": JSON.stringify({
+      version: "1",
+      imageUrl: "https://celo-build-web-8rej.vercel.app/image.png",
+      button: {
+        title: "Lanzar App",
+        action: {
+          type: "launch_frame",
+          name: "Premio.xyz",
+          url: "https://celo-build-web-8rej.vercel.app",
+          splashImageUrl: "https://celo-build-web-8rej.vercel.app/splash.png",
+          splashBackgroundColor: "#000000"
+        }
+      }
+    }),
   }
 };
 
