@@ -278,6 +278,28 @@ export function TrendingCampaignForm() {
                   </Link>
                 </Button>
               )}
+
+              {/* Share Button */}
+              <Button
+                className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold shadow-lg shadow-purple-500/20"
+                onClick={() => {
+                  const score = result.user_analysis?.score?.toFixed(0) || "0";
+                  const rewardName = getRewardDisplay(result.reward_type).title;
+                  const text = `¡Acabo de ganar ${rewardName} en Premio.xyz! 🏆\n\nMi nivel de viralidad es: ${score}/100 🚀\n\nDescubre tu nivel y gana recompensas en crypto y NFTs aquí: https://premio.xyz`;
+                  const embed = "https://premio.xyz";
+                  const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
+
+                  // Try SDK first, fallback to window.open
+                  import("@farcaster/miniapp-sdk").then(({ sdk }) => {
+                    sdk.actions.openUrl(url);
+                  }).catch(() => {
+                    window.open(url, "_blank");
+                  });
+                }}
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Compartir en Farcaster
+              </Button>
             </div>
           )}
 
