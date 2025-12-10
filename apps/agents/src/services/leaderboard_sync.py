@@ -12,7 +12,10 @@ class LeaderboardSyncer:
     def __init__(self, store: LeaderboardStore):
         self.store = store
         self.w3 = Web3(Web3.HTTPProvider(settings.celo_rpc_url))
-        self.farcaster = FarcasterToolbox(neynar_key=settings.neynar_api_key)
+        self.farcaster = FarcasterToolbox(
+            base_url=settings.farcaster_hub_api or "https://api.neynar.com/v2",
+            neynar_key=settings.neynar_api_key
+        )
         
     async def sync(self):
         """Sincroniza el leaderboard con los datos on-chain y Farcaster."""

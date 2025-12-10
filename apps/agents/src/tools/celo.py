@@ -149,10 +149,16 @@ class CeloToolbox:
             
             except (ValueError, Web3RPCError) as e:
                 error_msg = str(e)
+                
+                # Si la transacción ya es conocida, significa que ya está en el mempool.
+                # Podemos asumir que se envió correctamente y devolver el hash.
+                if "already known" in error_msg.lower():
+                    logger.info("Transacción ya conocida en mempool, retornando hash existente.")
+                    return signed_tx.hash.hex()
+
                 is_retryable = (
                     "replacement transaction underpriced" in error_msg.lower() or 
-                    "nonce too low" in error_msg.lower() or
-                    "already known" in error_msg.lower()
+                    "nonce too low" in error_msg.lower()
                 )
                 
                 if is_retryable and attempt < max_retries - 1:
@@ -268,6 +274,13 @@ class CeloToolbox:
             raise
         except Exception as exc:  # noqa: BLE001
             error_str = str(exc)
+            
+            # Handle "already known" (transaction already in mempool)
+            if "already known" in error_str.lower():
+                logger.info("Transacción NFT ya conocida en mempool, retornando hash existente.")
+                # En este punto signed_tx ya está definido
+                return signed_tx.hash.hex()
+                
             logger.error(f"FULL ERROR MINTING NFT: {error_str}")
             # Decodificar códigos de error comunes
             if "0x477a3e50" in error_str:
