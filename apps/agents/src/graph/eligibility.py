@@ -194,35 +194,40 @@ class EligibilityAgent:
                     engagement_weight = 0.0
                     reasons = []
                     
+                    # Buscar el MEJOR cast del usuario sobre el tema
+                    best_cast = await self.farcaster.fetch_user_best_cast(user_fid, topic_tags)
+                    if best_cast:
+                        logger.info("🌟 Mejor cast encontrado: %s (Score: %.2f)", best_cast["hash"], best_cast["engagement_score"])
+                        participation_data["best_cast"] = best_cast
+                        reasons.append(f"Autor de cast relevante ({int(best_cast['engagement_score'])} pts)")
+                    
                     if cast_hash:
                         logger.info("📊 Analizando participación de @%s en cast: %s", username, cast_hash[:16])
                         
                         # Analizar participación detallada
-                        participation_data = await self.farcaster.analyze_user_participation_in_trend(
+                        trend_participation = await self.farcaster.analyze_user_participation_in_trend(
                             user_fid=user_fid,
                             cast_hash=cast_hash,
                             topic_tags=topic_tags,
                         )
+                        participation_data.update(trend_participation)
                         
                         # Verificar si participó directamente en el cast
                         participants = await self.farcaster.fetch_cast_engagement(cast_hash, limit=100)
                         for p in participants:
                             if p.get("fid") == user_fid:
                                 engagement_weight = p.get("engagement_weight", 0.0)
-                                reasons = p.get("reasons", [])
-                                logger.info("  - Participación directa: %s (weight: %.2f)", reasons, engagement_weight)
+                                reasons.extend(p.get("reasons", []))
+                                logger.info("  - Participación directa: %s (weight: %.2f)", p.get("reasons", []), engagement_weight)
                                 break
-                        
-                        if participation_data.get("related_casts"):
-                            logger.info("  - Casts relacionados encontrados: %d", len(participation_data.get("related_casts", [])))
                     else:
                         logger.info("⚠️ No hay cast_hash disponible, analizando solo perfil del usuario")
-                        # Sin cast_hash, dar score base basado en perfil
-                        participation_data = {
+                        # Sin cast_hash, dar score base basado en perfil y best_cast
+                        participation_data.update({
                             "directly_participated": False,
                             "related_casts": [],
-                            "total_engagement": 0.0,
-                        }
+                            "total_engagement": best_cast["engagement_score"] if best_cast else 0.0,
+                        })
                     
                     # Crear objeto participant con la información del usuario
                     participant = {
@@ -255,12 +260,12 @@ class EligibilityAgent:
                         }
                     )
                     logger.info(
-                        "📈 Usuario analizado: @%s - Score: %.2f, Followers: %d, Power Badge: %s, Engagement: %.2f",
+                        "📈 Usuario analizado: @%s - Score: %.2f, Followers: %d, Power Badge: %s, Best Cast: %s",
                         username,
                         score,
                         participant.get("follower_count", 0),
                         participant.get("power_badge", False),
-                        participation_data.get("total_engagement", 0.0)
+                        bool(best_cast)
                     )
                 elif user_info is None:
                     # Usuario no encontrado en Farcaster (user_info es None)
@@ -501,8 +506,19 @@ class EligibilityAgent:
         # 4. Componente de engagement (25% por defecto)
         # Incluye participación directa + casts relacionados sobre el tema
         total_engagement = participation_data.get("total_engagement", 0.0)
-        # Normalizar engagement: máximo 25 puntos
-        engagement_normalized = min(total_engagement / 10, 25)  # 10 engagement = 25 puntos
+        
+        # Bonus por MEJOR CAST (si existe)
+        best_cast = participation_data.get("best_cast")
+        if best_cast:
+            # Si tiene un cast popular (ej. >10 likes), dar bonus masivo
+            best_cast_score = best_cast.get("engagement_score", 0)
+            if best_cast_score > 10:
+                total_engagement += 50  # Bonus masivo para asegurar NFT
+            else:
+                total_engagement += best_cast_score * 2
+        
+        # Normalizar engagement: máximo 40 puntos (aumentado para dar más peso al contenido)
+        engagement_normalized = min(total_engagement / 5, 40)
         engagement_component = engagement_normalized * self.settings.weight_engagement
 
         # Calcular total

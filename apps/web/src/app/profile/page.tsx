@@ -24,6 +24,8 @@ export default function ProfilePage() {
     const publicClient = usePublicClient();
     const [nfts, setNfts] = useState<NFT[]>([]);
     const [loading, setLoading] = useState(false);
+    const [xp, setXp] = useState(0);
+    const [rank, setRank] = useState<number | null>(null);
 
     const fetchNFTs = async () => {
         if (!address || !publicClient) return;
@@ -96,6 +98,25 @@ export default function ProfilePage() {
         }
     };
 
+    // Fetch XP and Rank
+    useEffect(() => {
+        if (address) {
+            const fetchXp = async () => {
+                try {
+                    const res = await fetch(`/api/lootbox/xp/${address}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setXp(data.xp || 0);
+                        setRank(data.rank || null);
+                    }
+                } catch (e) {
+                    console.error("Error fetching XP:", e);
+                }
+            };
+            fetchXp();
+        }
+    }, [address]);
+
     useEffect(() => {
         if (isConnected) {
             fetchNFTs();
@@ -114,8 +135,8 @@ export default function ProfilePage() {
     return (
         <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
             {/* Navbar / Header */}
-            <div className="sticky top-0 z-50 mb-8">
-                <div className="max-w-6xl mx-auto flex items-center justify-between bg-background/60 backdrop-blur-xl rounded-2xl border shadow-sm p-4">
+            <div className="sticky top-0 z-50 mb:mb-8">
+                <div className="max-w-6xl mx-auto flex items-center justify-between bg-background/60 backdrop-blur-xl rounded-2xl border shadow-sm p-4 mb-6">
                     <Link
                         href="/"
                         className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -141,7 +162,27 @@ export default function ProfilePage() {
             </div>
 
             <div className="max-w-6xl mx-auto">
-                <header className="mb-12 text-center">
+                {/* Stats Section */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-background/60 backdrop-blur-xl rounded-2xl border p-4 flex flex-col items-center justify-center text-center">
+                        <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Rango Global</span>
+                        <span className="text-2xl font-black text-purple-500">#{rank ?? "-"}</span>
+                    </div>
+                    <div className="bg-background/60 backdrop-blur-xl rounded-2xl border p-4 flex flex-col items-center justify-center text-center">
+                        <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">XP Total</span>
+                        <span className="text-2xl font-black text-yellow-500">{xp}</span>
+                    </div>
+                    <div className="bg-background/60 backdrop-blur-xl rounded-2xl border p-4 flex flex-col items-center justify-center text-center">
+                        <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Victorias</span>
+                        <span className="text-2xl font-black text-green-500">{nfts.length}</span>
+                    </div>
+                    <div className="bg-background/60 backdrop-blur-xl rounded-2xl border p-4 flex flex-col items-center justify-center text-center">
+                        <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Estatus</span>
+                        <span className="text-sm font-bold text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full">Verificado</span>
+                    </div>
+                </div>
+
+                <header className="mb-8 text-center">
                     <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                         Mis Tarjetas Premiadas
                     </h1>
@@ -170,7 +211,7 @@ export default function ProfilePage() {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         {nfts.map((nft) => (
                             <div
                                 key={nft.tokenId}
@@ -196,17 +237,17 @@ export default function ProfilePage() {
                                 </div>
 
                                 {/* Content */}
-                                <div className="p-4">
+                                <div className="p-3 md:p-4">
                                     <div className="flex justify-between items-start mb-2">
-                                        <h3 className="text-lg font-bold text-foreground group-hover:text-yellow-600 transition-colors line-clamp-1">
+                                        <h3 className="text-sm md:text-lg font-bold text-foreground group-hover:text-yellow-600 transition-colors line-clamp-1">
                                             {nft.name}
                                         </h3>
-                                        <span className="text-[10px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded">
+                                        <span className="text-[10px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded hidden md:inline-block">
                                             #{nft.tokenId}
                                         </span>
                                     </div>
 
-                                    <p className="text-muted-foreground text-xs line-clamp-2 mb-4 leading-relaxed">
+                                    <p className="text-muted-foreground text-xs line-clamp-2 mb-4 leading-relaxed hidden md:block">
                                         {nft.description}
                                     </p>
 
@@ -216,7 +257,7 @@ export default function ProfilePage() {
                                             Active
                                         </div>
                                         {nft.type && (
-                                            <span className="text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded border border-border/50">
+                                            <span className="text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded border border-border/50 hidden md:inline-block">
                                                 {nft.type}
                                             </span>
                                         )}

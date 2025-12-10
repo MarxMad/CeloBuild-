@@ -252,6 +252,26 @@ class FarcasterToolbox:
             logger.error("Error buscando casts del usuario por tema: %s", exc)
             return []
 
+    async def fetch_user_best_cast(
+        self, user_fid: int, topic_tags: list[str]
+    ) -> dict[str, Any] | None:
+        """Encuentra el cast con mayor engagement del usuario sobre un tema."""
+        casts = await self.fetch_user_casts_by_topic(user_fid, topic_tags, limit=20)
+        if not casts:
+            return None
+            
+        # Calcular score de engagement para cada cast
+        for cast in casts:
+            reactions = cast.get("reactions", {})
+            likes = reactions.get("likes", 0)
+            recasts = reactions.get("recasts", 0)
+            replies = reactions.get("replies", 0)
+            cast["engagement_score"] = (likes * 1.0) + (recasts * 2.0) + (replies * 0.5)
+            
+        # Ordenar por score descendente
+        casts.sort(key=lambda x: x["engagement_score"], reverse=True)
+        return casts[0]
+
     async def analyze_user_participation_in_trend(
         self, user_fid: int, cast_hash: str, topic_tags: list[str]
     ) -> dict[str, Any]:
