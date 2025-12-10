@@ -114,31 +114,19 @@ class CeloToolbox:
         campaign_bytes = self._campaign_bytes(campaign_id)
         checksum_recipient = self.checksum(participant)
 
-        try:
-            # Usar nonce "pending" para incluir transacciones pendientes
-            nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
-            tx = contract.functions.grantXp(campaign_bytes, checksum_recipient, amount).build_transaction(
-                {
-                    "from": self.account.address,
-                    "nonce": nonce,
-                    "gasPrice": self.web3.eth.gas_price,
-                }
-            )
-            signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
-            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            logger.info("XP grant transaction sent: %s", tx_hash.hex())
-            return tx_hash.hex()
-        except ValueError as e:
-            error_msg = str(e)
-            if "replacement transaction underpriced" in error_msg.lower() or "nonce too low" in error_msg.lower():
-                # Reintentar con gas price más alto y actualizar nonce
-                logger.warning("Transacción XP rechazada (gas/nonce), reintentando...")
-                import time
-                time.sleep(2) # Esperar propagación
-                
+        # Reintentos robustos para manejar race conditions de nonce
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Usar nonce "pending" para incluir transacciones pendientes
                 nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
-                gas_price = int(self.web3.eth.gas_price * 1.5)
                 
+                # Si es un reintento, aumentar gas price
+                gas_price = self.web3.eth.gas_price
+                if attempt > 0:
+                    gas_price = int(gas_price * (1.2 ** attempt))
+                    logger.info("Reintento XP %d/%d con gas price aumentado: %s", attempt + 1, max_retries, gas_price)
+
                 tx = contract.functions.grantXp(campaign_bytes, checksum_recipient, amount).build_transaction(
                     {
                         "from": self.account.address,
@@ -148,9 +136,27 @@ class CeloToolbox:
                 )
                 signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
                 tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-                logger.info("XP grant transaction sent (retry): %s", tx_hash.hex())
+                logger.info("XP grant transaction sent: %s", tx_hash.hex())
                 return tx_hash.hex()
-            raise
+            
+            except ValueError as e:
+                error_msg = str(e)
+                is_retryable = (
+                    "replacement transaction underpriced" in error_msg.lower() or 
+                    "nonce too low" in error_msg.lower() or
+                    "already known" in error_msg.lower()
+                )
+                
+                if is_retryable and attempt < max_retries - 1:
+                    wait_time = 2 * (attempt + 1)
+                    logger.warning("Transacción XP rechazada (nonce/gas), reintentando en %ds... (%s)", wait_time, error_msg)
+                    import time
+                    time.sleep(wait_time)
+                    continue
+                
+                # Si no es retryable o se acabaron los intentos, relanzar
+                logger.error("Fallo definitivo enviando XP tras %d intentos: %s", attempt + 1, error_msg)
+                raise
     
     def get_xp_balance(self, registry_address: str, campaign_id: str, participant: str) -> int:
         """Lee el balance de XP de un participante desde el contrato LootAccessRegistry."""

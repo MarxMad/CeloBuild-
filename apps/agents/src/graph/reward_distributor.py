@@ -232,14 +232,16 @@ class RewardDistributorAgent:
                         # También otorgar XP como bonus
                         try:
                             import time
-                            time.sleep(3)
+                            # Esperar más tiempo para asegurar propagación del nonce tras el minteo
+                            time.sleep(5)
                             logger.info("Otorgando XP bonus a %s junto con NFT...", address)
-                            self.celo_tool.grant_xp(
+                            tx_xp = self.celo_tool.grant_xp(
                                 registry_address=self.settings.registry_address,
                                 campaign_id=campaign_id,
                                 participant=address,
                                 amount=self.settings.xp_reward_amount,
                             )
+                            logger.info("XP bonus otorgado exitosamente: %s", tx_xp)
                             xp_awards[address] = "bonus_with_nft"
                         except Exception as xp_exc:
                             logger.warning("Fallo otorgando XP bonus con NFT: %s", xp_exc)
