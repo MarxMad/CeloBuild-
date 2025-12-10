@@ -152,6 +152,17 @@ class CeloToolbox:
                     logger.warning("Transacción XP rechazada (nonce/gas), reintentando en %ds... (%s)", wait_time, error_msg)
                     import time
                     time.sleep(wait_time)
+                    
+                    # CRITICAL FIX: Si dice "replacement transaction underpriced", es probable que estemos
+                    # chocando con una transacción pendiente (ej: el minteo anterior).
+                    # Si nuestra intención es una NUEVA transacción (no reemplazar), debemos incrementar el nonce.
+                    if "replacement transaction underpriced" in error_msg.lower():
+                         logger.info("Detectado conflicto de nonce. Incrementando nonce manualmente para el reintento.")
+                         # Forzamos una actualización del nonce, y si sigue igual, sumamos 1
+                         current_pending_nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
+                         if current_pending_nonce <= nonce:
+                             nonce = nonce + 1
+                    
                     continue
                 
                 # Si no es retryable o se acabaron los intentos, relanzar
