@@ -37,7 +37,8 @@ class LeaderboardStore:
         with self._lock:
             data = self._read()
             data.append(entry)
-            data.sort(key=lambda item: item.get("score", 0), reverse=True)
+            # Sort by XP (descending), then Score (descending)
+            data.sort(key=lambda item: (item.get("xp", 0), item.get("score", 0)), reverse=True)
             self._write(data[: self.max_entries])
 
     def top(self, limit: int = 5) -> list[dict[str, Any]]:

@@ -323,7 +323,7 @@ export function TrendingCampaignForm() {
                     </div>
                     {result.user_analysis.score !== undefined && (
                       <div className="text-sm font-mono font-bold text-[#FCFF52]">
-                        {result.user_analysis.score.toFixed(1)} pts
+                        {result.user_analysis.score.toFixed(1)} Viral Score
                       </div>
                     )}
                   </div>

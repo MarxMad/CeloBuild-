@@ -8,6 +8,7 @@ type LeaderboardEntry = {
   username?: string;
   address: string;
   score: number;
+  xp?: number;
   reward_type?: string;
   tx_hash?: string;
   topic_tags?: string[];
@@ -356,7 +357,9 @@ export function Leaderboard() {
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-xs font-mono text-[#FCFF52]">{Number(winner.score ?? 0).toFixed(0)} pts</span>
+                <span className="text-xs font-mono text-[#FCFF52]">
+                  {winner.xp !== undefined ? `${winner.xp} XP` : `${Number(winner.score ?? 0).toFixed(0)} Score`}
+                </span>
               </div>
             </div>
           ))}

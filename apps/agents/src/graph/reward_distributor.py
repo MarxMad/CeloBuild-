@@ -457,7 +457,17 @@ class RewardDistributorAgent:
                     except Exception as exc:  # noqa: BLE001
                         logger.error("Fallo en micropago MiniPay: %s", exc)
 
-        self._record_leaderboard(rankings, minted, micropayments, xp_awards, campaign_id, metadata, reward_type)
+        # Fetch initial XP balances for all recipients
+        initial_xp_balances: dict[str, int] = {}
+        for address in recipients:
+            try:
+                balance = self.celo_tool.get_xp_balance(self.settings.registry_address, address)
+                initial_xp_balances[address] = balance
+            except Exception as e:
+                logger.warning("Failed to fetch XP balance for %s: %s", address, e)
+                initial_xp_balances[address] = 0
+
+        self._record_leaderboard(rankings, minted, micropayments, xp_awards, campaign_id, metadata, reward_type, initial_xp_balances)
 
         primary_tx = (
             next(iter(minted.values()), None)
@@ -493,6 +503,7 @@ class RewardDistributorAgent:
         campaign_id: str,
         metadata: dict[str, Any],
         reward_type: str,
+        initial_xp_balances: dict[str, int],
     ) -> None:
         """Registra cada ganador en el leaderboard con su reward_type específico."""
         for entry in rankings:
@@ -514,12 +525,23 @@ class RewardDistributorAgent:
                 # Si no recibió recompensa, no lo registramos
                 continue
 
+            # Calculate final XP
+            current_xp = initial_xp_balances.get(address, 0)
+            granted_xp = 0
+            if address in xp_awards:
+                granted_xp = self.settings.xp_reward_amount
+            elif address in minted: # Bonus XP with NFT
+                 granted_xp = self.settings.xp_reward_amount
+            
+            final_xp = current_xp + granted_xp
+
             self.leaderboard.record(
                 {
                     "username": entry.get("username"),
                     "address": address,
                     "fid": entry.get("fid"),
                     "score": entry.get("score"),
+                    "xp": final_xp,
                     "reward_type": entry_reward_type,
                     "tx_hash": tx_hash,
                     "campaign_id": campaign_id,
