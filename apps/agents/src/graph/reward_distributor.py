@@ -5,6 +5,7 @@ from typing import Any
 
 from ..config import Settings
 from ..stores.leaderboard import LeaderboardStore
+from ..stores.cooldown import default_cooldown_store
 from ..tools.celo import CeloToolbox
 from ..tools.minipay import MiniPayToolbox
 
@@ -17,6 +18,7 @@ class RewardDistributorAgent:
     def __init__(self, settings: Settings, leaderboard: LeaderboardStore) -> None:
         self.settings = settings
         self.leaderboard = leaderboard
+        self.cooldown_store = default_cooldown_store()
         self.celo_tool = CeloToolbox(
             rpc_url=settings.celo_rpc_url,
             private_key=settings.celo_private_key,
@@ -150,6 +152,17 @@ class RewardDistributorAgent:
         # Validaciones de seguridad: verificar duplicados y límites
         unique_addresses = set()
         for recipient in recipients:
+            # Check Cooldown
+            remaining = self.cooldown_store.check_cooldown(recipient)
+            if remaining > 0:
+                hours = remaining / 3600
+                logger.warning("Usuario %s en cooldown. Restan %.2f horas.", recipient, hours)
+                return {
+                    "mode": "failed", 
+                    "error": f"Cooldown activo. Vuelve en {int(remaining/60)} minutos.",
+                    "campaign_id": campaign_id
+                }
+
             if recipient in unique_addresses:
                 logger.warning("Dirección duplicada detectada: %s. Ignorando duplicado.", recipient)
                 continue
@@ -478,9 +491,11 @@ class RewardDistributorAgent:
             mode = "xp_granted" if xp_awards else "failed"
         elif reward_type == "cusd":
             mode = "micropayments" if micropayments else "failed"
-        else:
-            mode = "nft_minted" if minted else "failed"
-
+        # Si hubo éxito (alguna transacción), registrar cooldown para todos los recipients
+        if mode != "failed" and mode != "noop":
+            for recipient in recipients:
+                self.cooldown_store.record_claim(recipient)
+        
         return {
             "mode": mode,
             "tx_hash": primary_tx,
