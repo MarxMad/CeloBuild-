@@ -6,7 +6,7 @@
  */
 
 import { createPublicClient, http, formatEther, getContract, type Address } from "viem";
-import { celo, celoSepolia } from "viem/chains";
+import { celo } from "viem/chains";
 import { stableTokenABI } from "@celo/abis";
 
 // Direcciones de stablecoins en Celo Mainnet
@@ -14,11 +14,6 @@ export const STABLE_TOKEN_ADDRESSES = {
   cUSD: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
   USDC: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
   USDT: "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e",
-} as const;
-
-// Direcciones de stablecoins en Celo Sepolia Testnet
-export const STABLE_TOKEN_ADDRESSES_TESTNET = {
-  cUSD: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1", // Sepolia cUSD
 } as const;
 
 /**
@@ -34,7 +29,7 @@ export function isMiniPay(): boolean {
  */
 export async function getMiniPayAddress(): Promise<string | null> {
   if (typeof window === "undefined" || !window.ethereum) return null;
-  
+
   if (isMiniPay()) {
     try {
       const accounts = await window.ethereum.request({
@@ -47,7 +42,7 @@ export async function getMiniPayAddress(): Promise<string | null> {
       return null;
     }
   }
-  
+
   return null;
 }
 
@@ -55,13 +50,10 @@ export async function getMiniPayAddress(): Promise<string | null> {
  * Verifica el balance de cUSD de una dirección
  */
 export async function checkCUSDBalance(
-  address: Address,
-  isTestnet: boolean = false
+  address: Address
 ): Promise<string> {
-  const chain = isTestnet ? celoSepolia : celo;
-  const cUSDAddress = isTestnet 
-    ? STABLE_TOKEN_ADDRESSES_TESTNET.cUSD 
-    : STABLE_TOKEN_ADDRESSES.cUSD;
+  const chain = celo;
+  const cUSDAddress = STABLE_TOKEN_ADDRESSES.cUSD;
 
   const publicClient = createPublicClient({
     chain,
@@ -84,11 +76,10 @@ export async function checkCUSDBalance(
  * Verifica si una transacción fue exitosa
  */
 export async function checkTransactionStatus(
-  transactionHash: `0x${string}`,
-  isTestnet: boolean = false
+  transactionHash: `0x${string}`
 ): Promise<boolean> {
-  const chain = isTestnet ? celoSepolia : celo;
-  
+  const chain = celo;
+
   const publicClient = createPublicClient({
     chain,
     transport: http(),
@@ -115,11 +106,10 @@ export async function estimateGasInCELO(
     to: Address;
     value?: bigint;
     data?: `0x${string}`;
-  },
-  isTestnet: boolean = false
+  }
 ): Promise<bigint> {
-  const chain = isTestnet ? celoSepolia : celo;
-  
+  const chain = celo;
+
   const publicClient = createPublicClient({
     chain,
     transport: http(),
@@ -140,13 +130,10 @@ export async function estimateGasInCUSD(
     to: Address;
     value?: bigint;
     data?: `0x${string}`;
-  },
-  isTestnet: boolean = false
+  }
 ): Promise<bigint> {
-  const chain = isTestnet ? celoSepolia : celo;
-  const cUSDAddress = isTestnet 
-    ? STABLE_TOKEN_ADDRESSES_TESTNET.cUSD 
-    : STABLE_TOKEN_ADDRESSES.cUSD;
+  const chain = celo;
+  const cUSDAddress = STABLE_TOKEN_ADDRESSES.cUSD;
 
   const publicClient = createPublicClient({
     chain,
@@ -162,11 +149,9 @@ export async function estimateGasInCUSD(
 /**
  * Estima el precio del gas (en CELO)
  */
-export async function estimateGasPriceInCELO(
-  isTestnet: boolean = false
-): Promise<bigint> {
-  const chain = isTestnet ? celoSepolia : celo;
-  
+export async function estimateGasPriceInCELO(): Promise<bigint> {
+  const chain = celo;
+
   const publicClient = createPublicClient({
     chain,
     transport: http(),
@@ -180,13 +165,9 @@ export async function estimateGasPriceInCELO(
 /**
  * Estima el precio del gas (en cUSD)
  */
-export async function estimateGasPriceInCUSD(
-  isTestnet: boolean = false
-): Promise<bigint> {
-  const chain = isTestnet ? celoSepolia : celo;
-  const cUSDAddress = isTestnet 
-    ? STABLE_TOKEN_ADDRESSES_TESTNET.cUSD 
-    : STABLE_TOKEN_ADDRESSES.cUSD;
+export async function estimateGasPriceInCUSD(): Promise<bigint> {
+  const chain = celo;
+  const cUSDAddress = STABLE_TOKEN_ADDRESSES.cUSD;
 
   const publicClient = createPublicClient({
     chain,
@@ -215,12 +196,11 @@ export async function calculateCUSDFees(
     to: Address;
     value?: bigint;
     data?: `0x${string}`;
-  },
-  isTestnet: boolean = false
+  }
 ): Promise<string> {
   const [gasLimit, gasPrice] = await Promise.all([
-    estimateGasInCUSD(transaction, isTestnet),
-    estimateGasPriceInCUSD(isTestnet),
+    estimateGasInCUSD(transaction),
+    estimateGasPriceInCUSD(),
   ]);
 
   const feesInWei = gasLimit * gasPrice;
