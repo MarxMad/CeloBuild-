@@ -73,6 +73,7 @@ export async function POST(request: Request) {
     // Leer el body una sola vez
     const result = await response.json();
     console.log("Respuesta del backend:", result);
+
     return NextResponse.json(result);
   } catch (error) {
     console.error("Error conectando al backend:", error);

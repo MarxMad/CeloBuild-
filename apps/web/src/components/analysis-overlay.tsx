@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Loader2, Search, ShieldCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const STEPS = [
   { id: 1, label: "Escaneando Farcaster...", icon: Search },
@@ -13,21 +13,34 @@ const STEPS = [
 export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onComplete: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
 
+  const ticksInLastStep = useRef(0);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStep((prev) => {
-        // If we are at the last step
-        if (prev >= STEPS.length - 1) {
-          // Only finish if the parent says it's done
-          if (isDone) {
-            clearInterval(interval);
-            setTimeout(onComplete, 800);
-            return prev;
-          }
-          // Otherwise, stay on the last step (or we could loop, but staying with spinner is better)
+        // Normal progression
+        if (prev < STEPS.length - 1) {
+          ticksInLastStep.current = 0;
+          return prev + 1;
+        }
+
+        // At last step
+        if (isDone) {
+          clearInterval(interval);
+          setTimeout(onComplete, 800);
           return prev;
         }
-        return prev + 1;
+
+        // Not done, increment wait counter
+        // Interval is 2000ms. We want to wait 4s (2 ticks) before looping.
+        ticksInLastStep.current += 1;
+
+        if (ticksInLastStep.current >= 2) {
+          ticksInLastStep.current = 0;
+          return 0; // Loop back to start
+        }
+
+        return prev;
       });
     }, 2000);
 
