@@ -355,10 +355,9 @@ class FarcasterToolbox:
             return None
         
         headers = {"accept": "application/json", "api_key": self.neynar_key}
-        # Endpoint de Neynar v2 para buscar usuario por custody address
-        # Documentación: https://docs.neynar.com/reference/user-by-custody-address
-        # NOTA: Verificar que el endpoint sea correcto - puede variar según la versión de la API
-        url = "https://api.neynar.com/v2/farcaster/user/by_custody_address"
+        # Endpoint de Neynar v2 para buscar usuario por custody address (bulk es más eficiente y disponible en plan free)
+        # Documentación: https://docs.neynar.com/reference/user-bulk-by-address
+        url = "https://api.neynar.com/v2/farcaster/user/bulk-by-address"
         
         # Verificar que tenemos API key válida
         if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
@@ -366,130 +365,46 @@ class FarcasterToolbox:
             return None
         
         # Normalizar address: Neynar espera lowercase
-        # IMPORTANTE: Neynar puede requerir el formato exacto de la dirección
         custody_address_lower = custody_address.lower().strip()
         
         # Validar que es una dirección Ethereum válida
         if not custody_address_lower.startswith("0x") or len(custody_address_lower) != 42:
-            logger.warning("⚠️ Formato de dirección inválido: %s (debe ser 0x seguido de 40 caracteres hex)", custody_address)
+            logger.warning("⚠️ Formato de dirección inválido: %s", custody_address)
             return None
         
         async with httpx.AsyncClient(timeout=10) as client:
-            # Intentar primero con lowercase (formato más común)
-            addresses_to_try = [custody_address_lower]
-            
-            # Si la dirección original tiene checksum, también intentar con checksum
-            if custody_address != custody_address_lower:
-                addresses_to_try.append(custody_address)
-            
-            for attempt_address in addresses_to_try:
-                try:
-                    params = {"custody_address": attempt_address}
-                    logger.info("🔍 Buscando usuario en Farcaster por custody_address: %s (intento %d/%d)", 
-                               attempt_address, addresses_to_try.index(attempt_address) + 1, len(addresses_to_try))
-                    logger.info("   URL: %s", url)
-                    logger.info("   Params: %s", params)
-                    
-                    resp = await client.get(url, headers=headers, params=params)
-                    
-                    logger.info("📡 Respuesta de Neynar API: status=%d para address: %s", resp.status_code, attempt_address)
-                    if resp.status_code != 200:
-                        logger.warning("   Respuesta completa: %s", resp.text[:500])
-                    
-                    if resp.status_code == 404:
-                        # Si es el último intento, retornar None
-                        if attempt_address == addresses_to_try[-1]:
-                            response_text = resp.text[:500] if resp.text else "sin respuesta"
-                            logger.warning("⚠️ Usuario no encontrado en Farcaster para address: %s (probado: %s)", 
-                                         custody_address, ", ".join(addresses_to_try))
-                            logger.warning("   Respuesta de Neynar: %s", response_text)
-                            logger.warning("   Esto puede significar que:")
-                            logger.warning("   1. La wallet no está vinculada a una cuenta de Farcaster")
-                            logger.warning("   2. El formato de la dirección no es correcto")
-                            logger.warning("   3. La API key no tiene permisos para este endpoint")
-                            return None
-                        # Continuar con el siguiente formato
-                        continue
-                    
-                    if resp.status_code == 402:
-                        raise ValueError(
-                            "Neynar API: Payment Required (402). Tu API key no tiene crédito o no es válida."
-                        )
-                    
-                    resp.raise_for_status()
-                    data = resp.json()
-                    
-                    logger.debug("📦 Datos recibidos de Neynar: %s", str(data)[:200])
-                    
-                    # La API retorna el usuario en diferentes formatos
-                    # Probar diferentes estructuras de respuesta
-                    user_data = None
-                    if isinstance(data, dict):
-                        # Formato 1: { "result": { "user": {...} } }
-                        if "result" in data and isinstance(data["result"], dict):
-                            user_data = data["result"].get("user")
-                        # Formato 2: { "user": {...} }
-                        if not user_data and "user" in data:
-                            user_data = data["user"]
-                        # Formato 3: Los datos directamente son el usuario
-                        if not user_data and "fid" in data:
-                            user_data = data
-                    
-                    if not user_data:
-                        logger.warning("⚠️ No se pudo extraer datos del usuario de la respuesta: %s", str(data)[:200])
-                        if attempt_address == addresses_to_try[-1]:
-                            return None
-                        continue
-                    
-                    # Normalizar usando la función helper
-                    normalized = _normalize_user(user_data)
-                    logger.info("✅ Usuario encontrado: @%s (FID: %s) usando address: %s", 
-                               normalized.get("username"), normalized.get("fid"), attempt_address)
-                    return normalized
-                    
-                except httpx.HTTPStatusError as exc:
-                    status_code = exc.response.status_code
-                    error_text = exc.response.text[:500] if exc.response.text else "sin respuesta"
-                    
-                    if status_code == 404:
-                        # 404 = Usuario no encontrado en Farcaster
-                        if attempt_address == addresses_to_try[-1]:
-                            logger.warning("⚠️ Usuario no encontrado (404) para address: %s", attempt_address)
-                            logger.warning("   Respuesta de Neynar: %s", error_text)
-                            logger.warning("   Probado con formatos: %s", ", ".join(addresses_to_try))
-                            return None
-                        # Continuar con el siguiente formato
-                        continue
-                    
-                    # Otros errores HTTP
-                    logger.error("❌ Error HTTP obteniendo usuario por address %s: %s - %s", 
-                               attempt_address, status_code, error_text)
-                    
-                    # Si es 400 (Bad Request), puede ser formato incorrecto o endpoint incorrecto
-                    if status_code == 400:
-                        logger.warning("   Error 400: Posible formato incorrecto de dirección o endpoint incorrecto")
-                        logger.warning("   Verifica que la dirección sea válida y que el endpoint de Neynar sea correcto")
-                    
-                    # Si es 401/403, problema de autenticación
-                    if status_code in (401, 403):
-                        logger.error("   Error de autenticación con Neynar API. Verifica tu API key.")
-                    
-                    # Si es el último intento, retornar None (no lanzar excepción)
-                    if attempt_address == addresses_to_try[-1]:
-                        return None
-                    # Continuar con el siguiente formato
-                    continue
-                except Exception as exc:  # noqa: BLE001
-                    logger.error("❌ Error obteniendo usuario por address %s: %s", attempt_address, exc, exc_info=True)
-                    # Si es el último intento, retornar None (no lanzar excepción)
-                    if attempt_address == addresses_to_try[-1]:
-                        return None
-                    # Continuar con el siguiente formato
-                    continue
-            
-            # Si llegamos aquí, todos los intentos fallaron
-            logger.warning("⚠️ Todos los intentos fallaron para buscar usuario por address: %s", custody_address)
-            return None
+            try:
+                params = {"addresses": custody_address_lower}
+                logger.info("🔍 Buscando usuario en Farcaster por address: %s", custody_address_lower)
+                
+                resp = await client.get(url, headers=headers, params=params)
+                
+                if resp.status_code == 402:
+                    raise ValueError("Neynar API: Payment Required (402).")
+                
+                resp.raise_for_status()
+                data = resp.json()
+                
+                # La respuesta es un mapa { "address": [user_obj, ...] }
+                # Puede devolver una lista vacía si no encuentra usuarios
+                users_list = data.get(custody_address_lower, [])
+                
+                if not users_list or len(users_list) == 0:
+                    logger.warning("⚠️ Usuario no encontrado en Farcaster para address: %s", custody_address)
+                    return None
+                
+                # Tomamos el primer usuario encontrado (usualmente el más relevante)
+                user_data = users_list[0]
+                
+                # Normalizar usando la función helper
+                normalized = _normalize_user(user_data)
+                logger.info("✅ Usuario encontrado: @%s (FID: %s)", 
+                           normalized.get("username"), normalized.get("fid"))
+                return normalized
+                
+            except Exception as exc:
+                logger.error("❌ Error obteniendo usuario por address %s: %s", custody_address, exc)
+                return None
 
     async def fetch_user_by_fid(self, fid: int) -> dict[str, Any] | None:
         """Obtiene información de un usuario de Farcaster por su FID.

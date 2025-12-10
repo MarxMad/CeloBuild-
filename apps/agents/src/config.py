@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     # Celo Sepolia: 0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1
     # Celo Mainnet: 0x765DE816845861e75A25fCA122bb6898B8B1282a
     cusd_address: str = "0x765DE816845861e75A25fCA122bb6898B8B1282a"  # cUSD en Mainnet (por defecto)
+    
+    # Deployment Block (for history scan)
+    deployment_block: int = 53338074
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

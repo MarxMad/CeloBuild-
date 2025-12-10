@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from .config import settings
 from .graph.supervisor import SupervisorOrchestrator
 from .scheduler import lifespan, supervisor as scheduler_supervisor
+from .services.leaderboard_sync import LeaderboardSyncer
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,9 @@ except Exception as exc:
         "type": type(exc).__name__,
     }
 
+# Inicializar Syncer (lazy init en startup)
+leaderboard_syncer = None
+
 # Rate limiting simple: almacenar últimos requests por IP
 # En producción, usar Redis o un middleware más robusto
 _request_timestamps: dict[str, list[int]] = {}
@@ -150,7 +154,26 @@ async def rate_limit_middleware(request: Request, call_next):
             _request_timestamps.pop(ip, None)
     
     response = await call_next(request)
+    response = await call_next(request)
     return response
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Inicializa servicios adicionales al arrancar."""
+    global leaderboard_syncer
+    
+    # Inicializar syncer si tenemos supervisor
+    active_supervisor = scheduler_supervisor or supervisor
+    if active_supervisor:
+        try:
+            leaderboard_syncer = LeaderboardSyncer(active_supervisor.leaderboard)
+            # Ejecutar sync inicial en background
+            import asyncio
+            if settings.auto_scan_on_startup:
+                asyncio.create_task(leaderboard_syncer.sync())
+        except Exception as e:
+            logger.error("Error inicializando LeaderboardSyncer: %s", e)
 
 
 @app.get("/")
@@ -316,7 +339,27 @@ async def leaderboard(limit: int = Query(50, ge=1, le=100)) -> dict[str, list[di
     except Exception as exc:
         logger.error("Error obteniendo leaderboard: %s", exc, exc_info=True)
         return {"items": []}
+        return {"items": []}
 
+
+@app.post("/api/lootbox/leaderboard/sync")
+async def sync_leaderboard():
+    """Fuerza una sincronización del leaderboard con la blockchain."""
+    try:
+        active_supervisor = scheduler_supervisor or supervisor
+        if not active_supervisor:
+            raise HTTPException(status_code=500, detail="Supervisor no inicializado")
+            
+        # Crear syncer on-the-fly si no existe (ej. en Vercel serverless)
+        syncer = LeaderboardSyncer(active_supervisor.leaderboard)
+        
+        # Ejecutar sync (esto puede tardar, idealmente debería ser background task)
+        count = await syncer.sync()
+        
+        return {"status": "success", "updated_entries": count}
+    except Exception as exc:
+        logger.error("Error en sync manual: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 @app.get("/api/lootbox/trends")
 async def get_trends(limit: int = Query(10, ge=1, le=50)) -> dict[str, list[dict[str, object]]]:

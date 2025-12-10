@@ -59,8 +59,9 @@ async def rebuild_leaderboard():
     # Get current block
     current_block = w3.eth.block_number
     
-    # Scan last 500k blocks (approx 1 month) to ensure we catch all users
-    from_block = max(0, current_block - 500_000)
+    # Scan from deployment block (found via binary search)
+    # Block: 53338074 (approx 9.2 days ago)
+    from_block = 53338074
     
     participants = set()
     
