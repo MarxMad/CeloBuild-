@@ -1,6 +1,7 @@
 import logging
 import re
 from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field, field_validator
 
@@ -154,8 +155,22 @@ async def rate_limit_middleware(request: Request, call_next):
             _request_timestamps.pop(ip, None)
     
     response = await call_next(request)
-    response = await call_next(request)
     return response
+
+
+@app.middleware("http")
+async def catch_exceptions_middleware(request: Request, call_next):
+    """Middleware global para capturar excepciones no manejadas y mostrar traceback."""
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        import traceback
+        error_detail = f"Unhandled Server Error: {str(exc)}\nTraceback: {traceback.format_exc()}"
+        logger.error(error_detail)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": error_detail, "error": "Internal Server Error"}
+        )
 
 
 @app.on_event("startup")

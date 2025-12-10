@@ -53,46 +53,7 @@ class LeaderboardStore:
     def record(self, entry: dict[str, Any]) -> None:
         """Guarda un nuevo ganador y mantiene el límite configurado."""
         entry.setdefault("timestamp", int(time.time()))
-        address = entry.get("address", "").lower()
         
-        with self._lock:
-            data = self._read()
-            
-            # Rebuild list using a dictionary to enforce uniqueness by address
-            user_map = {}
-            
-            # 1. Process existing data
-            for item in data:
-                item_addr = item.get("address", "").lower()
-                if not item_addr:
-                    continue
-                
-                if item_addr in user_map:
-                    # Merge with existing: keep max XP
-                    existing = user_map[item_addr]
-                    existing["xp"] = max(existing.get("xp", 0), item.get("xp", 0))
-                    # Keep the most recent timestamp if available
-                    existing["timestamp"] = max(existing.get("timestamp", 0), item.get("timestamp", 0))
-                else:
-                    user_map[item_addr] = item
-            
-            # 2. Process the new entry
-            if address:
-                if address in user_map:
-                    current = user_map[address]
-                    # Merge new entry data
-                    new_xp = max(current.get("xp", 0), entry.get("xp", 0))
-                    current.update(entry)
-                    current["xp"] = new_xp
-                else:
-                    user_map[address] = entry
-            
-            # Convert back to list
-            data = list(user_map.values())
-            
-            # Sort by XP (descending), then Score (descending)
-            data.sort(key=lambda item: (item.get("xp", 0), item.get("score", 0)), reverse=True)
-            self._write(data[: self.max_entries])
         with self._lock:
             data = self._read()
             
