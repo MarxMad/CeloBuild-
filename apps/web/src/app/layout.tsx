@@ -21,7 +21,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Premio.xyz',
     description: 'Recompensas virales en Farcaster con Celo MiniPay',
-    images: ['/image.png'],
+    images: [
+      {
+        url: '/image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Premio.xyz Cover',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
@@ -32,10 +39,10 @@ export const metadata: Metadata = {
   other: {
     "fc:frame": "vNext",
     "fc:frame:image": "https://celo-build-web-8rej.vercel.app/image.png",
+    "fc:frame:image:aspect_ratio": "1.91:1",
     "fc:frame:button:1": "Lanzar App",
     "fc:frame:button:1:action": "link",
     "fc:frame:button:1:target": "https://celo-build-web-8rej.vercel.app",
-    "fc:frame:post_url": "https://celo-build-web-8rej.vercel.app/api/webhook",
   }
 };
 
