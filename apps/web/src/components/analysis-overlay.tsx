@@ -53,14 +53,8 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
         }
 
         // Not done, increment wait counter
-        // Interval is 2500ms. We want to wait 7.5s (3 ticks) before looping to give more time for logs.
-        ticksInLastStep.current += 1;
-
-        if (ticksInLastStep.current >= 3) {
-          ticksInLastStep.current = 0;
-          return 0; // Loop back to start
-        }
-
+        // STAY at the last step. Do NOT loop back.
+        // The user hates the loop.
         return prev;
       });
     }, 2500); // Slightly slower step progression to let logs breathe
