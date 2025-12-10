@@ -201,6 +201,14 @@ class EligibilityAgent:
                         participation_data["best_cast"] = best_cast
                         reasons.append(f"Autor de cast relevante ({int(best_cast['engagement_score'])} pts)")
                     
+                    # Buscar seguidores relevantes (Social Proof)
+                    relevant_followers = await self.farcaster.fetch_relevant_followers(user_fid)
+                    if relevant_followers:
+                        count = len(relevant_followers)
+                        participation_data["relevant_followers_count"] = count
+                        reasons.append(f"Avalado por {count} OGs")
+                        logger.info("🌟 Seguidores relevantes encontrados: %d", count)
+
                     if cast_hash:
                         logger.info("📊 Analizando participación de @%s en cast: %s", username, cast_hash[:16])
                         
@@ -521,8 +529,15 @@ class EligibilityAgent:
         engagement_normalized = min(total_engagement / 5, 40)
         engagement_component = engagement_normalized * self.settings.weight_engagement
 
+        # 5. Componente de Social Proof (Relevant Followers)
+        social_proof_component = 0.0
+        relevant_count = participation_data.get("relevant_followers_count", 0)
+        if relevant_count > 0:
+            # 5 puntos por cada seguidor relevante, hasta 20 puntos extra
+            social_proof_component = min(relevant_count * 5.0, 20.0)
+
         # Calcular total
-        total = trend_component + follower_component + badge_component + engagement_component
+        total = trend_component + follower_component + badge_component + engagement_component + social_proof_component
         
         # Asegurar que está en rango 0-100
         return round(min(max(total, 0.0), 100.0), 2)

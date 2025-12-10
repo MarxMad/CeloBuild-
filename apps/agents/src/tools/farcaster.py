@@ -272,6 +272,27 @@ class FarcasterToolbox:
         casts.sort(key=lambda x: x["engagement_score"], reverse=True)
         return casts[0]
 
+    async def fetch_relevant_followers(self, target_fid: int, viewer_fid: int = 3) -> list[dict[str, Any]]:
+        """Obtiene seguidores relevantes (comunes con viewer_fid o de alto perfil)."""
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            return []
+            
+        url = "https://api.neynar.com/v2/farcaster/followers/relevant"
+        params = {"target_fid": target_fid, "viewer_fid": viewer_fid}
+        headers = {"accept": "application/json", "api_key": self.neynar_key}
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            try:
+                resp = await client.get(url, headers=headers, params=params)
+                if resp.status_code != 200:
+                    return []
+                data = resp.json()
+                # La respuesta suele ser { "relevant_followers": [...] } o lista directa
+                return data.get("relevant_followers") or data.get("users") or []
+            except Exception as exc:
+                logger.warning("Error fetching relevant followers: %s", exc)
+                return []
+
     async def analyze_user_participation_in_trend(
         self, user_fid: int, cast_hash: str, topic_tags: list[str]
     ) -> dict[str, Any]:
