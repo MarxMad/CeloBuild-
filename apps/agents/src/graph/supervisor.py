@@ -57,7 +57,7 @@ class SupervisorOrchestrator:
 
     async def run(self, payload: dict[str, Any]) -> RunResult:
         """Ejecución mínima: detectar tendencia -> filtrar usuarios -> recompensar."""
-
+        mode = None
         trend_context = await self.trend_watcher.handle(payload)
         
         # Guardar todas las tendencias detectadas si es válida o si es la mejor encontrada (aunque sea bajo umbral)

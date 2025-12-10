@@ -64,7 +64,7 @@ export function TrendingCampaignForm() {
     }
   };
 
-  const [progressStep, setProgressStep] = useState<'idle' | 'analyzing' | 'verifying' | 'minting' | 'completed'>('idle');
+  const [progressStep, setProgressStep] = useState<'idle' | 'scanning' | 'analyzing' | 'verifying' | 'sending' | 'completed'>('idle');
 
   const handleAnalyzeAndClaim = async () => {
     if (!address) return;
@@ -74,37 +74,43 @@ export function TrendingCampaignForm() {
     setPendingResult(null);
     setResult(null);
     setError(null);
-    setProgressStep('analyzing');
+
+    // Start UI Sequence
+    setProgressStep('scanning');
 
     try {
-      // Simulate progress steps for better UX
-      const progressInterval = setInterval(() => {
-        setProgressStep((prev) => {
-          if (prev === 'analyzing') return 'verifying';
-          if (prev === 'verifying') return 'minting';
-          return prev;
-        });
-      }, 2000); // Change step every 2s
-
       const payload: LootboxEventPayload = {
         frameId: undefined,
         channelId: "global",
-        trendScore: 0, // El backend calculará esto
+        trendScore: 0,
         targetAddress: address,
         targetFid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined,
       };
 
       console.log("🚀 Enviando solicitud de análisis y recompensa:", payload);
 
-      const response = await fetch("/api/lootbox", {
+      // Start API call in background
+      const apiPromise = fetch("/api/lootbox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      clearInterval(progressInterval);
-      setProgressStep('completed');
+      // Enforce minimum durations for each step (Sequential UX)
+      // Step 1: Scanning (5s)
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      setProgressStep('analyzing');
 
+      // Step 2: Analyzing (3s)
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      setProgressStep('verifying');
+
+      // Step 3: Verifying (3s)
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      setProgressStep('sending');
+
+      // Wait for API response (if not already done)
+      const response = await apiPromise;
       const resultData = await response.json();
       console.log("✅ Resultado:", resultData);
 
@@ -117,6 +123,7 @@ export function TrendingCampaignForm() {
       }
 
       setPendingResult(resultData);
+      setProgressStep('completed');
 
       // Trigger XP refresh
       if (typeof window !== 'undefined') {
@@ -128,6 +135,76 @@ export function TrendingCampaignForm() {
       console.error("❌ Error:", err);
       setError(err instanceof Error ? err.message : "Hubo un problema procesando tu solicitud");
       setProgressStep('idle');
+    }
+  };
+
+  const renderLoaderStep = () => {
+    switch (progressStep) {
+      case 'scanning':
+        return (
+          <div className="flex flex-col items-center justify-center py-10 space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#FCFF52]/20 rounded-full animate-ping" />
+              <div className="relative h-20 w-20 bg-black/50 rounded-full border border-[#FCFF52]/30 flex items-center justify-center backdrop-blur-md">
+                <TrendingUp className="h-10 w-10 text-[#FCFF52] animate-pulse" />
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold text-white">Escaneando Farcaster</h3>
+              <p className="text-sm text-gray-400">Buscando tus interacciones recientes...</p>
+            </div>
+          </div>
+        );
+      case 'analyzing':
+        return (
+          <div className="flex flex-col items-center justify-center py-10 space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="relative">
+              <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-pulse" />
+              <div className="relative h-20 w-20 bg-black/50 rounded-full border border-blue-500/30 flex items-center justify-center backdrop-blur-md">
+                <Sparkles className="h-10 w-10 text-blue-400 animate-spin-slow" />
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold text-white">Analizando Viralidad</h3>
+              <p className="text-sm text-gray-400">Calculando impacto y alcance...</p>
+            </div>
+          </div>
+        );
+      case 'verifying':
+        return (
+          <div className="flex flex-col items-center justify-center py-10 space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="relative">
+              <div className="absolute inset-0 bg-purple-500/20 rounded-full animate-pulse" />
+              <div className="relative h-20 w-20 bg-black/50 rounded-full border border-purple-500/30 flex items-center justify-center backdrop-blur-md">
+                <Box className="h-10 w-10 text-purple-400 animate-bounce" />
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold text-white">Verificando Elegibilidad</h3>
+              <p className="text-sm text-gray-400">Validando requisitos de campaña...</p>
+            </div>
+          </div>
+        );
+      case 'sending':
+        return (
+          <div className="flex flex-col items-center justify-center py-10 space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="relative">
+              <div className="absolute inset-0 bg-green-500/20 rounded-full animate-pulse" />
+              <div className="relative h-20 w-20 bg-black/50 rounded-full border border-green-500/30 flex items-center justify-center backdrop-blur-md">
+                <Gift className="h-10 w-10 text-green-400 animate-pulse" />
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold text-white">Enviando Recompensa</h3>
+              <p className="text-sm text-gray-400">A tu wallet de Farcaster...</p>
+              <p className="text-[10px] text-gray-500 pt-2 animate-pulse">
+                Esto puede tardar algunos minutos
+              </p>
+            </div>
+          </div>
+        );
+      default:
+        return null;
     }
   };
 
@@ -170,67 +247,46 @@ export function TrendingCampaignForm() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Info Panel */}
-              <div className="rounded-2xl bg-black/40 border border-white/10 overflow-hidden">
-                {/* Wallet Row */}
-                <div className="p-4 border-b border-white/5 flex items-center justify-between group/item hover:bg-white/5 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="p-1.5 rounded-md bg-blue-500/10 text-blue-400">
-                      <Wallet className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm text-gray-400 font-medium">Wallet</span>
-                  </div>
-                  <span className="font-mono text-[#FCFF52] bg-[#FCFF52]/10 px-3 py-1 rounded-full text-xs border border-[#FCFF52]/20 shadow-[0_0_10px_rgba(252,255,82,0.1)]">
-                    {address?.slice(0, 6)}...{address?.slice(-4)}
-                  </span>
-                </div>
-
-                {/* Farcaster Row */}
-                {farcasterUser.username && (
-                  <div className="p-4 flex items-center justify-between group/item hover:bg-white/5 transition-colors">
+              {/* Info Panel - Only show if not loading or if result is ready */}
+              {!isLoading && !result && (
+                <div className="rounded-2xl bg-black/40 border border-white/10 overflow-hidden">
+                  {/* Wallet Row */}
+                  <div className="p-4 border-b border-white/5 flex items-center justify-between group/item hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-md bg-purple-500/10 text-purple-400">
-                        <TrendingUp className="w-4 h-4" />
+                      <div className="p-1.5 rounded-md bg-blue-500/10 text-blue-400">
+                        <Wallet className="w-4 h-4" />
                       </div>
-                      <span className="text-sm text-gray-400 font-medium">Farcaster</span>
+                      <span className="text-sm text-gray-400 font-medium">Wallet</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-white">@{farcasterUser.username}</span>
-                      {farcasterUser.fid && (
-                        <span className="text-[10px] text-gray-400 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
-                          FID: {farcasterUser.fid}
-                        </span>
-                      )}
-                    </div>
+                    <span className="font-mono text-[#FCFF52] bg-[#FCFF52]/10 px-3 py-1 rounded-full text-xs border border-[#FCFF52]/20 shadow-[0_0_10px_rgba(252,255,82,0.1)]">
+                      {address?.slice(0, 6)}...{address?.slice(-4)}
+                    </span>
                   </div>
-                )}
-              </div>
 
-              {/* Progress Stepper */}
-              {isLoading && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-muted-foreground uppercase font-bold tracking-wider">
-                    <span className={progressStep === 'analyzing' ? 'text-[#FCFF52]' : ''}>Analizando</span>
-                    <span className={progressStep === 'verifying' ? 'text-[#FCFF52]' : ''}>Verificando</span>
-                    <span className={progressStep === 'minting' ? 'text-[#FCFF52]' : ''}>Minting</span>
-                  </div>
-                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#FCFF52] transition-all duration-500 ease-out"
-                      style={{
-                        width: progressStep === 'analyzing' ? '33%' :
-                          progressStep === 'verifying' ? '66%' :
-                            progressStep === 'minting' ? '90%' : '100%'
-                      }}
-                    />
-                  </div>
-                  <p className="text-center text-xs text-gray-400 animate-pulse">
-                    {progressStep === 'analyzing' && "Buscando tus mejores casts..."}
-                    {progressStep === 'verifying' && "Calculando tu score viral..."}
-                    {progressStep === 'minting' && "Generando tu recompensa on-chain..."}
-                  </p>
+                  {/* Farcaster Row */}
+                  {farcasterUser.username && (
+                    <div className="p-4 flex items-center justify-between group/item hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="p-1.5 rounded-md bg-purple-500/10 text-purple-400">
+                          <TrendingUp className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm text-gray-400 font-medium">Farcaster</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-white">@{farcasterUser.username}</span>
+                        {farcasterUser.fid && (
+                          <span className="text-[10px] text-gray-400 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
+                            FID: {farcasterUser.fid}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* Loader Steps */}
+              {isLoading && renderLoaderStep()}
 
               {!result && !isLoading && (
                 <Button
