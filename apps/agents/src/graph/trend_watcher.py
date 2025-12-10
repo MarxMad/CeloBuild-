@@ -228,8 +228,8 @@ class TrendWatcherAgent:
         # Intentar inicializar con modelos disponibles en el plan gratuito
         # Nota: Los modelos con "-live" no funcionan con langchain, usar versiones sin sufijo
         models_to_try = [
-            "gemini-1.5-flash-latest",
             "gemini-1.5-flash-001",
+            "gemini-1.5-flash",
             "gemini-1.5-pro",
         ]
         

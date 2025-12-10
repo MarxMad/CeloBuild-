@@ -474,7 +474,7 @@ class RewardDistributorAgent:
         initial_xp_balances: dict[str, int] = {}
         for address in recipients:
             try:
-                balance = self.celo_tool.get_xp_balance(self.settings.registry_address, address)
+                balance = self.celo_tool.get_xp_balance(self.settings.registry_address, campaign_id, address)
                 initial_xp_balances[address] = balance
             except Exception as e:
                 logger.warning("Failed to fetch XP balance for %s: %s", address, e)

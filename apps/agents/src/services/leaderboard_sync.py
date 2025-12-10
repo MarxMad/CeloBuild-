@@ -11,7 +11,24 @@ logger = logging.getLogger(__name__)
 class LeaderboardSyncer:
     def __init__(self, store: LeaderboardStore):
         self.store = store
-        self.w3 = Web3(Web3.HTTPProvider(settings.celo_rpc_url))
+        # Configure robust HTTP session for Web3
+        import requests
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+        
+        session = requests.Session()
+        retry_strategy = Retry(
+            total=5,
+            backoff_factor=1.0,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["POST", "GET"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+        
+        self.w3 = Web3(Web3.HTTPProvider(settings.celo_rpc_url, session=session))
+        
         self.farcaster = FarcasterToolbox(
             base_url=settings.farcaster_hub_api or "https://api.neynar.com/v2",
             neynar_key=settings.neynar_api_key
@@ -37,8 +54,19 @@ class LeaderboardSyncer:
                 from_block = settings.deployment_block
                 return contract.events.GrantXp.get_logs(from_block=from_block, to_block=current_block)
 
-            # Run blocking web3 call in executor
-            logs = await loop.run_in_executor(None, fetch_logs_blocking)
+            # Run blocking web3 call in executor with retries
+            max_retries = 3
+            logs = []
+            
+            for attempt in range(max_retries):
+                try:
+                    logs = await loop.run_in_executor(None, fetch_logs_blocking)
+                    break
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        raise e
+                    logger.warning(f"Error fetching logs (attempt {attempt+1}/{max_retries}): {e}. Retrying...")
+                    await asyncio.sleep(2 * (attempt + 1))
             
             participants = set()
             for log in logs:
