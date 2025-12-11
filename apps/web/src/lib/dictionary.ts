@@ -74,7 +74,7 @@ export const dictionary = {
         hero_badge: "PUBLIC BETA",
         hero_title: "Viral Rewards on",
         hero_subtitle: "Farcaster",
-        hero_description: "Create automated reward campaigns with Celo MiniPay. Reward your most active followers with cUSD and exclusive NFTs.",
+        hero_description: "Viral Rewards on Farcaster",
         powered_by: "powered by",
 
         // Leaderboard

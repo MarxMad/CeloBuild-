@@ -56,28 +56,29 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
   ];
 
   // Step progression logic
+  // Step progression logic
   useEffect(() => {
+    const stepDuration = isDone ? 500 : 3000; // Speed up if API is done
+
     const interval = setInterval(() => {
       setCurrentStep((prev) => {
-        // Normal progression
         if (prev < STEPS.length - 1) {
           return prev + 1;
         }
-
-        // At last step
-        if (isDone) {
-          clearInterval(interval);
-          setTimeout(onComplete, 1000);
-          return prev;
-        }
-
-        // Stay at last step if not done
         return prev;
       });
-    }, 3000); // 3 seconds per step (faster UX)
+    }, stepDuration);
 
     return () => clearInterval(interval);
-  }, [isDone, onComplete]);
+  }, [isDone, STEPS.length]);
+
+  // Completion trigger
+  useEffect(() => {
+    if (isDone && currentStep === STEPS.length - 1) {
+      const timer = setTimeout(onComplete, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isDone, currentStep, onComplete, STEPS.length]);
 
   // Micro-logs logic
   useEffect(() => {

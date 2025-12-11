@@ -23,5 +23,18 @@
       "sizes": "512x512",
       "type": "image/svg+xml"
     }
-  ]
-}
+  ],
+  "screenshots": [
+    {
+      "src": "/prevewpremio.svg",
+      "type": "image/svg+xml",
+      "sizes": "1280x720",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/prevewpremio.svg",
+      "type": "image/svg+xml",
+      "sizes": "1280x720",
+      "form_factor": "narrow"
+    }
+  ],
