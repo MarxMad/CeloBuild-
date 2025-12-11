@@ -499,7 +499,7 @@ export function TrendingCampaignForm() {
                       {getRewardDisplay(result.reward_type).title}
                     </div>
 
-                    {result.xp_granted !== undefined && result.xp_granted > 0 && (
+                    {result.xp_granted !== undefined && (
                       <div className="relative">
                         <h2 className="text-6xl sm:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FCFF52] to-yellow-600 drop-shadow-[0_2px_10px_rgba(252,255,82,0.3)] filter">
                           +{result.xp_granted}
@@ -574,7 +574,7 @@ export function TrendingCampaignForm() {
                       href={result.explorer_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-gray-500 hover:text-green-400 transition-colors flex items-center gap-1 group/link"
+                      className="relative z-20 text-xs text-gray-500 hover:text-green-400 transition-colors flex items-center justify-center gap-1 group/link p-2"
                     >
                       Ver Transacción en Bloque
                       <ExternalLink className="w-3 h-3 opacity-50 group-hover/link:opacity-100" />
