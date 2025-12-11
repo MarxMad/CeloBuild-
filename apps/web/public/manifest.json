@@ -26,15 +26,16 @@
   ],
   "screenshots": [
     {
-      "src": "/prevewpremio.svg",
+      "src": "/premio_portada.svg",
       "type": "image/svg+xml",
       "sizes": "1280x720",
       "form_factor": "wide"
     },
     {
-      "src": "/prevewpremio.svg",
+      "src": "/premio_portada.svg",
       "type": "image/svg+xml",
       "sizes": "1280x720",
       "form_factor": "narrow"
     }
-  ],
+  ]
+}

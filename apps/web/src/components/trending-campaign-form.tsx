@@ -403,225 +403,241 @@ export function TrendingCampaignForm() {
                                 const btn = document.getElementById('recharge-btn');
                                 if (btn) btn.innerText = "Verificando en Farcaster...";
 
-                                // Wait a bit for Farcaster to index (optimistic delay of 5s)
-                                setTimeout(async () => {
-                                  try {
-                                    const response = await fetch("/api/lootbox/verify-recharge", {
-                                      method: "POST",
-                                      headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({
-                                        address: address,
-                                        fid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined
-                                      }),
-                                    });
+                                // Wait a bit for Farcaster to index (optimistic delay)
+                                const verifyWithRetry = async (attempts = 5, delay = 2000) => {
+                                  for (let i = 0; i < attempts; i++) {
+                                    if (btn) btn.innerText = `Verificando (${i + 1}/${attempts})...`;
 
-                                    const data = await response.json();
+                                    try {
+                                      // Wait before attempt
+                                      await new Promise(r => setTimeout(r, delay));
 
-                                    if (data.verified) {
-                                      localStorage.removeItem("lootbox_last_claim");
-                                      setCooldownRemaining(null);
-                                      setShowRechargeModal(false);
-                                      // Trigger confetti or success toast here if needed
-                                    } else {
-                                      if (btn) btn.innerText = "No encontrado - Reintentar";
-                                      alert(data.message || "No encontramos tu cast. Asegúrate de haber compartido el enlace.");
+                                      const response = await fetch("/api/lootbox/verify-recharge", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                          address: address,
+                                          fid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined
+                                        }),
+                                      });
+
+                                      const data = await response.json();
+
+                                      if (data.verified) {
+                                        localStorage.removeItem("lootbox_last_claim");
+                                        setCooldownRemaining(null);
+                                        setShowRechargeModal(false);
+                                        return true;
+                                      }
+                                    } catch (e) {
+                                      console.error("Verification attempt failed:", e);
                                     }
-                                  } catch (e) {
-                                    console.error("Verification error:", e);
-                                    if (btn) btn.innerText = "Error - Reintentar";
-                                  } finally {
-                                    setIsLoading(false);
                                   }
-                                }, 5000); // 5s delay to allow indexing
+                                  return false;
+                                };
+
+                                verifyWithRetry().then((success) => {
+                                  if (!success) {
+                                    if (btn) btn.innerText = "No encontrado - Reintentar";
+                                    alert("No encontramos tu cast reciente con el enlace. Asegúrate de haber compartido y espera unos segundos.");
+                                  }
+                                }).finally(() => setIsLoading(false));
+                              }} // Removed timeout wrapper
                               }}
-                              id="recharge-btn"
+                            id="recharge-btn"
                             >
-                              <TrendingUp className="w-4 h-4" />
-                              Compartir para Recargar
-                            </Button>
+                            <TrendingUp className="w-4 h-4" />
+                            Compartir para Recargar
+                          </Button>
 
-                            <Button
-                              variant="ghost"
-                              className="w-full text-muted-foreground hover:text-foreground"
-                              onClick={() => setShowRechargeModal(false)}
-                            >
-                              Esperar
-                            </Button>
-                          </div>
+                          <Button
+                            variant="ghost"
+                            className="w-full text-muted-foreground hover:text-foreground"
+                            onClick={() => setShowRechargeModal(false)}
+                          >
+                            Esperar
+                          </Button>
                         </div>
                       </div>
                     </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Result Display */}
-      {result && (
-        <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Success Card */}
-          {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 flex flex-col gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
-                  <Box className="h-6 w-6" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-lg text-foreground">{getRewardDisplay(result.reward_type).title}</h4>
-                  <p className="text-xs text-muted-foreground">{getRewardDisplay(result.reward_type).subtitle}</p>
-                  {result.reward_type === 'xp' && result.xp_granted !== undefined && result.xp_granted > 0 && (
-                    <div className="mt-1 px-3 py-1 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 rounded-full font-bold text-sm inline-block">
-                      +{result.xp_granted} XP
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* NFT Image Display */}
-              {result.nft_images && (
-                (() => {
-                  // Try to find image by address (case insensitive) or fallback to first available image
-                  const userAddress = address?.toLowerCase();
-                  const imageUri = Object.entries(result.nft_images || {}).find(([addr]) => addr.toLowerCase() === userAddress)?.[1]
-                    || Object.values(result.nft_images || {})[0];
-
-                  if (imageUri) {
-                    return (
-                      <div className="rounded-xl overflow-hidden border border-white/10 shadow-lg relative aspect-[2/3] mx-auto w-2/3">
-                        <img
-                          src={imageUri}
-                          alt="NFT Reward"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-                        <div className="absolute bottom-2 left-0 right-0 text-center">
-                          <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm border border-yellow-500/20">
-                            New Artifact
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()
-              )}
-
-              {/* Transaction Link */}
-              {result.explorer_url && (
-                <Button variant="outline" className="w-full border-green-500/30 hover:bg-green-500/10 text-green-600 dark:text-green-400" asChild>
-                  <Link href={result.explorer_url} target="_blank">
-                    {t("overlay_view_tx")}
-                    <ExternalLink className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              )}
-
-              {/* Share Button */}
-              <Button
-                className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold shadow-lg shadow-purple-500/20"
-                onClick={() => {
-                  const score = result.user_analysis?.score?.toFixed(0) || "0";
-                  const rewardName = getRewardDisplay(result.reward_type).title;
-                  const text = `¡Acabo de ganar ${rewardName} en Premio.xyz! 🏆\n\nMi nivel de viralidad es: ${score}/100 🚀\n\nDescubre tu nivel y gana recompensas en crypto y NFTs aquí: https://celo-build-web-8rej.vercel.app`;
-                  const embed = "https://celo-build-web-8rej.vercel.app";
-                  const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
-
-                  // Try SDK first, fallback to window.open
-                  import("@farcaster/miniapp-sdk").then(({ sdk }) => {
-                    sdk.actions.openUrl(url);
-                  }).catch(() => {
-                    window.open(url, "_blank");
-                  });
-                }}
-              >
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Compartir en Farcaster
-              </Button>
-            </div>
+            </>
           )}
+        </div>
+          )}
+      </CardContent>
+    </Card>
 
-          {/* Analysis Details (Always show if available) */}
-          {(result.user_analysis || result.trend_info) && (
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-[#FCFF52]" />
-                <h5 className="text-sm font-bold text-foreground">Detalles del Análisis</h5>
+      {/* Result Display */ }
+  {
+    result && (
+      <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* Success Card */}
+        {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
+                <Box className="h-6 w-6" />
               </div>
-
-              {result.user_analysis && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">@</span>
-                      <span className="text-sm font-semibold text-foreground">
-                        {result.user_analysis.username || "Usuario"}
-                      </span>
-                    </div>
-                    {result.user_analysis.score !== undefined && (
-                      <div className="text-sm font-mono font-bold text-[#FCFF52]">
-                        {result.user_analysis.score.toFixed(1)} Viral Score
-                      </div>
-                    )}
+              <div className="flex-1">
+                <h4 className="font-bold text-lg text-foreground">{getRewardDisplay(result.reward_type).title}</h4>
+                <p className="text-xs text-muted-foreground">{getRewardDisplay(result.reward_type).subtitle}</p>
+                {result.reward_type === 'xp' && result.xp_granted !== undefined && result.xp_granted > 0 && (
+                  <div className="mt-1 px-3 py-1 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 rounded-full font-bold text-sm inline-block">
+                    +{result.xp_granted} XP
                   </div>
+                )}
+              </div>
+            </div>
 
-                  {result.user_analysis.reasons && result.user_analysis.reasons.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {result.user_analysis.reasons.map((reason, idx) => (
-                        <span
-                          key={idx}
-                          className="text-[9px] px-2 py-0.5 rounded-full bg-[#FCFF52]/10 text-[#FCFF52] border border-[#FCFF52]/20 uppercase"
-                        >
-                          {reason}
+            {/* NFT Image Display */}
+            {result.nft_images && (
+              (() => {
+                // Try to find image by address (case insensitive) or fallback to first available image
+                const userAddress = address?.toLowerCase();
+                const imageUri = Object.entries(result.nft_images || {}).find(([addr]) => addr.toLowerCase() === userAddress)?.[1]
+                  || Object.values(result.nft_images || {})[0];
+
+                if (imageUri) {
+                  return (
+                    <div className="rounded-xl overflow-hidden border border-white/10 shadow-lg relative aspect-[2/3] mx-auto w-2/3">
+                      <img
+                        src={imageUri}
+                        alt="NFT Reward"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                      <div className="absolute bottom-2 left-0 right-0 text-center">
+                        <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm border border-yellow-500/20">
+                          New Artifact
                         </span>
-                      ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()
+            )}
+
+            {/* Transaction Link */}
+            {result.explorer_url && (
+              <Button variant="outline" className="w-full border-green-500/30 hover:bg-green-500/10 text-green-600 dark:text-green-400" asChild>
+                <Link href={result.explorer_url} target="_blank">
+                  {t("overlay_view_tx")}
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
+
+            {/* Share Button */}
+            <Button
+              className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold shadow-lg shadow-purple-500/20"
+              onClick={() => {
+                const score = result.user_analysis?.score?.toFixed(0) || "0";
+                const rewardName = getRewardDisplay(result.reward_type).title;
+                const text = `¡Acabo de ganar ${rewardName} en Premio.xyz! 🏆\n\nMi nivel de viralidad es: ${score}/100 🚀\n\nDescubre tu nivel y gana recompensas en crypto y NFTs aquí: https://celo-build-web-8rej.vercel.app`;
+                const embed = "https://celo-build-web-8rej.vercel.app";
+                const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
+
+                // Try SDK first, fallback to window.open
+                import("@farcaster/miniapp-sdk").then(({ sdk }) => {
+                  sdk.actions.openUrl(url);
+                }).catch(() => {
+                  window.open(url, "_blank");
+                });
+              }}
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Compartir en Farcaster
+            </Button>
+          </div>
+        )}
+
+        {/* Analysis Details (Always show if available) */}
+        {(result.user_analysis || result.trend_info) && (
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-[#FCFF52]" />
+              <h5 className="text-sm font-bold text-foreground">Detalles del Análisis</h5>
+            </div>
+
+            {result.user_analysis && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">@</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {result.user_analysis.username || "Usuario"}
+                    </span>
+                  </div>
+                  {result.user_analysis.score !== undefined && (
+                    <div className="text-sm font-mono font-bold text-[#FCFF52]">
+                      {result.user_analysis.score.toFixed(1)} Viral Score
                     </div>
                   )}
-                </>
-              )}
-            </div>
-          )}
+                </div>
 
-          {/* BOTÓN REINICIAR ELIMINADO para evitar spam y forzar cooldown en la UI principal */}
-        </div>
-      )}
-
-      {/* Error Display */}
-      {error && (
-        <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
-              <span className="text-red-400 text-lg">⚠️</span>
-            </div>
-            <h4 className="font-bold text-base text-red-300">No Eres Elegible</h4>
-          </div>
-          <p className="text-sm text-red-400/90 pl-10">
-            {error}
-          </p>
-        </div>
-      )}
-
-      {/* Transaction Failed Display */}
-      {result && result.mode === "failed" && (
-        <div className="mt-6 rounded-xl bg-orange-500/10 border border-orange-500/30 p-5 text-orange-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center">
-              <span className="text-orange-400 text-lg">⚠️</span>
-            </div>
-            <h4 className="font-bold text-base text-orange-300">Error en la Transacción</h4>
-          </div>
-          <p className="text-sm text-orange-400/90 pl-10">
-            Hubo un problema enviando tu recompensa on-chain.
-            {result.error && (
-              <span className="block mt-1 font-mono text-xs opacity-80 bg-black/20 p-2 rounded">
-                Error: {result.error}
-              </span>
+                {result.user_analysis.reasons && result.user_analysis.reasons.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {result.user_analysis.reasons.map((reason, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[9px] px-2 py-0.5 rounded-full bg-[#FCFF52]/10 text-[#FCFF52] border border-[#FCFF52]/20 uppercase"
+                      >
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
-          </p>
+          </div>
+        )}
+
+        {/* BOTÓN REINICIAR ELIMINADO para evitar spam y forzar cooldown en la UI principal */}
+      </div>
+    )
+  }
+
+  {/* Error Display */ }
+  {
+    error && (
+      <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
+            <span className="text-red-400 text-lg">⚠️</span>
+          </div>
+          <h4 className="font-bold text-base text-red-300">No Eres Elegible</h4>
         </div>
-      )}
-    </div>
+        <p className="text-sm text-red-400/90 pl-10">
+          {error}
+        </p>
+      </div>
+    )
+  }
+
+  {/* Transaction Failed Display */ }
+  {
+    result && result.mode === "failed" && (
+      <div className="mt-6 rounded-xl bg-orange-500/10 border border-orange-500/30 p-5 text-orange-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+            <span className="text-orange-400 text-lg">⚠️</span>
+          </div>
+          <h4 className="font-bold text-base text-orange-300">Error en la Transacción</h4>
+        </div>
+        <p className="text-sm text-orange-400/90 pl-10">
+          Hubo un problema enviando tu recompensa on-chain.
+          {result.error && (
+            <span className="block mt-1 font-mono text-xs opacity-80 bg-black/20 p-2 rounded">
+              Error: {result.error}
+            </span>
+          )}
+        </p>
+      </div>
+    )
+  }
+    </div >
   );
 }
