@@ -425,8 +425,72 @@ async def get_trends(limit: int = Query(10, ge=1, le=50)) -> dict[str, list[dict
         return {"items": []}
 
 
-@app.post("/api/lootbox/scan")
-async def trigger_scan():
+
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+from fastapi.responses import JSONResponse
+
+class VerifyRechargeRequest(BaseModel):
+    address: str
+    fid: Optional[int] = None
+
+@app.post("/api/lootbox/verify-recharge")
+async def verify_recharge(req: VerifyRechargeRequest):
+    """Verifica si el usuario ha compartido un cast reciente sobre la campaña."""
+    verify_start = datetime.now()
+    try:
+        if not req.fid:
+            # Try to resolve FID from address if not provided
+            user = await farcaster_toolbox.fetch_user_by_address(req.address)
+            if user:
+                req.fid = user.get("fid")
+        
+        if not req.fid:
+            return JSONResponse(
+                status_code=400, 
+                content={"verified": False, "message": "No se pudo encontrar tu FID de Farcaster."}
+            )
+
+        # 1. Fetch recent casts (last 10)
+        casts = await farcaster_toolbox.fetch_user_recent_casts(req.fid, limit=10)
+        
+        # 2. Check for campaign keywords/links
+        verified = False
+        target_domains = ["premio.xyz", "celo-build-web"] # Add your domain
+        
+        for cast in casts:
+            text = cast.get("text", "").lower()
+            embeds = cast.get("embeds", [])
+            
+            # Check text
+            if any(domain in text for domain in target_domains):
+                verified = True
+                break
+                
+            # Check embeds (urls)
+            for embed in embeds:
+                url = embed.get("url", "").lower()
+                if any(domain in url for domain in target_domains):
+                    verified = True
+                    break
+            
+            if verified:
+                break
+        
+        # 3. Return result
+        return {
+            "verified": verified,
+            "message": "¡Verificado! Recargando energía..." if verified else "No encontramos un cast reciente con el enlace. ¡Intenta compartir de nuevo!",
+            "execution_time_ms": (datetime.now() - verify_start).total_seconds() * 1000
+        }
+
+    except Exception as e:
+        logger.error(f"Error verifying recharge: {e}")
+        return JSONResponse(status_code=500, content={"verified": False, "message": str(e)})
+
+@app.post("/api/lootbox/trigger")
+async def trigger_scan(req: LootboxRequest):
     """Endpoint para ejecutar un scan manual de tendencias (útil para Vercel Cron Jobs)."""
     try:
         active_supervisor = scheduler_supervisor or supervisor

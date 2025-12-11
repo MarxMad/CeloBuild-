@@ -398,17 +398,41 @@ export function TrendingCampaignForm() {
                                 const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
                                 window.open(url, "_blank");
 
-                                // 2. Fake "Verification" delay then Reset
-                                setIsLoading(true); // Reuse loading state for a sec? prefer local loading
+                                // 2. Call Verification API
+                                setIsLoading(true);
                                 const btn = document.getElementById('recharge-btn');
-                                if (btn) btn.innerText = "Verificando...";
+                                if (btn) btn.innerText = "Verificando en Farcaster...";
 
-                                setTimeout(() => {
-                                  localStorage.removeItem("lootbox_last_claim");
-                                  setCooldownRemaining(null);
-                                  setShowRechargeModal(false);
-                                  setIsLoading(false);
-                                }, 3000);
+                                // Wait a bit for Farcaster to index (optimistic delay of 5s)
+                                setTimeout(async () => {
+                                  try {
+                                    const response = await fetch("/api/lootbox/verify-recharge", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({
+                                        address: address,
+                                        fid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined
+                                      }),
+                                    });
+
+                                    const data = await response.json();
+
+                                    if (data.verified) {
+                                      localStorage.removeItem("lootbox_last_claim");
+                                      setCooldownRemaining(null);
+                                      setShowRechargeModal(false);
+                                      // Trigger confetti or success toast here if needed
+                                    } else {
+                                      if (btn) btn.innerText = "No encontrado - Reintentar";
+                                      alert(data.message || "No encontramos tu cast. Asegúrate de haber compartido el enlace.");
+                                    }
+                                  } catch (e) {
+                                    console.error("Verification error:", e);
+                                    if (btn) btn.innerText = "Error - Reintentar";
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                }, 5000); // 5s delay to allow indexing
                               }}
                               id="recharge-btn"
                             >

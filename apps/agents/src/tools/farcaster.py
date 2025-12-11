@@ -284,6 +284,26 @@ class FarcasterToolbox:
             logger.error("Error buscando casts del usuario por tema: %s", exc)
             return []
 
+    async def fetch_user_recent_casts(self, user_fid: int, limit: int = 10) -> list[dict[str, Any]]:
+        """Obtiene los casts más recientes de un usuario."""
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            return []
+
+        try:
+            headers = {"accept": "application/json", "api_key": self.neynar_key}
+            url = "https://api.neynar.com/v2/farcaster/feed/user/casts"
+            params = {"fid": user_fid, "limit": limit}
+
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(url, headers=headers, params=params)
+                resp.raise_for_status()
+                data = resp.json()
+
+            return data.get("casts", [])
+        except Exception as exc:
+            logger.error("Error obteniendo casts recientes del fid %s: %s", user_fid, exc)
+            return []
+
     async def fetch_user_best_cast(
         self, user_fid: int, topic_tags: list[str]
     ) -> dict[str, Any] | None:
