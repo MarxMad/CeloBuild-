@@ -60,19 +60,15 @@ export function UserBalance() {
             };
 
             fetchXp();
-            // Poll XP every 10 seconds
-            const interval = setInterval(fetchXp, 10000);
+            // Poll XP every 30 seconds to avoid rate limits
+            const interval = setInterval(fetchXp, 30000);
 
             // Listen for manual refresh events
             const handleRefresh = () => {
                 console.log("Refreshing XP...");
                 fetchXp();
-                // Retry multiple times to account for blockchain latency (up to 20s)
-                setTimeout(fetchXp, 2000);
+                // Single retry after 5s to allow blockchain propagation
                 setTimeout(fetchXp, 5000);
-                setTimeout(fetchXp, 10000);
-                setTimeout(fetchXp, 15000);
-                setTimeout(fetchXp, 20000);
             };
             window.addEventListener('refresh-xp', handleRefresh);
 

@@ -323,6 +323,17 @@ async def get_xp(wallet_address: str, campaign_id: str = Query(default="demo-cam
             active_supervisor = scheduler_supervisor or supervisor
             if active_supervisor:
                 rank = active_supervisor.leaderboard.get_rank(wallet_address)
+                
+                # Self-healing: Si tenemos XP pero no rank (cold start), actualizar leaderboard local
+                if rank is None and xp_balance > 0:
+                    logger.info("Self-healing leaderboard for %s with %d XP", wallet_address, xp_balance)
+                    active_supervisor.leaderboard.record({
+                        "address": wallet_address,
+                        "xp": xp_balance,
+                        "score": 0  # Default score
+                    })
+                    # Re-intentar obtener rank
+                    rank = active_supervisor.leaderboard.get_rank(wallet_address)
         except Exception as e:
             logger.warning("Error obteniendo rango para %s: %s", wallet_address, e)
 

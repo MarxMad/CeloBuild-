@@ -97,10 +97,8 @@ class LeaderboardSyncer:
                 fid = None
                 
                 try:
-                    # Add delay to be nice to API even with bulk endpoint
-                    if i > 0:
-                        await asyncio.sleep(1.0)  # Aumentado a 1s para evitar 429
-                        
+                    # Parallelize Farcaster lookup or just do it fast
+                    # Removed artificial delay to prevent Vercel timeout
                     fc_user = await self.farcaster.fetch_user_by_address(participant)
                     if fc_user:
                         username = fc_user.get("username")
@@ -108,7 +106,7 @@ class LeaderboardSyncer:
                 except Exception as e:
                     logger.warning(f"Failed to resolve Farcaster user for {participant}: {e}")
                 
-                leaderboard_data.append({
+                entry = {
                     "address": participant,
                     "xp": xp,
                     "score": 0.0,
@@ -117,13 +115,12 @@ class LeaderboardSyncer:
                     "campaign_id": "demo-campaign",
                     "reward_type": "xp",
                     "timestamp": int(time.time())
-                })
-            
-            # 3. Update Store
-            # We iterate and record each one to merge/update
-            for entry in leaderboard_data:
-                self.store.record(entry)
+                }
                 
+                leaderboard_data.append(entry)
+                # Save immediately to avoid data loss on timeout
+                self.store.record(entry)
+            
             logger.info("✅ Leaderboard Sync Complete. Updated %d entries.", len(leaderboard_data))
             return len(leaderboard_data)
             
