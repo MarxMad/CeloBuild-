@@ -216,7 +216,6 @@ class SupervisorOrchestrator:
             eligible=True,
             eligibility_message=eligible_users.get("message"),
             error=distribution.get("error"),
-            error=distribution.get("error"),
             nft_images=distribution.get("nft_images"),
             best_cast=best_cast,
         )
