@@ -11,10 +11,10 @@ export async function GET(request: NextRequest) {
 
     // Map rarity to image filename
     const rarityMap: Record<string, string> = {
-        Common: "common.png",
-        Rare: "rare.png",
-        Epic: "epic.png",
-        Legendary: "legendary.png",
+        Common: "card_common_ver2.png",
+        Rare: "card_rare_ver2.png",
+        Epic: "card_epic_ver2.png",
+        Legendary: "card_rare_ver2.png", // Reuse rare (pearlescent) for legendary
     };
 
     // Default to common if rarity not found (case insensitive check)
