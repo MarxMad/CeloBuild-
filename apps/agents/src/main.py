@@ -89,7 +89,10 @@ leaderboard_syncer = None
 
 # Inicializar Farcaster Toolbox
 from .tools.farcaster import FarcasterToolbox
-farcaster_toolbox = FarcasterToolbox(neynar_api_key=settings.neynar_api_key)
+farcaster_toolbox = FarcasterToolbox(
+    base_url=settings.farcaster_hub_api or "https://api.neynar.com/v2",
+    neynar_key=settings.neynar_api_key
+)
 
 # Rate limiting simple: almacenar últimos requests por IP
 # En producción, usar Redis o un middleware más robusto
