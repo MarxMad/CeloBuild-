@@ -70,6 +70,7 @@ export function TrendingCampaignForm() {
 
   const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(null);
   const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [showThankYou, setShowThankYou] = useState(false);
 
   useEffect(() => {
     // Check for cooldown on mount
@@ -434,6 +435,13 @@ export function TrendingCampaignForm() {
                                         setShowRechargeModal(false);
                                         // Clean feedback
                                         setVerificationError(null);
+
+                                        // NEW THANK YOU FLOW
+                                        setShowThankYou(true);
+                                        setTimeout(() => {
+                                          setShowThankYou(false);
+                                        }, 4000);
+
                                         return true;
                                       } else {
                                         // Show error in UI instead of alert
@@ -471,6 +479,32 @@ export function TrendingCampaignForm() {
                       </div>
                     </div>
                   )}
+
+                  {/* Thank You Message Overlay */}
+                  {showThankYou && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-500">
+                      <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in zoom-in slide-in-from-bottom-10 duration-500">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-green-500/30 rounded-full animate-ping blur-xl" />
+                          <div className="relative h-24 w-24 bg-[#FCFF52]/10 rounded-full flex items-center justify-center border border-[#FCFF52]/50 shadow-[0_0_30px_rgba(252,255,82,0.3)]">
+                            <Sparkles className="w-12 h-12 text-[#FCFF52] animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <h2 className="text-3xl font-black text-white tracking-tight">
+                            ¡Energía Recargada!
+                          </h2>
+                          <p className="text-lg text-green-300 font-medium max-w-xs mx-auto">
+                            Gracias por compartir Premio.xyz
+                          </p>
+                        </div>
+                        <div className="absolute bottom-10 left-0 right-0 flex justify-center">
+                          <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                 </>
               )}
             </div>
@@ -580,7 +614,6 @@ export function TrendingCampaignForm() {
                       <ExternalLink className="w-3 h-3 opacity-50 group-hover/link:opacity-100" />
                     </a>
                   )}
-
                 </div>
               </div>
             )}
@@ -630,6 +663,10 @@ export function TrendingCampaignForm() {
           </div>
         )
       }
+      {/* Version Indicator for Debugging */}
+      <div className="text-[10px] text-gray-500/50 text-center mt-4">
+        v1.2 (Recharge Update)
+      </div>
     </div >
   );
 }
