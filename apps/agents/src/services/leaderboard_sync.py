@@ -125,7 +125,7 @@ class LeaderboardSyncer:
                 entry = {
                     "address": participant,
                     "xp": xp,
-                    "score": 0.0,
+                    # "score": 0.0,  # FIX: No incluir score para no sobrescribir el valor existente (AI Score)
                     "username": username,
                     "fid": fid,
                     "campaign_id": "demo-campaign",
