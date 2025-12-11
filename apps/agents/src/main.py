@@ -490,7 +490,7 @@ async def verify_recharge(req: VerifyRechargeRequest):
         return JSONResponse(status_code=500, content={"verified": False, "message": str(e)})
 
 @app.post("/api/lootbox/trigger")
-async def trigger_scan(req: LootboxRequest):
+async def trigger_scan(req: LootboxEvent):
     """Endpoint para ejecutar un scan manual de tendencias (útil para Vercel Cron Jobs)."""
     try:
         active_supervisor = scheduler_supervisor or supervisor

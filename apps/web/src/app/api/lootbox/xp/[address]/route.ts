@@ -17,6 +17,8 @@ export async function GET(
 
     try {
         const backendUrl = `${AGENT_SERVICE_URL}/api/lootbox/xp/${address}`;
+        console.log(`[XP Proxy] Requesting: ${backendUrl}`);
+
         const response = await fetch(backendUrl, {
             method: "GET",
             headers: {
@@ -25,8 +27,12 @@ export async function GET(
             cache: "no-store",
         });
 
+        console.log(`[XP Proxy] Backend status: ${response.status}`);
+
         if (!response.ok) {
             const errorText = await response.text();
+            console.error(`[XP Proxy] Error body: ${errorText}`);
+
             let errorJson;
             try {
                 errorJson = JSON.parse(errorText);
@@ -36,8 +42,9 @@ export async function GET(
 
             return NextResponse.json(
                 {
-                    error: "Failed to fetch XP from backend",
-                    backend_error: errorJson
+                    error: `Failed to fetch XP from backend (Status ${response.status})`,
+                    backend_error: errorJson,
+                    url: backendUrl // DEBUG: Expose URL to frontend for verification
                 },
                 { status: response.status }
             );

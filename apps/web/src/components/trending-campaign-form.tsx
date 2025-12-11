@@ -69,6 +69,7 @@ export function TrendingCampaignForm() {
   };
 
   const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(null);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for cooldown on mount
@@ -412,6 +413,10 @@ export function TrendingCampaignForm() {
                                       // Wait before attempt
                                       await new Promise(r => setTimeout(r, delay));
 
+                                      // Get fresh address/fid
+                                      // validation: we need a wallet
+                                      if (!address) throw new Error("No wallet connected");
+
                                       const response = await fetch("/api/lootbox/verify-recharge", {
                                         method: "POST",
                                         headers: { "Content-Type": "application/json" },
@@ -427,19 +432,24 @@ export function TrendingCampaignForm() {
                                         localStorage.removeItem("lootbox_last_claim");
                                         setCooldownRemaining(null);
                                         setShowRechargeModal(false);
+                                        // Clean feedback
+                                        setVerificationError(null);
                                         return true;
+                                      } else {
+                                        // Show error in UI instead of alert
+                                        setVerificationError(data.message || "No encontramos tu cast. Asegúrate de incluir 'premio.xyz' en el texto.");
                                       }
                                     } catch (e) {
                                       console.error("Verification attempt failed:", e);
+                                      setVerificationError("Error de conexión. Intenta de nuevo.");
                                     }
                                   }
                                   return false;
                                 };
 
                                 verifyWithRetry().then((success) => {
-                                  if (!success) {
-                                    if (btn) btn.innerText = "No encontrado - Reintentar";
-                                    alert("No encontramos tu cast reciente con el enlace. Asegúrate de haber compartido y espera unos segundos.");
+                                  if (!success && !verificationError) {
+                                    setVerificationError("Intentos agotados. Verifica que tu cast sea público.");
                                   }
                                 }).finally(() => setIsLoading(false));
                               }}
