@@ -195,9 +195,8 @@ export function Leaderboard() {
         // AUTO-SCAN: Si no hay trends y no hay cooldown, escanear automáticamente
         // Esto soluciona el problema de "iniciando por primera vez no hay tendencias"
         const lastScan = localStorage.getItem("lastTrendScanTime");
-        const now = Date.now();
-        const sixHours = 6 * 60 * 60 * 1000;
-        const canScan = !lastScan || (now - parseInt(lastScan) > sixHours);
+        // reused 'now' from top
+        const canScan = !lastScan || (now - parseInt(lastScan) > (6 * 60 * 60 * 1000));
 
         // Si no hay trends cargados (o son muy pocos) y podemos escanear
         // FIX: Usar trendsData que ya fue leída, no intentar clonar response consumido
