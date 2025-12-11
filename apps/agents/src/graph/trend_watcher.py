@@ -256,86 +256,14 @@ class TrendWatcherAgent:
         return None
 
     async def _summarize_cast(self, cast: dict[str, Any]) -> tuple[str, bool]:
-        """Genera un análisis del cast usando IA si está disponible, sino genera uno básico.
-        
-        Retorna: (análisis_texto, usa_ai)
-        - usa_ai: True si se usó Gemini, False si se usó fallback
         """
-        llm = self._get_llm()
-        if not llm:
-            # Análisis básico sin IA basado en keywords y engagement
-            logger.info("🤖 AI no disponible - usando análisis básico (fallback)")
-            text = cast.get("text", "")
-            author = cast.get("author", {}).get("username", "usuario")
-            reactions = cast.get("reactions", {})
-            likes = reactions.get("likes", 0)
-            recasts = reactions.get("recasts", 0)
-            
-            keywords = ["celo", "minipay", "web3", "defi", "crypto", "blockchain", "nft", "rewards"]
-            has_keywords = any(kw in text.lower() for kw in keywords)
-            
-            if has_keywords and (likes > 10 or recasts > 5):
-                analysis = f"Cast relevante de {author} sobre Web3/Celo con alto engagement ({likes} likes, {recasts} recasts). Potencial para recompensar participación activa."
-            elif has_keywords:
-                analysis = f"Cast de {author} mencionando temas de Celo/Web3. Considerar recompensa para fomentar más participación."
-            else:
-                analysis = f"Cast de {author} con engagement moderado. Evaluar relevancia para la comunidad Celo."
-            
-            return (analysis, False)  # False = no usa AI
-        
-        # Intentar usar IA si está disponible
-        logger.info("🤖 Intentando análisis con Gemini AI...")
-        prompt = ChatPromptTemplate.from_template(
-            (
-                "Eres un estratega de growth para comunidades Web3. Resume en 1 frase por qué este cast es "
-                "relevante para la comunidad de Celo/MiniPay y qué acción recomienda tomar."
-                "\n\nCast: {text}\nAutor: {author}"
-            )
-        )
-        chain = prompt | llm
-        try:
-            result = await chain.ainvoke(
-                {
-                    "text": cast.get("text", ""),
-                    "author": cast.get("author", {}).get("username"),
-                }
-            )
-            logger.info("✅ Análisis generado con Gemini AI")
-            return (result.content, True)  # True = usa AI
-        except Exception as exc:  # noqa: BLE001
-            # Detectar si es error de cuota (429) o cualquier otro error
-            error_str = str(exc).lower()
-            is_quota_error = "429" in error_str or "quota" in error_str or "resourceexhausted" in error_str
-            
-            if is_quota_error:
-                logger.warning(
-                    "⚠️ Cuota de Gemini agotada (usando análisis básico). "
-                    "El sistema funcionará normalmente sin IA."
-                )
-                # Deshabilitar LLM para evitar más intentos
-                self.llm = None
-            else:
-                logger.warning("⚠️ Error analizando con Gemini (usando análisis básico): %s", exc)
-            
-            # Fallback al análisis básico (sin IA)
-            logger.info("🔄 Cambiando a análisis básico (fallback)")
-            text = cast.get("text", "")
-            author = cast.get("author", {}).get("username", "usuario")
-            reactions = cast.get("reactions", {})
-            likes = reactions.get("likes", 0)
-            recasts = reactions.get("recasts", 0)
-            
-            keywords = ["celo", "minipay", "web3", "defi", "crypto", "blockchain", "nft", "rewards"]
-            has_keywords = any(kw in text.lower() for kw in keywords)
-            
-            if has_keywords and (likes > 10 or recasts > 5):
-                analysis = f"Cast relevante de {author} sobre Web3/Celo con alto engagement ({likes} likes, {recasts} recasts). Potencial para recompensar participación activa."
-            elif has_keywords:
-                analysis = f"Cast de {author} mencionando temas de Celo/Web3. Considerar recompensa para fomentar más participación."
-            else:
-                analysis = f"Cast de {author} con engagement moderado. Evaluar relevancia para la comunidad Celo."
-            
-            return (analysis, False)  # False = no usa AI
+        Genera un análisis del cast.
+        MODIFICADO: Se ha deshabilitado Gemini por petición del usuario para maximizar velocidad.
+        Retorna siempre texto vacío y False.
+        """
+        # Ya no usamos Gemini ni análisis básico de texto.
+        # El frontend mostrará directamente el cast original.
+        return ("", False)
 
     def _score_cast(self, cast: dict[str, Any]) -> float:
         reactions = cast.get("reactions", {})

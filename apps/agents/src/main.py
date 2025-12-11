@@ -427,14 +427,21 @@ async def trigger_scan():
         duration = end_time - start_time
         logger.info(f"⏱️ Total Execution Time: {duration:.2f} seconds")
         
+        # Handle result whether it's an object or a dict
+        def get_attr(obj, key, default=None):
+            if isinstance(obj, dict):
+                return obj.get(key, default)
+            return getattr(obj, key, default)
+
         return {
             "status": "success",
-            "summary": result.summary,
-            "tx_hash": result.tx_hash,
-            "explorer_url": result.explorer_url,
-            "mode": result.mode,
-            "reward_type": result.reward_type,
+            "summary": get_attr(result, "summary"),
+            "tx_hash": get_attr(result, "tx_hash"),
+            "explorer_url": get_attr(result, "explorer_url"),
+            "mode": get_attr(result, "mode"),
+            "reward_type": get_attr(result, "reward_type"),
             "execution_time_ms": int(duration * 1000),
+            "error": get_attr(result, "error"), # Pass error to frontend
         }
     except Exception as exc:
         import logging

@@ -61,6 +61,8 @@ class RewardDistributorAgent:
                     # Si la campaña ya existe, continuar (no es un error fatal)
                     if "replacement transaction underpriced" in error_str.lower():
                         logger.warning("Transacción pendiente detectada para Registry, continuando...")
+                        import time
+                        time.sleep(5) # Esperar a que se mine la pendiente
                     else:
                         logger.warning("Error configurando Registry (puede que ya exista): %s", reg_exc)
                 
@@ -75,6 +77,8 @@ class RewardDistributorAgent:
                     error_str = str(minter_exc)
                     if "replacement transaction underpriced" in error_str.lower():
                         logger.warning("Transacción pendiente detectada para Minter, continuando...")
+                        import time
+                        time.sleep(5) # Esperar a que se mine la pendiente
                     else:
                         logger.warning("Error configurando Minter (puede que ya exista): %s", minter_exc)
                 

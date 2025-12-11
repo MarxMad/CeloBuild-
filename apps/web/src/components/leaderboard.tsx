@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, TrendingUp, Sparkles, MessageSquare, RefreshCw } from "lucide-react";
+import { Trophy, TrendingUp, Sparkles, MessageSquare, RefreshCw, ExternalLink } from "lucide-react";
 
 type LeaderboardEntry = {
   username?: string;
@@ -288,14 +288,19 @@ export function Leaderboard() {
                 </div>
               )}
 
-              {/* Análisis IA (solo para #1) */}
-              {trend.ai_analysis && index === 0 && (
-                <div className="mb-1 sm:mb-1.5 p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-white/5 border border-white/10">
-                  <p className="text-[9px] sm:text-[10px] text-muted-foreground italic line-clamp-2 break-words">
-                    💡 {trend.ai_analysis}
-                  </p>
-                </div>
-              )}
+              {/* Link a la tendencia */}
+              <div className="mt-2">
+                <a
+                  href={`https://warpcast.com/${trend.author_username || 'unknown'}/${trend.cast_hash || ''}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-[#FCFF52] hover:underline group/link"
+                >
+                  <Sparkles className="w-3 h-3 group-hover/link:animate-pulse" />
+                  Sumate a la tendencia
+                  <ExternalLink className="w-3 h-3 opacity-70" />
+                </a>
+              </div>
 
               {/* Tags */}
               {trend.topic_tags && trend.topic_tags.length > 0 && (

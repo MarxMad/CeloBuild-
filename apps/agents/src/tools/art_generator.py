@@ -53,32 +53,27 @@ class ArtGenerator:
         chain = prompt | self.llm
 
         import asyncio
-        max_retries = 3
+        # OPTIMIZATION: Fail fast if Gemini is overloaded to keep UX fast
+        max_retries = 1 
         
         for attempt in range(max_retries):
             try:
-                result = await chain.ainvoke({"text": cast_text, "author": author})
+                # Timeout corto para no bloquear
+                result = await asyncio.wait_for(chain.ainvoke({"text": cast_text, "author": author}), timeout=5.0)
+                
                 # Limpiar markdown si Gemini lo incluye
                 content = result.content.replace("```json", "").replace("```", "").strip()
                 import json
                 return json.loads(content)
             except Exception as e:
-                error_str = str(e)
-                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                    if attempt < max_retries - 1:
-                        wait_time = 5 * (2 ** attempt) # 5s, 10s, 20s
-                        logger.warning(f"Gemini Rate Limit (429). Reintentando en {wait_time}s...")
-                        await asyncio.sleep(wait_time)
-                        continue
-                
-                logger.error(f"Error generando metadata con AI (intento {attempt+1}): {e}")
-                if attempt == max_retries - 1:
-                    return {
-                        "title": f"Artifact of {author}",
-                        "description": "A mysterious artifact from the decentralized web.",
-                        "rarity": "Rare",
-                        "type": "Artifact",
-                    }
+                logger.warning(f"Gemini AI falló o tardó mucho (intento {attempt+1}): {e}")
+                # Fallback inmediato a metadata estática
+                return {
+                    "title": f"Loot of {author}",
+                    "description": f"A legendary moment captured from {author}'s cast.",
+                    "rarity": "Common",
+                    "type": "Spell Caster",
+                }
 
     def generate_image(self, prompt: str) -> Any:
         """
