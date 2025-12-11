@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const protocol = request.headers.get("x-forwarded-proto") || "http";
     const host = request.headers.get("host");
     const baseUrl = `${protocol}://${host}`;
-    const imageUrl = `${baseUrl}/cards/${imageFilename}`;
+    const imageUrl = `${baseUrl}/cards/${imageFilename}?v=2`;
 
     const description = searchParams.get("description") || "A mysterious artifact from the decentralized web.";
     const logoUrl = `${baseUrl}/premio_portada.svg`;
