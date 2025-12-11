@@ -61,9 +61,10 @@ class LeaderboardSyncer:
 
             def fetch_chunk_blocking(s, e):
                 # Helper for clean blocking call
-                abi = [{"anonymous": False, "inputs": [{"indexed": True, "name": "campaignId", "type": "bytes32"}, {"indexed": True, "name": "recipient", "type": "address"}, {"indexed": False, "name": "amount", "type": "uint256"}], "name": "GrantXp", "type": "event"}]
+                # FIX: ABI updated to match LootAccessRegistry.sol event XpGranted
+                abi = [{"anonymous": False, "inputs": [{"indexed": True, "name": "campaignId", "type": "bytes32"}, {"indexed": True, "name": "participant", "type": "address"}, {"indexed": False, "name": "amount", "type": "uint32"}, {"indexed": False, "name": "newBalance", "type": "uint256"}], "name": "XpGranted", "type": "event"}]
                 contract = self.w3.eth.contract(address=self.w3.to_checksum_address(registry_address), abi=abi)
-                return contract.events.GrantXp.get_logs(from_block=s, to_block=e)
+                return contract.events.XpGranted.get_logs(from_block=s, to_block=e)
 
             async def fetch_chunk_safe(start, end):
                 async with rpc_sem:
@@ -89,7 +90,8 @@ class LeaderboardSyncer:
             
             participants = set()
             for log in logs:
-                participants.add(log["args"]["recipient"])
+                # FIX: Argument name is 'participant', not 'recipient'
+                participants.add(log["args"]["participant"])
                 
             logger.info("Found %d unique participants in blockchain history", len(participants))
             
