@@ -86,60 +86,67 @@ class FarcasterToolbox:
             for idx, fid in enumerate(popular_fids):
                 # Agregar delay entre requests para evitar rate limiting (429)
                 if idx > 0:
-                    await asyncio.sleep(1.0)  # Esperar 1 segundo entre requests
+                    await asyncio.sleep(2.0)  # Aumentado a 2 segundos entre requests
                 
-                try:
-                    url = "https://api.neynar.com/v2/farcaster/feed/user/casts"
-                    params = {"fid": fid, "limit": min(limit, 10)}
-                    
-                    resp = await client.get(url, headers=headers, params=params)
-                    
-                    if resp.status_code == 402:
-                        raise ValueError(
-                            "Neynar API: Payment Required (402). Tu API key no tiene crédito o no es válida. "
-                            "Verifica tu API key en https://neynar.com o actualiza tu plan."
-                        )
-                    
-                    if resp.status_code == 429:
-                        logger.warning(
-                            "Rate limit alcanzado (429) para usuario %s. Esperando antes de continuar...", fid
-                        )
-                        await asyncio.sleep(5.0)  # Esperar 5 segundos si hay rate limit
-                        continue  # Saltar este usuario y continuar
-                    
-                    resp.raise_for_status()
-                    data = resp.json()
-                    
-                    for cast in data.get("casts", []):
-                        author = cast.get("author", {})
-                        all_casts.append(
-                        {
-                                "hash": cast.get("hash"),
-                                "text": cast.get("text", ""),
-                            "author": {
-                                    "username": author.get("username"),
-                                    "fid": author.get("fid"),
-                                    "custody_address": author.get("custody_address"),
-                            },
-                            "reactions": {
-                                    "likes": cast.get("reactions", {}).get("likes_count", 0),
-                                    "recasts": cast.get("reactions", {}).get("recasts_count", 0),
-                                    "replies": cast.get("reactions", {}).get("replies_count", 0),
+                # Retry loop para cada usuario
+                for attempt in range(3):
+                    try:
+                        url = "https://api.neynar.com/v2/farcaster/feed/user/casts"
+                        params = {"fid": fid, "limit": min(limit, 10)}
+                        
+                        resp = await client.get(url, headers=headers, params=params)
+                        
+                        if resp.status_code == 402:
+                            raise ValueError(
+                                "Neynar API: Payment Required (402). Tu API key no tiene crédito o no es válida. "
+                                "Verifica tu API key en https://neynar.com o actualiza tu plan."
+                            )
+                        
+                        if resp.status_code == 429:
+                            wait_time = 2.0 * (2 ** attempt)
+                            logger.warning(
+                                "Rate limit alcanzado (429) para usuario %s. Esperando %.1fs...", fid, wait_time
+                            )
+                            await asyncio.sleep(wait_time)
+                            continue  # Reintentar
+                        
+                        resp.raise_for_status()
+                        data = resp.json()
+                        
+                        for cast in data.get("casts", []):
+                            author = cast.get("author", {})
+                            all_casts.append(
+                            {
+                                    "hash": cast.get("hash"),
+                                    "text": cast.get("text", ""),
+                                "author": {
+                                        "username": author.get("username"),
+                                        "fid": author.get("fid"),
+                                        "custody_address": author.get("custody_address"),
                                 },
-                                "timestamp": cast.get("timestamp"),
-                                "channel_id": cast.get("thread", {}).get("channel", {}).get("id") or channel_id,
-                            }
-                        )
-                except httpx.HTTPStatusError as exc:
-                    if exc.response.status_code == 429:
-                        logger.warning("Rate limit (429) para usuario %s. Saltando...", fid)
-                        await asyncio.sleep(2.0)
-                    else:
-                        logger.warning("Error HTTP obteniendo casts del usuario %s: %s", fid, exc)
-                    continue
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning("Error obteniendo casts del usuario %s: %s", fid, exc)
-                    continue
+                                "reactions": {
+                                        "likes": cast.get("reactions", {}).get("likes_count", 0),
+                                        "recasts": cast.get("reactions", {}).get("recasts_count", 0),
+                                        "replies": cast.get("reactions", {}).get("replies_count", 0),
+                                    },
+                                    "timestamp": cast.get("timestamp"),
+                                    "channel_id": cast.get("thread", {}).get("channel", {}).get("id") or channel_id,
+                                }
+                            )
+                        break # Success, move to next user
+                        
+                    except httpx.HTTPStatusError as exc:
+                        if exc.response.status_code == 429:
+                            wait_time = 2.0 * (2 ** attempt)
+                            logger.warning("Rate limit (429) para usuario %s. Esperando %.1fs...", fid, wait_time)
+                            await asyncio.sleep(wait_time)
+                            continue
+                        else:
+                            logger.warning("Error HTTP obteniendo casts del usuario %s: %s", fid, exc)
+                            break # No reintentar otros errores HTTP
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning("Error obteniendo casts del usuario %s: %s", fid, exc)
+                        break
         
         # Ordenar por timestamp y limitar resultados
         all_casts.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
@@ -157,16 +164,34 @@ class FarcasterToolbox:
         url = "https://api.neynar.com/v2/farcaster/cast"
         params = {"identifier": cast_hash, "type": "hash"}
 
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(url, headers=headers, params=params)
-            
-            if resp.status_code == 402:
-                raise ValueError(
-                    "Neynar API: Payment Required (402). Tu API key no tiene crédito o no es válida."
-                )
-            
-            resp.raise_for_status()
-            data = resp.json()
+        # Retry logic for 429 Too Many Requests
+        max_retries = 3
+        base_delay = 2.0
+        
+        for attempt in range(max_retries):
+            async with httpx.AsyncClient(timeout=10) as client:
+                try:
+                    resp = await client.get(url, headers=headers, params=params)
+                    
+                    if resp.status_code == 429:
+                        wait_time = base_delay * (2 ** attempt)
+                        logger.warning("⚠️ Rate limit (429) en engagement. Esperando %.1fs...", wait_time)
+                        await asyncio.sleep(wait_time)
+                        continue
+
+                    if resp.status_code == 402:
+                        raise ValueError(
+                            "Neynar API: Payment Required (402). Tu API key no tiene crédito o no es válida."
+                        )
+                    
+                    resp.raise_for_status()
+                    data = resp.json()
+                    break # Success
+                except Exception as exc:
+                    if attempt == max_retries - 1:
+                        raise exc
+                    logger.warning("Error temporal en engagement: %s. Reintentando...", exc)
+                    await asyncio.sleep(1.0)
 
         cast = data.get("cast") or data.get("result", {}).get("cast")
         if not cast:

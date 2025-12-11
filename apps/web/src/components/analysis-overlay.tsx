@@ -95,7 +95,7 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
   const Icon = activeStep.icon;
 
   return (
-    <div className="absolute inset-0 bg-background/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-6">
+    <div className="fixed inset-0 bg-background/95 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm relative">
         <AnimatePresence mode="wait">
           <motion.div
