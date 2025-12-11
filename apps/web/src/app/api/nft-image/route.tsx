@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
                     height: "100%",
                     position: "relative",
                     backgroundColor: "#1a1a1a",
+                    fontFamily: "sans-serif",
                 }}
             >
                 {/* Background Image */}
@@ -62,157 +63,71 @@ export async function GET(request: NextRequest) {
                     }}
                 />
 
-                {/* Overlay Gradient for readability */}
+                {/* --- 1. TITLE (User Name) --- */}
+                {/* Positioned below the 'PREMIO' header */}
                 <div
                     style={{
                         position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        background: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.8) 100%)",
-                    }}
-                />
-
-                {/* Card Content Container */}
-                <div
-                    style={{
+                        top: 160,
+                        width: "80%",
                         display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        width: "88%",
-                        height: "90%",
-                        position: "relative",
-                        zIndex: 10,
-                        paddingTop: 30,
-                        paddingBottom: 40,
-                        border: "4px solid rgba(255, 215, 0, 0.3)",
-                        borderRadius: 24,
-                        boxShadow: "inset 0 0 20px rgba(0,0,0,0.5)",
+                        justifyContent: "center",
                     }}
                 >
-                    {/* Header: Logo and Title */}
-                    <div
+                    <h1
                         style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 10,
-                            width: "100%",
+                            fontSize: 36,
+                            fontWeight: 900,
+                            color: "#FFFFFF",
+                            textAlign: "center",
+                            textTransform: "uppercase",
+                            letterSpacing: "2px",
+                            textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(255, 215, 0, 0.6)",
+                            margin: 0,
+                            padding: "10px 20px",
+                            background: "rgba(0,0,0,0.4)", // Slight backing for readability
+                            borderRadius: 12,
+                            backdropFilter: "blur(2px)",
+                            border: "1px solid rgba(255,255,255,0.1)",
                         }}
                     >
-                        {/* Logo */}
-                        <img
-                            src={logoUrl}
-                            width="80"
-                            height="80"
-                            style={{
-                                objectFit: "contain",
-                                filter: "drop-shadow(0 0 5px rgba(255,255,255,0.5))",
-                            }}
-                        />
+                        {title}
+                    </h1>
+                </div>
 
-                        {/* Title */}
-                        <h1
-                            style={{
-                                fontSize: 42,
-                                fontWeight: "bold",
-                                color: "#fff",
-                                textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(255,215,0,0.5)",
-                                margin: 0,
-                                fontFamily: "sans-serif",
-                                textTransform: "uppercase",
-                                textAlign: "center",
-                                letterSpacing: "1px",
-                                maxWidth: "90%",
-                            }}
-                        >
-                            {title}
-                        </h1>
-                    </div>
-
-                    {/* Bottom Area: Description and Stats */}
+                {/* --- 2. TYPE BADGE --- */}
+                {/* Positioned above the bottom data panels */}
+                <div
+                    style={{
+                        position: "absolute",
+                        bottom: 200,
+                        display: "flex",
+                        justifyContent: "center",
+                    }}
+                >
                     <div
                         style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            width: "90%",
-                            background: "rgba(0, 0, 0, 0.75)",
-                            border: "2px solid rgba(255, 255, 255, 0.2)",
-                            borderRadius: 16,
-                            padding: "20px",
-                            gap: 15,
-                            backdropFilter: "blur(4px)",
+                            background: "linear-gradient(90deg, #FFD700 0%, #FDB931 100%)",
+                            padding: "6px 24px",
+                            borderRadius: 8,
+                            boxShadow: "0 4px 15px rgba(255, 215, 0, 0.3)",
+                            border: "1px solid rgba(255, 255, 255, 0.4)",
                         }}
                     >
-                        {/* Type Badge */}
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                background: "linear-gradient(90deg, #FFD700 0%, #FFA500 100%)",
-                                borderRadius: 8,
-                                padding: "4px 16px",
-                                marginTop: -30, // Pull up to overlap border
-                                boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
-                            }}
-                        >
-                            <span
-                                style={{
-                                    fontSize: 18,
-                                    color: "#000",
-                                    fontWeight: "bold",
-                                    fontFamily: "monospace",
-                                    textTransform: "uppercase",
-                                }}
-                            >
-                                {type}
-                            </span>
-                        </div>
-
-                        {/* Description Text */}
-                        <p
-                            style={{
-                                fontSize: 20,
-                                color: "#e0e0e0",
-                                textAlign: "center",
-                                lineHeight: 1.4,
-                                margin: 0,
-                                fontFamily: "serif",
-                                fontStyle: "italic",
-                                textShadow: "0 1px 2px rgba(0,0,0,0.8)",
-                            }}
-                        >
-                            "{description}"
-                        </p>
-
-                        {/* Rarity Footer */}
-                        <div
-                            style={{
-                                width: "100%",
-                                height: 2,
-                                background: "rgba(255,255,255,0.2)",
-                                margin: "5px 0",
-                            }}
-                        />
-
                         <span
                             style={{
-                                fontSize: 16,
-                                color: "#FFD700",
+                                fontSize: 20,
                                 fontWeight: "bold",
-                                fontFamily: "sans-serif",
-                                letterSpacing: "2px",
+                                color: "#000",
                                 textTransform: "uppercase",
+                                letterSpacing: "1px",
                             }}
                         >
-                            ★ {normalizedRarity} Edition ★
+                            {type}
                         </span>
                     </div>
                 </div>
+
             </div>
         ),
         {
