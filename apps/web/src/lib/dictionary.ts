@@ -11,7 +11,7 @@ export const dictionary = {
         hero_badge: "BETA PÚBLICA",
         hero_title: "Premios Virales en",
         hero_subtitle: "Farcaster",
-        hero_description: "Crea campañas de recompensas automáticas con Celo MiniPay. Recompensa a tus seguidores más activos con cUSD y NFTs exclusivos.",
+        hero_description: "Recompensas Virales en Farcaster",
         powered_by: "powered by",
 
         // Leaderboard
@@ -28,9 +28,15 @@ export const dictionary = {
 
         // Campaign Form
         form_action_placeholder: "Ingresa el enlace del cast de Farcaster...",
+        form_verify_btn: "Verificar Requisitos",
         form_analyze_btn: "Analizar y Reclamar",
-        form_analyzing: "Analizando...",
-        form_cooldown: "Vuelve en",
+        form_cooldown: "Enfriamiento:",
+        form_recharge_btn: "Recargar Energía",
+        form_energy_empty: "¡Sin Energía! 🔋",
+        form_energy_desc: "Debes esperar para el siguiente loot.",
+        form_energy_ask: "¿Quieres recargar instantáneamente?",
+        form_share_btn: "Compartir para Recargar",
+        form_wait_btn: "Esperar",
         form_error_no_url: "Por favor ingresa una URL válida",
         form_status_scan: "Escaneando...",
         form_status_analysis: "Analizando...",
@@ -94,6 +100,13 @@ export const dictionary = {
         form_status_verify: "Verifying...",
         form_status_send: "Sending...",
         form_status_done: "Done!",
+        form_verify_btn: "Verify Requirements",
+        form_recharge_btn: "Recharge Energy",
+        form_energy_empty: "Out of Energy! 🔋",
+        form_energy_desc: "You must wait for the next loot.",
+        form_energy_ask: "Want to recharge instantly?",
+        form_share_btn: "Share to Recharge",
+        form_wait_btn: "Wait",
 
         // Reward Types
         reward_nft: "Loot NFT",

@@ -40,7 +40,7 @@ export default function Home() {
       <div className="relative overflow-hidden bg-background/50 pb-8 pt-6 rounded-b-[2.5rem] shadow-2xl border-b border-white/5">
         <div className="container px-4 mx-auto max-w-md relative z-10">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-wider text-primary">
+            <div className="px-3 py-1 rounded-full bg-green-700/10 dark:bg-[#FCFF52]/10 border border-green-700/20 dark:border-[#FCFF52]/20 text-[10px] font-bold uppercase tracking-wider text-green-700 dark:text-[#FCFF52]">
               {t("hero_description")}
             </div>
           </div>

@@ -29,7 +29,7 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
       id: 3,
       label: "Viral Check", // Dynamic key wasn't added for all steps in dictionary, using fallback or reuse
       icon: Zap,
-      color: "text-yellow-400",
+      color: "text-amber-500 dark:text-yellow-400",
       logs: ["Engagement...", "Reach...", "Impact..."]
     },
     {
@@ -50,7 +50,7 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
       id: 6,
       label: t("overlay_step4"),
       icon: Loader2,
-      color: "text-[#FCFF52]",
+      color: "text-green-600 dark:text-[#FCFF52]",
       logs: ["Payload...", "Signing...", "Minting...", "Confirming..."]
     },
   ];
@@ -119,7 +119,7 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
 
             {/* Text Content */}
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight text-white">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground dark:text-white">
                 {activeStep.label}
               </h2>
               <div className="h-6">
@@ -132,9 +132,9 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
         </AnimatePresence>
 
         {/* Progress Bar */}
-        <div className="mt-12 w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+        <div className="mt-12 w-full bg-neutral-200 dark:bg-white/5 h-1.5 rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-[#FCFF52]"
+            className="h-full bg-green-600 dark:bg-[#FCFF52]"
             initial={{ width: "0%" }}
             animate={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
             transition={{ duration: 0.5 }}
@@ -146,7 +146,7 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
           {STEPS.map((step, idx) => (
             <div
               key={step.id}
-              className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${idx <= currentStep ? "bg-[#FCFF52]" : "bg-white/10"
+              className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${idx <= currentStep ? "bg-green-600 dark:bg-[#FCFF52]" : "bg-neutral-300 dark:bg-white/10"
                 }`}
             />
           ))}

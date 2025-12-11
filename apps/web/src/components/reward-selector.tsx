@@ -37,16 +37,16 @@ const OPTIONS: RewardOption[] = [
     title: "Reputation",
     value: "+100 XP",
     icon: Crown,
-    color: "text-yellow-400",
-    bg: "bg-yellow-500/10 border-yellow-500/20",
+    color: "text-amber-500 dark:text-yellow-400",
+    bg: "bg-amber-500/10 dark:bg-yellow-500/10 border-amber-500/20 dark:border-yellow-500/20",
   },
 ] as const;
 
-export function RewardSelector({ 
+export function RewardSelector({
   onSelect,
   userAnalysis,
   trendInfo
-}: { 
+}: {
   onSelect: (id: RewardType) => void | Promise<void>;
   userAnalysis?: AgentRunResponse["user_analysis"] | null;
   trendInfo?: AgentRunResponse["trend_info"] | null;
@@ -56,7 +56,7 @@ export function RewardSelector({
       <div className="text-center space-y-2">
         <h3 className="text-2xl font-bold text-white">¡Eres Elegible! 🎉</h3>
         <p className="text-sm text-muted-foreground">
-            Tus métricas de engagement son excelentes.<br/>Elige tu recompensa:
+          Tus métricas de engagement son excelentes.<br />Elige tu recompensa:
         </p>
       </div>
 
@@ -64,10 +64,10 @@ export function RewardSelector({
       {userAnalysis && (
         <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 text-[#FCFF52]" />
+            <Sparkles className="w-4 h-4 text-green-600 dark:text-[#FCFF52]" />
             <h5 className="text-sm font-bold text-foreground">Tu Análisis</h5>
           </div>
-          
+
           {/* Username y Score */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -83,12 +83,12 @@ export function RewardSelector({
               )}
             </div>
             {userAnalysis.score !== undefined && (
-              <div className="text-sm font-mono font-bold text-[#FCFF52]">
+              <div className="text-sm font-mono font-bold text-green-700 dark:text-[#FCFF52]">
                 {userAnalysis.score.toFixed(1)} pts
               </div>
             )}
           </div>
-          
+
           {/* Stats */}
           <div className="grid grid-cols-2 gap-2 text-xs">
             {userAnalysis.follower_count !== undefined && (
@@ -106,21 +106,21 @@ export function RewardSelector({
               </div>
             )}
           </div>
-          
+
           {/* Reasons */}
           {userAnalysis.reasons && userAnalysis.reasons.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {userAnalysis.reasons.map((reason, idx) => (
                 <span
                   key={idx}
-                  className="text-[9px] px-2 py-0.5 rounded-full bg-[#FCFF52]/10 text-[#FCFF52] border border-[#FCFF52]/20 uppercase"
+                  className="text-[9px] px-2 py-0.5 rounded-full bg-green-600/10 dark:bg-[#FCFF52]/10 text-green-700 dark:text-[#FCFF52] border border-green-600/20 dark:border-[#FCFF52]/20 uppercase"
                 >
                   {reason}
                 </span>
               ))}
             </div>
           )}
-          
+
           {/* Participación */}
           {userAnalysis.participation?.directly_participated && (
             <div className="text-[10px] text-green-400 flex items-center gap-1">
@@ -135,8 +135,8 @@ export function RewardSelector({
       {trendInfo && (
         <div className="p-3 rounded-lg bg-white/5 border border-white/10 space-y-2">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-3 h-3 text-[#FCFF52]" />
-            <span className="text-xs font-bold text-[#FCFF52] uppercase">Tendencia Detectada</span>
+            <TrendingUp className="w-3 h-3 text-green-600 dark:text-[#FCFF52]" />
+            <span className="text-xs font-bold text-green-700 dark:text-[#FCFF52] uppercase">Tendencia Detectada</span>
             {trendInfo.trend_score !== undefined && (
               <span className="text-[10px] font-mono text-muted-foreground ml-auto">
                 {(trendInfo.trend_score * 100).toFixed(0)}%
@@ -155,11 +155,10 @@ export function RewardSelector({
                   💡 {trendInfo.ai_analysis}
                 </span>
                 {trendInfo.ai_enabled !== undefined && (
-                  <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${
-                    trendInfo.ai_enabled 
-                      ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" 
+                  <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${trendInfo.ai_enabled
+                      ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
                       : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
-                  }`}>
+                    }`}>
                     {trendInfo.ai_enabled ? "🤖 AI" : "📊 Básico"}
                   </span>
                 )}
@@ -186,10 +185,10 @@ export function RewardSelector({
           <button
             key={opt.id}
             onClick={(e) => {
-                // Prevenir propagación para evitar cierres accidentales
-                e.stopPropagation();
-                e.preventDefault();
-                onSelect(opt.id);
+              // Prevenir propagación para evitar cierres accidentales
+              e.stopPropagation();
+              e.preventDefault();
+              onSelect(opt.id);
             }}
             className={cn(
               "flex items-center gap-4 p-4 rounded-xl border transition-all hover:scale-[1.02] active:scale-95 text-left cursor-pointer z-50 shadow-lg relative bg-background/80 backdrop-blur-md",
@@ -197,11 +196,11 @@ export function RewardSelector({
             )}
           >
             <div className={cn("p-3 rounded-full bg-black/20", opt.color)}>
-                <opt.icon className="w-6 h-6" />
+              <opt.icon className="w-6 h-6" />
             </div>
             <div>
-                <div className="font-bold text-lg text-white">{opt.value}</div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{opt.title}</div>
+              <div className="font-bold text-lg text-foreground dark:text-white">{opt.value}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{opt.title}</div>
             </div>
           </button>
         ))}

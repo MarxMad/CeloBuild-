@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Loader2, Send, Wallet, ExternalLink, Box, Sparkles, TrendingUp, Gift } from "lucide-react";
+import { Loader2, Send, Wallet, ExternalLink, Box, Sparkles, TrendingUp, Gift, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,6 +30,7 @@ export function TrendingCampaignForm() {
   const [result, setResult] = useState<AgentRunResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progressStep, setProgressStep] = useState<'idle' | 'scanning' | 'analyzing' | 'verifying' | 'sending' | 'completed'>('idle');
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
 
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -187,9 +188,9 @@ export function TrendingCampaignForm() {
         return (
           <div className="flex flex-col items-center justify-center py-10 space-y-6 animate-in fade-in zoom-in duration-500">
             <div className="relative">
-              <div className="absolute inset-0 bg-[#FCFF52]/20 rounded-full animate-ping" />
-              <div className="relative h-20 w-20 bg-black/50 rounded-full border border-[#FCFF52]/30 flex items-center justify-center backdrop-blur-md">
-                <TrendingUp className="h-10 w-10 text-[#FCFF52] animate-pulse" />
+              <div className="absolute inset-0 bg-green-500/20 dark:bg-[#FCFF52]/20 rounded-full animate-ping" />
+              <div className="relative h-20 w-20 bg-white/80 dark:bg-black/50 rounded-full border border-green-500/30 dark:border-[#FCFF52]/30 flex items-center justify-center backdrop-blur-md">
+                <TrendingUp className="h-10 w-10 text-green-600 dark:text-[#FCFF52] animate-pulse" />
               </div>
             </div>
             <div className="text-center space-y-2">
@@ -261,18 +262,18 @@ export function TrendingCampaignForm() {
           onComplete={() => setIsAnimationComplete(true)}
         />
       )}
-      <Card className="w-full bg-black/60 border-white/10 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(252,255,82,0.15)] overflow-hidden relative group ring-1 ring-white/5">
+      <Card className="w-full bg-white/80 dark:bg-black/60 border-neutral-200 dark:border-white/10 backdrop-blur-2xl shadow-xl dark:shadow-[0_0_50px_-12px_rgba(252,255,82,0.15)] overflow-hidden relative group ring-1 ring-black/5 dark:ring-white/5">
         <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-transparent opacity-50" />
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10" />
 
         <CardHeader className="relative z-10 pb-2">
           <CardTitle className="flex items-center gap-3 text-2xl text-white font-bold tracking-tight">
-            <div className="p-2 rounded-lg bg-[#FCFF52]/10 ring-1 ring-[#FCFF52]/20">
-              <Sparkles className="w-5 h-5 text-[#FCFF52] animate-pulse" />
+            <div className="p-2 rounded-lg bg-green-600/10 dark:bg-[#FCFF52]/10 ring-1 ring-green-600/20 dark:ring-[#FCFF52]/20">
+              <Sparkles className="w-5 h-5 text-green-600 dark:text-[#FCFF52] animate-pulse" />
             </div>
             Verificar Elegibilidad
           </CardTitle>
-          <CardDescription className="text-gray-400 text-base">
+          <CardDescription className="text-gray-500 dark:text-gray-400 text-base">
             {t("hero_description")}
           </CardDescription>
         </CardHeader>
@@ -299,9 +300,9 @@ export function TrendingCampaignForm() {
                       <div className="p-1.5 rounded-md bg-blue-500/10 text-blue-400">
                         <Wallet className="w-4 h-4" />
                       </div>
-                      <span className="text-sm text-gray-400 font-medium">Wallet</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Wallet</span>
                     </div>
-                    <span className="font-mono text-[#FCFF52] bg-[#FCFF52]/10 px-3 py-1 rounded-full text-xs border border-[#FCFF52]/20 shadow-[0_0_10px_rgba(252,255,82,0.1)]">
+                    <span className="font-mono text-green-700 dark:text-[#FCFF52] bg-green-600/10 dark:bg-[#FCFF52]/10 px-3 py-1 rounded-full text-xs border border-green-600/20 dark:border-[#FCFF52]/20 shadow-sm dark:shadow-[0_0_10px_rgba(252,255,82,0.1)]">
                       {address?.slice(0, 6)}...{address?.slice(-4)}
                     </span>
                   </div>
@@ -332,28 +333,102 @@ export function TrendingCampaignForm() {
               {isLoading && renderLoaderStep()}
 
               {!result && !isLoading && (
-                <Button
-                  className={`w-full font-black h-14 text-lg shadow-[0_0_30px_rgba(252,255,82,0.3)] transition-all duration-300 rounded-xl relative overflow-hidden group/btn ${cooldownRemaining && cooldownRemaining > 0
-                    ? "bg-gray-600 cursor-not-allowed hover:bg-gray-600 text-gray-300"
-                    : "bg-[#FCFF52] hover:bg-[#e6e945] text-black hover:shadow-[0_0_50px_rgba(252,255,82,0.5)]"
-                    }`}
-                  onClick={handleAnalyzeAndClaim}
-                  disabled={isLoading || (cooldownRemaining !== null && cooldownRemaining > 0)}
-                >
-                  {cooldownRemaining && cooldownRemaining > 0 ? (
-                    <div className="relative flex items-center justify-center gap-2">
-                      <span className="animate-pulse">⏳ {t("form_cooldown")} {formatTimeRemaining(cooldownRemaining)}</span>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+                <>
+                  <Button
+                    className={`w-full font-black h-14 text-lg shadow-lg dark:shadow-[0_0_30px_rgba(252,255,82,0.3)] transition-all duration-300 rounded-xl relative overflow-hidden group/btn ${cooldownRemaining && cooldownRemaining > 0
+                      ? "bg-amber-500 hover:bg-amber-600 dark:bg-orange-500 dark:hover:bg-orange-600 text-white animate-pulse"
+                      : "bg-green-600 dark:bg-[#FCFF52] hover:bg-green-700 dark:hover:bg-[#e6e945] text-white dark:text-black hover:shadow-xl dark:hover:shadow-[0_0_50px_rgba(252,255,82,0.5)]"
+                      }`}
+                    onClick={() => {
+                      if (cooldownRemaining && cooldownRemaining > 0) {
+                        setShowRechargeModal(true);
+                      } else {
+                        handleAnalyzeAndClaim();
+                      }
+                    }}
+                    disabled={isLoading}
+                  >
+                    {cooldownRemaining && cooldownRemaining > 0 ? (
                       <div className="relative flex items-center justify-center gap-2">
-                        <Gift className="h-5 w-5 group-hover/btn:rotate-12 transition-transform" />
-                        <span>{t("form_analyze_btn")}</span>
+                        <Zap className="h-5 w-5 fill-current" />
+                        <span>⚡ {t("form_recharge_btn")}</span>
                       </div>
-                    </>
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+                        <div className="relative flex items-center justify-center gap-2">
+                          <Gift className="h-5 w-5 group-hover/btn:rotate-12 transition-transform" />
+                          <span>{t("form_analyze_btn")}</span>
+                        </div>
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Recharge Modal Overlay */}
+                  {showRechargeModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                      <div className="bg-background border border-border w-full max-w-sm rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+
+                        {/* Background FX */}
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl" />
+
+                        <div className="text-center space-y-4 relative z-10">
+                          <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto border border-amber-500/20">
+                            <Zap className="w-8 h-8 text-amber-500" />
+                          </div>
+
+                          <div>
+                            <h3 className="text-xl font-bold text-foreground">¡Sin Energía! 🔋</h3>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Debes esperar <span className="font-mono font-bold text-amber-500">{formatTimeRemaining(cooldownRemaining || 0)}</span> para el siguiente loot.
+                            </p>
+                            <p className="text-sm font-medium text-foreground mt-4">
+                              ¿Quieres recargar instantáneamente?
+                            </p>
+                          </div>
+
+                          <div className="pt-2 space-y-3">
+                            <Button
+                              className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold gap-2"
+                              onClick={() => {
+                                // 1. Open Share
+                                const text = `¡Estoy ganando recompensas crypto en Premio.xyz! 🏆\n\nMira si eres elegible por tu actividad en Farcaster. 👇`;
+                                const embed = "https://celo-build-web-8rej.vercel.app";
+                                const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
+                                window.open(url, "_blank");
+
+                                // 2. Fake "Verification" delay then Reset
+                                setIsLoading(true); // Reuse loading state for a sec? prefer local loading
+                                const btn = document.getElementById('recharge-btn');
+                                if (btn) btn.innerText = "Verificando...";
+
+                                setTimeout(() => {
+                                  localStorage.removeItem("lootbox_last_claim");
+                                  setCooldownRemaining(null);
+                                  setShowRechargeModal(false);
+                                  setIsLoading(false);
+                                }, 3000);
+                              }}
+                              id="recharge-btn"
+                            >
+                              <TrendingUp className="w-4 h-4" />
+                              Compartir para Recargar
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              className="w-full text-muted-foreground hover:text-foreground"
+                              onClick={() => setShowRechargeModal(false)}
+                            >
+                              Esperar
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   )}
-                </Button>
+                </>
               )}
             </div>
           )}
@@ -373,6 +448,11 @@ export function TrendingCampaignForm() {
                 <div className="flex-1">
                   <h4 className="font-bold text-lg text-foreground">{getRewardDisplay(result.reward_type).title}</h4>
                   <p className="text-xs text-muted-foreground">{getRewardDisplay(result.reward_type).subtitle}</p>
+                  {result.reward_type === 'xp' && result.xp_granted !== undefined && result.xp_granted > 0 && (
+                    <div className="mt-1 px-3 py-1 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 rounded-full font-bold text-sm inline-block">
+                      +{result.xp_granted} XP
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -562,6 +562,7 @@ class RewardDistributorAgent:
             "reward_type": reward_type,
             "nft_images": nft_images if 'nft_images' in locals() else {},
             "error": self.last_mint_error if hasattr(self, "last_mint_error") else None,
+            "xp_granted": granted_xp if reward_type == "xp" and xp_awards else 0,
         }
 
     def _record_leaderboard(
@@ -574,8 +575,6 @@ class RewardDistributorAgent:
         metadata: dict[str, Any],
         reward_type: str,
         initial_xp_balances: dict[str, int],
-    ) -> None:
-        """Registra cada ganador en el leaderboard con su reward_type específico."""
     ) -> None:
         """Registra cada ganador en el leaderboard con su reward_type específico."""
         

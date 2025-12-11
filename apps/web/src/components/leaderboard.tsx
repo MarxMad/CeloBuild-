@@ -245,7 +245,7 @@ export function Leaderboard() {
         <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#FCFF52] flex-shrink-0" />
+              <TrendingUp className="w-4 h-4 text-green-600 dark:text-[#FCFF52] flex-shrink-0" />
               <CardTitle className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground">
                 {t("trends_title")}
               </CardTitle>
@@ -260,7 +260,7 @@ export function Leaderboard() {
             </button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-2 sm:space-y-3 px-3 sm:px-6 pb-4 sm:pb-6 max-h-[600px] sm:max-h-[700px] overflow-y-auto scrollbar-thin scrollbar-thumb-[#FCFF52]/20 scrollbar-track-transparent">
+        <CardContent className="space-y-2 sm:space-y-3 px-3 sm:px-6 pb-4 sm:pb-6 max-h-[600px] sm:max-h-[700px] overflow-y-auto scrollbar-thin scrollbar-thumb-green-600/20 dark:scrollbar-thumb-[#FCFF52]/20 scrollbar-track-transparent">
           {loading && (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
@@ -286,7 +286,7 @@ export function Leaderboard() {
             <div
               key={trend.frame_id || trend.cast_hash || index}
               className={`p-2.5 sm:p-3 rounded-lg sm:rounded-xl border mb-2 transition-all hover:scale-[1.01] ${index === 0
-                ? "bg-gradient-to-br from-[#FCFF52]/10 to-transparent border-[#FCFF52]/20 shadow-sm"
+                ? "bg-gradient-to-br from-green-600/10 dark:from-[#FCFF52]/10 to-transparent border-green-600/20 dark:border-[#FCFF52]/20 shadow-sm"
                 : "bg-white/5 border-white/10"
                 }`}
             >
@@ -294,14 +294,14 @@ export function Leaderboard() {
               <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-2 flex-wrap">
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                   {index === 0 && (
-                    <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#FCFF52] flex-shrink-0" />
+                    <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-green-600 dark:text-[#FCFF52] flex-shrink-0" />
                   )}
-                  <span className="text-[9px] sm:text-[10px] uppercase font-bold text-[#FCFF52] whitespace-nowrap">
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold text-green-700 dark:text-[#FCFF52] whitespace-nowrap">
                     {index + 1} {t("trend_rank")}
                   </span>
                 </div>
                 {trend.trend_score !== undefined && (
-                  <div className="text-[9px] sm:text-[10px] font-mono text-[#FCFF52] bg-[#FCFF52]/10 px-1.5 sm:px-2 py-0.5 rounded-full flex-shrink-0">
+                  <div className="text-[9px] sm:text-[10px] font-mono text-green-700 dark:text-[#FCFF52] bg-green-600/10 dark:bg-[#FCFF52]/10 px-1.5 sm:px-2 py-0.5 rounded-full flex-shrink-0">
                     {(trend.trend_score * 100).toFixed(0)}%
                   </div>
                 )}
@@ -335,7 +335,7 @@ export function Leaderboard() {
                   href={`https://warpcast.com/${trend.author_username || 'unknown'}/${trend.cast_hash || ''}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-[#FCFF52] hover:underline group/link"
+                  className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-green-700 dark:text-[#FCFF52] hover:underline group/link"
                 >
                   <Sparkles className="w-3 h-3 group-hover/link:animate-pulse" />
                   {t("trend_join")}
@@ -360,10 +360,10 @@ export function Leaderboard() {
           ))}
 
           {/* Tags de tendencias activas - Responsive */}
-          {activeTrends.map((trend) => (
+          {activeTrends.map((trend, index) => (
             <div
               key={trend.tag}
-              className="flex items-center justify-between p-2 sm:p-3 rounded-lg sm:rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-transparent hover:border-[#FCFF52]/30 hover:scale-[1.02]"
+              className="flex items-center justify-between p-2 sm:p-3 rounded-lg sm:rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-transparent hover:border-green-600/30 dark:hover:border-[#FCFF52]/30 hover:scale-[1.02]"
             >
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-xs sm:text-sm text-foreground truncate">
@@ -373,9 +373,11 @@ export function Leaderboard() {
                   {trend.posts} señales
                 </div>
               </div>
-              <div className="text-[9px] sm:text-[10px] uppercase font-bold text-[#FCFF52] bg-[#FCFF52]/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0 ml-2">
-                Loot activo
-              </div>
+              {index < 3 && (
+                <div className="text-[9px] sm:text-[10px] uppercase font-bold text-green-700 dark:text-[#FCFF52] bg-green-600/10 dark:bg-[#FCFF52]/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0 ml-2">
+                  #{index + 1}
+                </div>
+              )}
             </div>
           ))}
         </CardContent>
@@ -438,11 +440,11 @@ export function Leaderboard() {
                   </span>
                 </div>
               </div>
-              <div className="text-right">
-                <span className="text-xs font-mono text-[#FCFF52]">
-                  {winner.xp !== undefined ? `${winner.xp} XP` : "0 XP"}
+              {winner.xp !== undefined && (
+                <span className="text-xs font-mono text-green-600 dark:text-[#FCFF52]">
+                  +{winner.xp} XP
                 </span>
-              </div>
+              )}
             </div>
           ))}
         </CardContent>
