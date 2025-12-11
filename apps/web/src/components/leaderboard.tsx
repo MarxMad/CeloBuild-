@@ -71,169 +71,116 @@ export function Leaderboard() {
     }
   }, [cooldownRemaining]);
 
-  const handleRefresh = async () => {
-    if (cooldownRemaining !== null) return;
+  const refreshData = async () => {
+    setLoading(true);
+    // Clear cache to force fresh fetch
+    localStorage.removeItem("leaderboard_last_fetch");
+    localStorage.removeItem("leaderboard_entries");
+    localStorage.removeItem("leaderboard_trends");
 
-    setIsScanning(true);
+    // Calculate 12h cooldown for scanning (not fetching)
+    const lastScan = localStorage.getItem("lastTrendScanTime");
+    const now = Date.now();
+    const canScan = !lastScan || (now - parseInt(lastScan) > (6 * 60 * 60 * 1000));
+
     try {
-      const res = await fetch("/api/lootbox/scan", { method: "POST" });
-      if (res.ok) {
+      // 1. Trigger backend scan if allowed (background)
+      if (canScan) {
+        fetch("/api/lootbox/scan", { method: "POST" }).catch(e => console.error("Background scan failed", e));
         localStorage.setItem("lastTrendScanTime", Date.now().toString());
         setCooldownRemaining(6 * 60 * 60 * 1000);
-        // Reload data after a short delay to allow backend to save
-        setTimeout(() => {
-          // Force reload by triggering the fetch effect (or manually calling fetch)
-          window.location.reload(); // Simple way to refresh everything
-        }, 2000);
       }
+
+      // 2. Fetch fresh data immediatey
+      await fetchAllData();
+
     } catch (e) {
-      console.error("Scan failed", e);
+      console.error("Refresh failed", e);
     } finally {
-      setIsScanning(false);
+      setLoading(false);
     }
   };
 
-  // Load cached data on mount
-  useEffect(() => {
+  const fetchAllData = async () => {
     try {
-      const cachedEntries = localStorage.getItem("leaderboard_entries");
-      if (cachedEntries) {
-        setEntries(JSON.parse(cachedEntries));
-        setLoading(false);
+      console.log("Fetching fresh dashboard data...");
+      // Fetch leaderboard y trends en paralelo
+      const [leaderboardResp, trendsResp] = await Promise.all([
+        fetch("/api/lootbox/leaderboard?limit=30", { cache: "no-store" }),
+        fetch("/api/lootbox/trends?limit=5", { cache: "no-store" }),
+      ]);
+
+      // Success flag
+      let success = false;
+
+      // Procesar leaderboard
+      let leaderboardItems: LeaderboardEntry[] = [];
+      if (leaderboardResp.ok) {
+        const leaderboardData = await leaderboardResp.json();
+        leaderboardItems = (leaderboardData.items ?? []) as LeaderboardEntry[];
+
+        // Deduplicate items
+        const uniqueItems = Array.from(
+          new Map(leaderboardItems.map(item => [item.address.toLowerCase(), item])).values()
+        );
+
+        if (uniqueItems.length > 0) {
+          setEntries(uniqueItems);
+          localStorage.setItem("leaderboard_entries", JSON.stringify(uniqueItems));
+          success = true;
+        }
       }
 
-      const cachedTrends = localStorage.getItem("leaderboard_trends");
-      if (cachedTrends) {
-        setActiveTrends(JSON.parse(cachedTrends));
+      // Procesar trends
+      let trendsData: { items: TrendData[] } | null = null;
+      if (trendsResp.ok) {
+        trendsData = await trendsResp.json();
+        const trends = (trendsData?.items ?? []) as TrendData[];
+
+        if (trends.length > 0) {
+          setTrendDetails(trends);
+          localStorage.setItem("leaderboard_trend_details", JSON.stringify(trends));
+
+          const trendSummary = buildTrendSummaryFromTrends(trends);
+          setActiveTrends(trendSummary);
+          localStorage.setItem("leaderboard_trends", JSON.stringify(trendSummary));
+        } else if (trendDetails.length === 0) {
+          const fallbackTrends = buildTrendSummary(leaderboardItems);
+          setActiveTrends(fallbackTrends);
+        }
+      } else {
+        if (trendDetails.length === 0) {
+          setActiveTrends(buildTrendSummary(leaderboardItems));
+        }
       }
 
-      const cachedTrendDetails = localStorage.getItem("leaderboard_trend_details");
-      if (cachedTrendDetails) {
-        setTrendDetails(JSON.parse(cachedTrendDetails));
+      if (success) {
+        localStorage.setItem("leaderboard_last_fetch", Date.now().toString());
       }
-    } catch (e) {
-      console.warn("Error loading cache", e);
+
+    } catch (error) {
+      console.error(error);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Smart Caching Logic (12h)
-        // Only fetch if data is stale or missing
-        const lastFetch = localStorage.getItem("leaderboard_last_fetch");
-        const now = Date.now();
-        const twelveHours = 12 * 60 * 60 * 1000;
+    const init = async () => {
+      // Smart Caching Logic (12h)
+      const lastFetch = localStorage.getItem("leaderboard_last_fetch");
+      const now = Date.now();
+      const twelveHours = 12 * 60 * 60 * 1000;
+      const hasCachedEntries = !!localStorage.getItem("leaderboard_entries");
 
-        const hasCachedEntries = !!localStorage.getItem("leaderboard_entries");
-        const hasCachedTrends = !!localStorage.getItem("leaderboard_trends");
-
-        // If we have data and it's fresh enough (less than 12h old), skip fetch
-        if (lastFetch && (now - parseInt(lastFetch) < twelveHours) && hasCachedEntries && hasCachedTrends) {
-          console.log("Using cached dashboard data (fresh < 12h)");
-          setLoading(false);
-          return;
-        }
-
-        console.log("Fetching fresh dashboard data...");
-        // Fetch leaderboard y trends en paralelo
-        const [leaderboardResp, trendsResp] = await Promise.all([
-          fetch("/api/lootbox/leaderboard?limit=30", { cache: "no-store" }),
-          fetch("/api/lootbox/trends?limit=5", { cache: "no-store" }),
-        ]);
-
-        // Success flag
-        let success = false;
-
-        // Procesar leaderboard y guardar datos para reutilizar
-        let leaderboardItems: LeaderboardEntry[] = [];
-        if (leaderboardResp.ok) {
-          const leaderboardData = await leaderboardResp.json();
-          leaderboardItems = (leaderboardData.items ?? []) as LeaderboardEntry[];
-
-          // Deduplicate items by address (frontend safety net)
-          const uniqueItems = Array.from(
-            new Map(leaderboardItems.map(item => [item.address.toLowerCase(), item])).values()
-          );
-
-          if (uniqueItems.length > 0) {
-            setEntries(uniqueItems);
-            localStorage.setItem("leaderboard_entries", JSON.stringify(uniqueItems));
-            success = true;
-          }
-        }
-
-        // Procesar trends
-        let trendsData: { items: TrendData[] } | null = null;
-        if (trendsResp.ok) {
-          trendsData = await trendsResp.json();
-          const trends = (trendsData?.items ?? []) as TrendData[];
-
-          // Guardar detalles completos de tendencias
-          // FIX: En Vercel serverless, a veces recibimos [] si cae en una lambda nueva sin caché.
-          // Para evitar parpadeo, solo actualizamos si hay datos, o si es la carga inicial.
-          if (trends.length > 0) {
-            setTrendDetails(trends);
-            localStorage.setItem("leaderboard_trend_details", JSON.stringify(trends));
-
-            // Construir tendencias activas desde los trends detectados
-            const trendSummary = buildTrendSummaryFromTrends(trends);
-            setActiveTrends(trendSummary);
-            localStorage.setItem("leaderboard_trends", JSON.stringify(trendSummary));
-          } else if (trendDetails.length === 0) {
-            // Solo si no tenemos datos previos, usamos el fallback
-            const fallbackTrends = buildTrendSummary(leaderboardItems);
-            setActiveTrends(fallbackTrends);
-            // No guardamos fallback en cache para intentar obtener reales luego
-          }
-          // Si trends es [] pero ya tenemos trendDetails, mantenemos los viejos (cache visual)
-        } else {
-          // Fallback: usar leaderboard si trends falla y no tenemos datos
-          if (trendDetails.length === 0) {
-            setActiveTrends(buildTrendSummary(leaderboardItems));
-          }
-        }
-
-        // AUTO-SCAN: Si no hay trends y no hay cooldown, escanear automáticamente
-        // Esto soluciona el problema de "iniciando por primera vez no hay tendencias"
-        const lastScan = localStorage.getItem("lastTrendScanTime");
-        // reused 'now' from top
-        const canScan = !lastScan || (now - parseInt(lastScan) > (6 * 60 * 60 * 1000));
-
-        // Si no hay trends cargados (o son muy pocos) y podemos escanear
-        // FIX: Usar trendsData que ya fue leída, no intentar clonar response consumido
-        const trendsEmpty = !trendsResp.ok || (trendsData?.items?.length ?? 0) === 0;
-
-        if (canScan && trendsEmpty) {
-          console.log("🚀 Auto-scanning trends for first time user...");
-          // Trigger scan in background
-          fetch("/api/lootbox/scan", { method: "POST" }).then(res => {
-            if (res.ok) {
-              localStorage.setItem("lastTrendScanTime", Date.now().toString());
-              // Reload data after scan
-              setTimeout(() => window.location.reload(), 2000);
-            }
-          });
-        }
-
-        // Update fetch time on success
-        if (success) {
-          localStorage.setItem("leaderboard_last_fetch", Date.now().toString());
-        }
-
-      } catch (error) {
-        console.error(error);
-      } finally {
+      if (lastFetch && (now - parseInt(lastFetch) < twelveHours) && hasCachedEntries) {
+        console.log("Using cached dashboard data (fresh < 12h)");
         setLoading(false);
+        return;
       }
+
+      await fetchAllData();
+      setLoading(false);
     };
-
-    // Initial fetch
-    fetchData();
-
-    // Removed polling interval to reduce API usage and load
-    // const interval = setInterval(fetchData, 5000);
-    // return () => clearInterval(interval);
+    init();
   }, []);
 
   // Obtener hasta 5 tendencias más recientes
@@ -251,12 +198,12 @@ export function Leaderboard() {
               </CardTitle>
             </div>
             <button
-              onClick={handleRefresh}
-              disabled={isScanning || cooldownRemaining !== null}
+              onClick={refreshData}
+              disabled={loading || cooldownRemaining !== null}
               className="p-1.5 rounded-full hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title={cooldownRemaining ? `${t("trends_available_in")} ${Math.ceil(cooldownRemaining / (1000 * 60 * 60))}h` : t("trends_refresh")}
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${isScanning ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${loading ? "animate-spin" : ""}`} />
             </button>
           </div>
         </CardHeader>
@@ -385,11 +332,21 @@ export function Leaderboard() {
 
       <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-yellow-500" />
-            <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              {t("leaderboard_title")}
-            </CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-yellow-500" />
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                {t("leaderboard_title")}
+              </CardTitle>
+            </div>
+            <button
+              onClick={refreshData}
+              disabled={loading}
+              className="p-1.5 rounded-full hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title={t("trends_refresh")}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${loading ? "animate-spin" : ""}`} />
+            </button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3 max-h-[600px] sm:max-h-[700px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
@@ -449,7 +406,7 @@ export function Leaderboard() {
           ))}
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }
 
