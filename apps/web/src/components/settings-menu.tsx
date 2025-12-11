@@ -36,32 +36,32 @@ export function SettingsMenu() {
             </Button>
 
             {isOpen && (
-                <div className="absolute right-0 sm:right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-popover ring-1 ring-black ring-opacity-5 focus:outline-none z-50 animate-in fade-in zoom-in-95 duration-200 border border-neutral-200 dark:border-white/10 origin-top-right">
+                <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-popover ring-1 ring-black ring-opacity-5 focus:outline-none z-50 animate-in fade-in zoom-in-95 duration-200 border border-neutral-200 dark:border-white/10 origin-top-left">
                     <div className="py-1">
-                        <div className="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                        <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-neutral-400 uppercase tracking-wider">
                             {t('settings_lang')}
                         </div>
                         <button
                             onClick={() => { setLocale('es'); setIsOpen(false); }}
-                            className={`block w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-900 dark:text-neutral-100 ${locale === 'es' ? 'bg-neutral-50 dark:bg-neutral-800/50 font-medium' : ''}`}
+                            className={`block w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-black dark:text-neutral-100 ${locale === 'es' ? 'bg-neutral-50 dark:bg-neutral-800/50 font-medium' : ''}`}
                         >
                             🇪🇸 Español
                         </button>
                         <button
                             onClick={() => { setLocale('en'); setIsOpen(false); }}
-                            className={`block w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-900 dark:text-neutral-100 ${locale === 'en' ? 'bg-neutral-50 dark:bg-neutral-800/50 font-medium' : ''}`}
+                            className={`block w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-black dark:text-neutral-100 ${locale === 'en' ? 'bg-neutral-50 dark:bg-neutral-800/50 font-medium' : ''}`}
                         >
                             🇺🇸 English
                         </button>
 
                         <div className="border-t border-neutral-200 dark:border-white/10 my-1" />
 
-                        <div className="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                        <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-neutral-400 uppercase tracking-wider">
                             Theme
                         </div>
                         <button
                             onClick={() => { toggleTheme(); }}
-                            className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-900 dark:text-neutral-100"
+                            className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-black dark:text-neutral-100"
                         >
                             {theme === 'dark' ? (
                                 <>
