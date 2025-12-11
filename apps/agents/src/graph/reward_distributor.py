@@ -242,6 +242,10 @@ class RewardDistributorAgent:
                         )
                         minted[address] = tx_hash
                         
+                        # SERIALIZATION FIX: Esperar confirmación para evitar race conditions de nonce/gas
+                        logger.info("Esperando confirmación de NFT mint para %s...", address)
+                        self.celo_tool.wait_for_receipt(tx_hash)
+                        
                         # También otorgar XP como bonus
                         try:
                             import time
@@ -255,6 +259,11 @@ class RewardDistributorAgent:
                                 amount=self.settings.xp_reward_amount,
                             )
                             logger.info("XP bonus otorgado exitosamente: %s", tx_xp)
+                            
+                            # SERIALIZATION FIX: Esperar confirmación de XP también
+                            logger.info("Esperando confirmación de XP bonus...")
+                            self.celo_tool.wait_for_receipt(tx_xp)
+                            
                             xp_awards[address] = "bonus_with_nft"
                         except Exception as xp_exc:
                             logger.warning("Fallo otorgando XP bonus con NFT: %s", xp_exc)

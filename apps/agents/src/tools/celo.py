@@ -34,6 +34,15 @@ class CeloToolbox:
         if self.private_key:
             self.account = self.web3.eth.account.from_key(self.private_key)
 
+    def wait_for_receipt(self, tx_hash: str, timeout: int = 30) -> Any:
+        """Espera a que una transacción sea minada."""
+        try:
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=timeout)
+            return receipt
+        except Exception as e:
+            logger.warning(f"Timeout o error esperando receipt para {tx_hash}: {e}")
+            return None
+
     def get_balance(self, address: str) -> float:
         """Devuelve el balance nativo en CELO."""
         wei = self.web3.eth.get_balance(address)

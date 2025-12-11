@@ -418,7 +418,15 @@ async def trigger_scan():
             "trend_score": 0.0,
         }
         
+        import time
+        start_time = time.time()
+        
         result = await active_supervisor.run(payload)
+        
+        end_time = time.time()
+        duration = end_time - start_time
+        logger.info(f"⏱️ Total Execution Time: {duration:.2f} seconds")
+        
         return {
             "status": "success",
             "summary": result.summary,
@@ -426,6 +434,7 @@ async def trigger_scan():
             "explorer_url": result.explorer_url,
             "mode": result.mode,
             "reward_type": result.reward_type,
+            "execution_time_ms": int(duration * 1000),
         }
     except Exception as exc:
         import logging
