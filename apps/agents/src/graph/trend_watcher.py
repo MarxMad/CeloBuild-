@@ -55,54 +55,64 @@ class TrendWatcherAgent:
             }
 
         # --- ESTRATEGIA DUAL: Viral + Comunitario ---
-        # 1. Fetch Viral Trends (Top Score)
+        # --- ESTRATEGIA MIXTA: Viral + Community + Fresh ---
+        # 1. Fetch Viral Trends (High Score Candidates)
         logger.info("Consultando tendencias virales de Neynar (canal=%s)...", channel_id)
         viral_casts = []
         try:
             viral_casts = await self.farcaster.fetch_trending_feed(
                 channel_id=channel_id, 
-                limit=10, 
+                limit=25, 
                 time_window="24h"
             )
         except Exception as exc:
             logger.warning("⚠️ Error obteniendo trending feed: %s", exc)
 
-        # 2. Fetch Community Targets (Low Score / Verified Users)
-        target_users = ["oyealmond.base.eth", "celopg", "muchogang", "kmacb.eth"]
+        # 2. Fetch Community Targets (Mid Score Candidates)
+        target_users = ["oyealmond.base.eth", "celopg", "muchogang", "kmacb.eth", "jesse.xyz"]
         logger.info("Consultando casts de usuarios comunitarios: %s", target_users)
         community_casts = []
         try:
-            # Seleccionar 2 usuarios al azar cada vez para variedad
+            # Seleccionar 3 usuarios al azar
             import random
-            selected_users = random.sample(target_users, min(2, len(target_users)))
-            community_casts = await self.farcaster.fetch_casts_from_users(selected_users, limit_per_user=2)
+            selected_users = random.sample(target_users, min(3, len(target_users)))
+            community_casts = await self.farcaster.fetch_casts_from_users(selected_users, limit_per_user=3)
         except Exception as exc:
             logger.warning("⚠️ Error obteniendo community casts: %s", exc)
 
-        # 3. Fallback: Recent Casts (si falla todo lo anterior)
-        fallback_casts = []
-        if not viral_casts and not community_casts:
-             logger.warning("⚠️ Fallback a recent casts.")
-             fallback_casts = await self.farcaster.fetch_recent_casts(channel_id=channel_id, limit=20)
+        # 3. Fetch Recent Casts (Low Score / Fresh Candidates)
+        # Always fetch recent to allow "new/low score" discovery
+        logger.info("Consultando casts recientes (Fresh/Low score)...")
+        recent_casts = []
+        try:
+            recent_casts = await self.farcaster.fetch_recent_casts(channel_id=channel_id, limit=20)
+        except Exception as exc:
+             logger.warning("⚠️ Error obteniendo recent casts: %s", exc)
         
         # Combinar pools
-        all_candidates = viral_casts + community_casts + fallback_casts
+        all_candidates = viral_casts + community_casts + recent_casts
         
         if not all_candidates:
             return {"status": "no_trends_found", **base_context}
             
         # Scoring para unificar criterios
         scored_casts = []
+        seen_hashes = set()
+
         for candidate in all_candidates:
+            c_hash = candidate.get("hash")
+            if c_hash in seen_hashes:
+                continue
+            seen_hashes.add(c_hash)
+
             # Si es targeted, ya tiene flag. Si no, calcular score.
             is_targeted = candidate.get("is_targeted", False)
             candidate_score = self._score_cast(candidate)
             
-            # Boost artificial a los targeted para que no queden muy abajo en validaciones internas,
-            # aunque la selección final forzará su inclusión.
+            # Boost artificial a los targeted
             final_score = candidate_score
             if is_targeted:
-                final_score = max(candidate_score, 0.4) # Asegurar un mínimo de respetabilidad
+                final_score = max(candidate_score, 0.45) 
 
             scored_casts.append(
                 {
@@ -112,42 +122,43 @@ class TrendWatcherAgent:
                 }
             )
 
-        # Ordenar por score real para los virales
-        viral_pool = sorted([c for c in scored_casts if not c.get("is_targeted")], key=lambda x: x["trend_score"], reverse=True)
-        target_pool = [c for c in scored_casts if c.get("is_targeted")]
-        
-        # --- SELECCIÓN MIXTA (Top 3 Virales + 2 Comunitarios) ---
+        # --- SELECCIÓN POR NIVELES (TIERS) ---
+        # Clasificar
+        high_tier = [c for c in scored_casts if c["trend_score"] >= 0.7]
+        mid_tier = [c for c in scored_casts if 0.3 <= c["trend_score"] < 0.7]
+        low_tier = [c for c in scored_casts if c["trend_score"] < 0.3]
+
+        # Ordenar cada tier
+        high_tier.sort(key=lambda x: x["trend_score"], reverse=True)
+        mid_tier.sort(key=lambda x: x["trend_score"], reverse=True)
+        low_tier.sort(key=lambda x: x["trend_score"], reverse=True)
+
         final_selection = []
-        seen_ids = set()
+        
+        # Objetivos: 3 High, 4 Mid, 3 Low = 10 Total
+        # High (Virales Top)
+        final_selection.extend(high_tier[:3])
+        
+        # Mid (Comunidad/Viral Medio)
+        final_selection.extend(mid_tier[:4])
+        
+        # Low (Nuevos/Emergentes)
+        final_selection.extend(low_tier[:3])
 
-        def add_cast(cast):
-            # Deduplicar por hash y autor
-            auth_id = cast.get("author", {}).get("fid")
-            cast_hash = cast.get("hash")
-            if cast_hash not in seen_ids and auth_id not in seen_ids: # Evitar repetir usuario en la misma lista
-                final_selection.append(cast)
-                seen_ids.add(cast_hash)
-                seen_ids.add(auth_id)
-
-        # 1. Agregar Top 3 Virales
-        for cast in viral_pool:
-            if len(final_selection) >= 3:
-                break
-            add_cast(cast)
+        # Rellenar si faltan (backfill)
+        current_count = len(final_selection)
+        target_count = 10
+        
+        if current_count < target_count:
+            remaining = target_count - current_count
+            # Prioridad para rellenar: Mid -> High -> Low
+            backfill_pool = mid_tier[4:] + high_tier[3:] + low_tier[3:]
+            final_selection.extend(backfill_pool[:remaining])
             
-        # 2. Agregar 2 Comunitarios (Targeted)
-        # Randomize community pool to show different targeted casts
-        random.shuffle(target_pool)
-        for cast in target_pool:
-            if len(final_selection) >= 5:
-                break
-            add_cast(cast)
-            
-        # 3. Rellenar si falta (backfill con más virales)
-        for cast in viral_pool:
-            if len(final_selection) >= 5:
-                break
-            add_cast(cast)
+        # Ordenar selección final por score para visualización coherente (o shuffle si se prefiere mezcla)
+        # El usuario pidió "mostrar unos 10 post, entre virales de alto puntaje, bajo puntaje y medio"
+        # Ordenar descendente es lo estándar.
+        final_selection.sort(key=lambda x: x["trend_score"], reverse=True)
 
         # Procesar selección final
         detected_trends = []

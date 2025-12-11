@@ -111,7 +111,7 @@ export function Leaderboard() {
       // Fetch leaderboard y trends en paralelo
       const [leaderboardResp, trendsResp] = await Promise.all([
         fetch("/api/lootbox/leaderboard?limit=30", { cache: "no-store" }),
-        fetch("/api/lootbox/trends?limit=5", { cache: "no-store" }),
+        fetch("/api/lootbox/trends?limit=10", { cache: "no-store" }),
       ]);
 
       // Success flag
@@ -187,8 +187,8 @@ export function Leaderboard() {
     init();
   }, []);
 
-  // Obtener hasta 5 tendencias más recientes
-  const topTrends = trendDetails.slice(0, 5);
+  // Obtener hasta 10 tendencias más recientes
+  const topTrends = trendDetails.slice(0, 10);
 
   return (
     <div className="grid gap-4 sm:gap-6 md:grid-cols-2 animate-in fade-in slide-in-from-bottom-8 duration-700">
