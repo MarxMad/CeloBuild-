@@ -117,11 +117,31 @@ export function Leaderboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Smart Caching Logic (12h)
+        // Only fetch if data is stale or missing
+        const lastFetch = localStorage.getItem("leaderboard_last_fetch");
+        const now = Date.now();
+        const twelveHours = 12 * 60 * 60 * 1000;
+
+        const hasCachedEntries = !!localStorage.getItem("leaderboard_entries");
+        const hasCachedTrends = !!localStorage.getItem("leaderboard_trends");
+
+        // If we have data and it's fresh enough (less than 12h old), skip fetch
+        if (lastFetch && (now - parseInt(lastFetch) < twelveHours) && hasCachedEntries && hasCachedTrends) {
+          console.log("Using cached dashboard data (fresh < 12h)");
+          setLoading(false);
+          return;
+        }
+
+        console.log("Fetching fresh dashboard data...");
         // Fetch leaderboard y trends en paralelo
         const [leaderboardResp, trendsResp] = await Promise.all([
-          fetch("/api/lootbox/leaderboard?limit=50", { cache: "no-store" }),
+          fetch("/api/lootbox/leaderboard?limit=30", { cache: "no-store" }),
           fetch("/api/lootbox/trends?limit=5", { cache: "no-store" }),
         ]);
+
+        // Success flag
+        let success = false;
 
         // Procesar leaderboard y guardar datos para reutilizar
         let leaderboardItems: LeaderboardEntry[] = [];
@@ -137,6 +157,7 @@ export function Leaderboard() {
           if (uniqueItems.length > 0) {
             setEntries(uniqueItems);
             localStorage.setItem("leaderboard_entries", JSON.stringify(uniqueItems));
+            success = true;
           }
         }
 
@@ -194,6 +215,11 @@ export function Leaderboard() {
           });
         }
 
+        // Update fetch time on success
+        if (success) {
+          localStorage.setItem("leaderboard_last_fetch", Date.now().toString());
+        }
+
       } catch (error) {
         console.error(error);
       } finally {
@@ -204,9 +230,9 @@ export function Leaderboard() {
     // Initial fetch
     fetchData();
 
-    // Refrescar cada 5 segundos para sensación de tiempo real
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
+    // Removed polling interval to reduce API usage and load
+    // const interval = setInterval(fetchData, 5000);
+    // return () => clearInterval(interval);
   }, []);
 
   // Obtener hasta 5 tendencias más recientes

@@ -33,6 +33,24 @@ class RewardDistributorAgent:
             else None
         )
 
+    def _calculate_dynamic_xp(self, user_score: float) -> int:
+        """Calcula XP dinámico basado en el score de viralidad.
+        Fórmula: max(10, int(user_score * 2.5))
+        Ej: Score 20 -> 50 XP
+        Ej: Score 50 -> 125 XP
+        Ej: Score 80 -> 200 XP
+        """
+        try:
+            # Asegurar que user_score sea float
+            score = float(user_score)
+            # Calcular dinámicamente
+            dynamic_amount = int(score * 2.5)
+            # Floor mínimo de 10 XP para evitar 0 o negativos
+            return max(10, dynamic_amount)
+        except (ValueError, TypeError):
+            # Fallback al valor por defecto si el score no es válido
+            return self.settings.xp_reward_amount
+
     async def handle(self, eligibility: dict[str, Any]) -> dict[str, Any]:
         """Ejecuta la distribución de recompensas on-chain."""
         self.last_mint_error = None
@@ -255,12 +273,16 @@ class RewardDistributorAgent:
                             import time
                             # Esperar más tiempo para asegurar propagación del nonce tras el minteo
                             time.sleep(5)
-                            logger.info("Otorgando XP bonus a %s junto con NFT...", address)
+                            
+                            # Calcular XP dinámico
+                            xp_amount = self._calculate_dynamic_xp(user_score)
+                            logger.info("Otorgando XP bonus (%d) a %s junto con NFT...", xp_amount, address)
+                            
                             tx_xp = self.celo_tool.grant_xp(
                                 registry_address=self.settings.registry_address,
                                 campaign_id=campaign_id,
                                 participant=address,
-                                amount=self.settings.xp_reward_amount,
+                                amount=xp_amount,
                             )
                             logger.info("XP bonus otorgado exitosamente: %s", tx_xp)
                             
@@ -304,12 +326,15 @@ class RewardDistributorAgent:
                 else:
                     # Tier 3: XP para scores bajos pero elegibles
                     try:
-                        logger.info("Otorgando XP (tier 3) a %s (score: %.2f)...", address, user_score)
+                        # XP dinámico
+                        xp_amount = self._calculate_dynamic_xp(user_score)
+                        logger.info("Otorgando XP (tier 3, %d XP) a %s (score: %.2f)...", xp_amount, address, user_score)
+                        
                         tx_hash = self.celo_tool.grant_xp(
                             registry_address=self.settings.registry_address,
                             campaign_id=campaign_id,
                             participant=address,
-                            amount=self.settings.xp_reward_amount,
+                            amount=xp_amount,
                         )
                         xp_awards[address] = tx_hash
                     except Exception as exc:  # noqa: BLE001
@@ -328,12 +353,17 @@ class RewardDistributorAgent:
         elif reward_type == "xp":
             for address in recipients:
                 try:
-                    logger.info("Otorgando XP a %s...", address)
+                    # Buscar score
+                    user_info = next((r for r in rankings if r["address"] == address), {})
+                    user_score = user_info.get("score", 0.0)
+                    xp_amount = self._calculate_dynamic_xp(user_score)
+                    
+                    logger.info("Otorgando XP (%d) a %s...", xp_amount, address)
                     tx_hash = self.celo_tool.grant_xp(
                         registry_address=self.settings.registry_address,
                         campaign_id=campaign_id,
                         participant=address,
-                        amount=self.settings.xp_reward_amount,
+                        amount=xp_amount,
                     )
                     xp_awards[address] = tx_hash
                 except Exception as exc:  # noqa: BLE001
@@ -455,11 +485,16 @@ class RewardDistributorAgent:
                     
                     # También otorgar XP como bonus
                     try:
+                        # Buscar score ya obtenido arriba
+                        # user_info = ... (ya estÃ¡ definido)
+                        user_score = user_info.get("score", 0.0)
+                        xp_amount = self._calculate_dynamic_xp(user_score)
+                        
                         self.celo_tool.grant_xp(
                             registry_address=self.settings.registry_address,
                             campaign_id=campaign_id,
                             participant=address,
-                            amount=self.settings.xp_reward_amount,
+                            amount=xp_amount,
                         )
                         xp_awards[address] = "bonus_with_nft"
                     except Exception as xp_exc:
@@ -541,11 +576,17 @@ class RewardDistributorAgent:
         initial_xp_balances: dict[str, int],
     ) -> None:
         """Registra cada ganador en el leaderboard con su reward_type específico."""
-        # Define granted_xp amount locally since it's constant from settings
-        granted_xp = self.settings.xp_reward_amount
-
+    ) -> None:
+        """Registra cada ganador en el leaderboard con su reward_type específico."""
+        
         for entry in rankings:
             address = entry["address"]
+            
+            # Calcular XP dinámico también aquí para el registro local
+            user_score = entry.get("score", 0.0)
+            granted_xp = self._calculate_dynamic_xp(user_score)
+            
+            tx_hash = None
             tx_hash = None
             entry_reward_type = reward_type  # Default al tipo general
             
