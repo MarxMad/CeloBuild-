@@ -2,10 +2,11 @@
   "name": "Premio.xyz",
   "short_name": "Premio",
   "description": "Recompensas virales en Farcaster con Celo MiniPay",
-  "start_url": "/",
+  "start_url": "/?v=1.2",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#FCFF52",
+  "version": "1.2",
   "icons": [
     {
       "src": "/PremioxyzLogo.svg",
