@@ -480,6 +480,11 @@ async def run_lootbox(event: LootboxEvent):
                 detail=error_msg
             )
             
+            
+        # Ejecutar el supervisor
+        payload = event.model_dump()
+        result = await active_supervisor.run(payload)
+
         from fastapi.encoders import jsonable_encoder
         
         response_data = {
