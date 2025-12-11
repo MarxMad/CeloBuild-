@@ -7,6 +7,9 @@ from ..stores.trends import TrendsStore, default_trends_store
 from .eligibility import EligibilityAgent
 from .reward_distributor import RewardDistributorAgent
 from .trend_watcher import TrendWatcherAgent
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
