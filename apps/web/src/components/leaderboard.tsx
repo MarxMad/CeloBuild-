@@ -363,10 +363,10 @@ export function Leaderboard() {
             </CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 max-h-[600px] sm:max-h-[700px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           {loading && (
             <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
+              {[...Array(10)].map((_, i) => (
                 <div key={i} className="flex items-center justify-between p-2 animate-pulse">
                   <div className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-full bg-white/10" />
@@ -400,7 +400,10 @@ export function Leaderboard() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">
-                    {winner.username ?? winner.address.slice(0, 6)}
+                    {winner.username
+                      ? `@${winner.username.replace(/^@/, '')}`
+                      : `${winner.address.slice(0, 6)}...${winner.address.slice(-4)}`
+                    }
                   </span>
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                     {rewardLabel[winner.reward_type ?? "pending"] ?? "Pendiente"}

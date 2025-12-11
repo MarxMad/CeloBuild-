@@ -109,7 +109,7 @@ class LeaderboardSyncer:
                     xp = 0
                 
                 # Get User Info (Async - Non-blocking)
-                username = f"User {participant[:6]}"
+                username = None
                 fid = None
                 
                 try:
