@@ -52,12 +52,12 @@ class LeaderboardSyncer:
             if from_block > current_block:
                 from_block = current_block - 1000
             
-            chunk_size = 50000 # Increased chunk size for faster scanning
+            chunk_size = 10000 # Reduced chunk size for stability
             
             logger.info(f"Fetching logs from {from_block} to {current_block} (chunks of {chunk_size})")
             
             # 1. Parallel Log Fetching
-            rpc_sem = asyncio.Semaphore(5) # Limit concurrent RPC calls to avoid simple rate limits
+            rpc_sem = asyncio.Semaphore(3) # Reduce concurrent RPC calls to avoid disconnects
 
             def fetch_chunk_blocking(s, e):
                 # Helper for clean blocking call
