@@ -390,7 +390,7 @@ export function Leaderboard() {
               </div>
               <div className="text-right">
                 <span className="text-xs font-mono text-[#FCFF52]">
-                  {winner.xp !== undefined ? `${winner.xp} XP` : `${Number(winner.score ?? 0).toFixed(0)} Score`}
+                  {winner.xp !== undefined ? `${winner.xp} XP` : "0 XP"}
                 </span>
               </div>
             </div>
