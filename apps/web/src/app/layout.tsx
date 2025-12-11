@@ -5,6 +5,8 @@ import './globals.css';
 import { Navbar } from '@/components/navbar';
 import { WalletProvider } from "@/components/wallet-provider"
 import { FarcasterProvider } from "@/components/farcaster-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { LanguageProvider } from "@/components/language-provider";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -77,14 +79,18 @@ export default function RootLayout({
       <body className={inter.className}>
         {/* Navbar is included on all pages */}
         <div className="relative flex min-h-screen flex-col">
-          <FarcasterProvider>
-            <WalletProvider>
-              <Navbar />
-              <main className="flex-1">
-                {children}
-              </main>
-            </WalletProvider>
-          </FarcasterProvider>
+          <LanguageProvider>
+            <ThemeProvider>
+              <FarcasterProvider>
+                <WalletProvider>
+                  <Navbar />
+                  <main className="flex-1">
+                    {children}
+                  </main>
+                </WalletProvider>
+              </FarcasterProvider>
+            </ThemeProvider>
+          </LanguageProvider>
         </div>
       </body>
     </html>

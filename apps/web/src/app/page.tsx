@@ -13,8 +13,10 @@ import { AgentVis } from "@/components/agent-vis";
 import { Leaderboard } from "@/components/leaderboard";
 import { cn } from "@/lib/utils";
 import { sdk } from "@farcaster/miniapp-sdk";
+import { useLanguage } from "@/components/language-provider";
 
 export default function Home() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"app" | "guide">("app");
 
   // Asegurar que ready() se llama cuando el contenido está completamente renderizado
@@ -39,7 +41,7 @@ export default function Home() {
         <div className="container px-4 mx-auto max-w-md relative z-10">
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-wider text-primary">
-              Recompensas virales en Farcaster
+              {t("hero_description")}
             </div>
           </div>
 
@@ -52,7 +54,7 @@ export default function Home() {
             />
           </div>
           <div className="flex items-center justify-center gap-2 mb-6 opacity-80">
-            <span className="text-gray-400 text-sm">powered by</span>
+            <span className="text-gray-400 text-sm">{t("powered_by")}</span>
             <img
               src="/utonoma-full-logo.svg"
               alt="Utonoma"
@@ -85,7 +87,7 @@ export default function Home() {
             )}
           >
             <PlayCircle className="w-4 h-4" />
-            Recompensas
+            {t("nav_home")}
           </button>
           <button
             onClick={() => setActiveTab("guide")}
@@ -97,7 +99,7 @@ export default function Home() {
             )}
           >
             <Info className="w-4 h-4" />
-            Guía
+            {t("nav_guide")}
           </button>
         </div>
       </div>

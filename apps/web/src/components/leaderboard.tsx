@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, TrendingUp, Sparkles, MessageSquare, RefreshCw, ExternalLink } from "lucide-react";
+import { useLanguage } from "@/components/language-provider";
 
 type LeaderboardEntry = {
   username?: string;
@@ -37,6 +38,7 @@ type TrendData = {
 };
 
 export function Leaderboard() {
+  const { t } = useLanguage();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [activeTrends, setActiveTrends] = useState<TrendItem[]>([]);
   const [trendDetails, setTrendDetails] = useState<TrendData[]>([]);
@@ -245,14 +247,14 @@ export function Leaderboard() {
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-[#FCFF52] flex-shrink-0" />
               <CardTitle className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                Tendencias Activas
+                {t("trends_title")}
               </CardTitle>
             </div>
             <button
               onClick={handleRefresh}
               disabled={isScanning || cooldownRemaining !== null}
               className="p-1.5 rounded-full hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title={cooldownRemaining ? `Disponible en ${Math.ceil(cooldownRemaining / (1000 * 60 * 60))}h` : "Actualizar Tendencias"}
+              title={cooldownRemaining ? `${t("trends_available_in")} ${Math.ceil(cooldownRemaining / (1000 * 60 * 60))}h` : t("trends_refresh")}
             >
               <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${isScanning ? "animate-spin" : ""}`} />
             </button>
@@ -275,7 +277,7 @@ export function Leaderboard() {
           )}
           {!loading && topTrends.length === 0 && (
             <div className="text-[10px] sm:text-xs text-muted-foreground text-center py-2">
-              Sin tendencias recientes.
+              {t("trends_empty")}
             </div>
           )}
 
@@ -295,7 +297,7 @@ export function Leaderboard() {
                     <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#FCFF52] flex-shrink-0" />
                   )}
                   <span className="text-[9px] sm:text-[10px] uppercase font-bold text-[#FCFF52] whitespace-nowrap">
-                    #{index + 1} Trend
+                    {index + 1} {t("trend_rank")}
                   </span>
                 </div>
                 {trend.trend_score !== undefined && (
@@ -308,7 +310,7 @@ export function Leaderboard() {
               {/* Autor */}
               {trend.author_username && (
                 <div className="mb-1 sm:mb-1.5">
-                  <span className="text-[9px] sm:text-[10px] text-muted-foreground">Por </span>
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground">{t("trend_by")} </span>
                   <span className="text-[9px] sm:text-[10px] font-semibold text-foreground break-words">
                     @{trend.author_username}
                   </span>
@@ -336,7 +338,7 @@ export function Leaderboard() {
                   className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-[#FCFF52] hover:underline group/link"
                 >
                   <Sparkles className="w-3 h-3 group-hover/link:animate-pulse" />
-                  Sumate a la tendencia
+                  {t("trend_join")}
                   <ExternalLink className="w-3 h-3 opacity-70" />
                 </a>
               </div>
@@ -384,7 +386,7 @@ export function Leaderboard() {
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-yellow-500" />
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-              Top Ganadores (24h)
+              {t("leaderboard_title")}
             </CardTitle>
           </div>
         </CardHeader>
@@ -406,7 +408,7 @@ export function Leaderboard() {
             </div>
           )}
           {!loading && entries.length === 0 && (
-            <div className="text-xs text-muted-foreground">Aún no hay ganadores.</div>
+            <div className="text-xs text-muted-foreground">{t("leaderboard_empty")}</div>
           )}
           {!loading && entries.map((winner, index) => (
             <div key={`${winner.address}-${index}`} className="flex items-center justify-between p-2">
@@ -431,7 +433,8 @@ export function Leaderboard() {
                     }
                   </span>
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    {rewardLabel[winner.reward_type ?? "pending"] ?? "Pendiente"}
+                    {/* Simplified reward label logic for I18n */}
+                    {winner.reward_type && t(`reward_${winner.reward_type}` as any) ? t(`reward_${winner.reward_type}` as any) : t("leaderboard_pending")}
                   </span>
                 </div>
               </div>

@@ -10,6 +10,7 @@ import { DEFAULT_EVENT, type AgentRunResponse, type LootboxEventPayload } from "
 import { useAccount } from "wagmi";
 import { useFarcasterUser } from "./farcaster-provider";
 import { AnalysisOverlay } from "./analysis-overlay";
+import { useLanguage } from "@/components/language-provider";
 
 type FormState = {
   frameId: string;
@@ -19,6 +20,7 @@ type FormState = {
 };
 
 export function TrendingCampaignForm() {
+  const { t } = useLanguage();
   const { address, isConnected } = useAccount();
   const farcasterUser = useFarcasterUser();
 
@@ -48,7 +50,7 @@ export function TrendingCampaignForm() {
     switch (type) {
       case "cusd":
         return {
-          title: "¡cUSD Recibido!",
+          title: "¡cUSD Recibido!", // Kept static or add to dictionary if critical
           subtitle: "Has recibido cUSD directamente en tu wallet.",
         };
       case "xp":
@@ -191,8 +193,8 @@ export function TrendingCampaignForm() {
               </div>
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-bold text-white">Escaneando Farcaster</h3>
-              <p className="text-sm text-gray-400">Buscando tus interacciones recientes...</p>
+              <h3 className="text-xl font-bold text-white">{t("form_status_scan")}</h3>
+              <p className="text-sm text-gray-400">{t("overlay_step1")}</p>
             </div>
           </div>
         );
@@ -206,8 +208,8 @@ export function TrendingCampaignForm() {
               </div>
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-bold text-white">Analizando Viralidad</h3>
-              <p className="text-sm text-gray-400">Calculando impacto y alcance...</p>
+              <h3 className="text-xl font-bold text-white">{t("form_status_analysis")}</h3>
+              <p className="text-sm text-gray-400">{t("overlay_step2")}</p>
             </div>
           </div>
         );
@@ -221,8 +223,8 @@ export function TrendingCampaignForm() {
               </div>
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-bold text-white">Verificando Elegibilidad</h3>
-              <p className="text-sm text-gray-400">Validando requisitos de campaña...</p>
+              <h3 className="text-xl font-bold text-white">{t("form_status_verify")}</h3>
+              <p className="text-sm text-gray-400">{t("overlay_step3")}</p>
             </div>
           </div>
         );
@@ -236,10 +238,10 @@ export function TrendingCampaignForm() {
               </div>
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-bold text-white">Enviando Recompensa</h3>
-              <p className="text-sm text-gray-400">A tu wallet de Farcaster...</p>
+              <h3 className="text-xl font-bold text-white">{t("form_status_send")}</h3>
+              <p className="text-sm text-gray-400">{t("overlay_step4")}</p>
               <p className="text-[10px] text-gray-500 pt-2 animate-pulse">
-                Esto puede tardar algunos minutos
+                {t("form_status_verify")}...
               </p>
             </div>
           </div>
@@ -271,7 +273,7 @@ export function TrendingCampaignForm() {
             Verificar Elegibilidad
           </CardTitle>
           <CardDescription className="text-gray-400 text-base">
-            Analiza tu participación en Farcaster y obtén recompensas automáticamente.
+            {t("hero_description")}
           </CardDescription>
         </CardHeader>
 
@@ -282,8 +284,8 @@ export function TrendingCampaignForm() {
                 <Wallet className="w-8 h-8 text-gray-500 group-hover/connect:text-white transition-colors" />
               </div>
               <div className="space-y-1">
-                <p className="text-white font-medium text-lg">Conecta tu Wallet</p>
-                <p className="text-sm text-gray-500">Necesaria para recibir recompensas en Celo</p>
+                <p className="text-white font-medium text-lg">{t("nav_connect")}</p>
+                <p className="text-sm text-gray-500">Minipay / Valora</p>
               </div>
             </div>
           ) : (
@@ -340,14 +342,14 @@ export function TrendingCampaignForm() {
                 >
                   {cooldownRemaining && cooldownRemaining > 0 ? (
                     <div className="relative flex items-center justify-center gap-2">
-                      <span className="animate-pulse">⏳ Vuelve en {formatTimeRemaining(cooldownRemaining)}</span>
+                      <span className="animate-pulse">⏳ {t("form_cooldown")} {formatTimeRemaining(cooldownRemaining)}</span>
                     </div>
                   ) : (
                     <>
                       <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
                       <div className="relative flex items-center justify-center gap-2">
                         <Gift className="h-5 w-5 group-hover/btn:rotate-12 transition-transform" />
-                        <span>Reclamar Recompensa</span>
+                        <span>{t("form_analyze_btn")}</span>
                       </div>
                     </>
                   )}
@@ -407,7 +409,7 @@ export function TrendingCampaignForm() {
               {result.explorer_url && (
                 <Button variant="outline" className="w-full border-green-500/30 hover:bg-green-500/10 text-green-600 dark:text-green-400" asChild>
                   <Link href={result.explorer_url} target="_blank">
-                    Ver Transacción
+                    {t("overlay_view_tx")}
                     <ExternalLink className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>

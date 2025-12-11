@@ -3,55 +3,57 @@
 import { CheckCircle2, Loader2, Search, ShieldCheck, Zap, Database, Coins } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const STEPS = [
-  {
-    id: 1,
-    label: "Conectando a Farcaster",
-    icon: Search,
-    color: "text-blue-400",
-    logs: ["Iniciando handshake...", "Autenticando API...", "Verificando nodo...", "Sincronizando estado..."]
-  },
-  {
-    id: 2,
-    label: "Recuperando Historial",
-    icon: Database,
-    color: "text-purple-400",
-    logs: ["Leyendo últimos casts...", "Filtrando spam...", "Indexando interacciones...", "Recuperando grafo social..."]
-  },
-  {
-    id: 3,
-    label: "Analizando Viralidad",
-    icon: Zap,
-    color: "text-yellow-400",
-    logs: ["Calculando engagement...", "Midiendo alcance...", "Detectando patrones...", "Evaluando impacto..."]
-  },
-  {
-    id: 4,
-    label: "Verificando Reputación",
-    icon: ShieldCheck,
-    color: "text-green-400",
-    logs: ["Consultando Power Badge...", "Verificando antigüedad...", "Analizando comportamiento...", "Validando score..."]
-  },
-  {
-    id: 5,
-    label: "Calculando Recompensas",
-    icon: Coins,
-    color: "text-orange-400",
-    logs: ["Generando semilla aleatoria...", "Consultando oráculo...", "Determinando rareza...", "Asignando valor..."]
-  },
-  {
-    id: 6,
-    label: "Finalizando Transacción",
-    icon: Loader2,
-    color: "text-[#FCFF52]",
-    logs: ["Preparando payload...", "Firmando transacción...", "Minteando activos...", "Confirmando en bloque..."]
-  },
-];
+import { useLanguage } from "@/components/language-provider";
 
 export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onComplete: () => void }) {
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
   const [currentLog, setCurrentLog] = useState("");
+
+  const STEPS = [
+    {
+      id: 1,
+      label: t("overlay_step1"),
+      icon: Search,
+      color: "text-blue-400",
+      logs: ["Handshake API...", "Auth check...", "Syncing state..."]
+    },
+    {
+      id: 2,
+      label: t("overlay_step2"),
+      icon: Database,
+      color: "text-purple-400",
+      logs: ["Indexing...", "Filter spam...", "Graph sync..."]
+    },
+    {
+      id: 3,
+      label: "Viral Check", // Dynamic key wasn't added for all steps in dictionary, using fallback or reuse
+      icon: Zap,
+      color: "text-yellow-400",
+      logs: ["Engagement...", "Reach...", "Impact..."]
+    },
+    {
+      id: 4,
+      label: t("overlay_step3"),
+      icon: ShieldCheck,
+      color: "text-green-400",
+      logs: ["Power Badge...", "Vintage...", "Score..."]
+    },
+    {
+      id: 5,
+      label: t("form_status_send"),
+      icon: Coins,
+      color: "text-orange-400",
+      logs: ["Oracle...", "Rarity...", "Value..."]
+    },
+    {
+      id: 6,
+      label: t("overlay_step4"),
+      icon: Loader2,
+      color: "text-[#FCFF52]",
+      logs: ["Payload...", "Signing...", "Minting...", "Confirming..."]
+    },
+  ];
 
   // Step progression logic
   useEffect(() => {
@@ -89,7 +91,7 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
     }, 400);
 
     return () => clearInterval(logInterval);
-  }, [currentStep]);
+  }, [currentStep, STEPS]); // Depend on STEPS which changes with lang
 
   const activeStep = STEPS[currentStep];
   const Icon = activeStep.icon;
