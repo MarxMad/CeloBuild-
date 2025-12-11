@@ -51,9 +51,14 @@ export default function Home() {
               className="h-full w-auto object-contain rounded-3xl"
             />
           </div>
-          <p className="text-center text-gray-400 text-sm mb-6">
-            powered by UTONOMA
-          </p>
+          <div className="flex items-center justify-center gap-2 mb-6 opacity-80">
+            <span className="text-gray-400 text-sm">powered by</span>
+            <img
+              src="/utonoma-full-logo.svg"
+              alt="Utonoma"
+              className="h-5 w-auto"
+            />
+          </div>
 
           {/* Agent Vis - Compact for Mobile */}
           <div className="relative mx-auto w-full h-[280px] mb-4">
