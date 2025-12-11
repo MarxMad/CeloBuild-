@@ -35,23 +35,16 @@ class LeaderboardSyncer:
         )
         
     async def sync(self):
-        """Sincroniza el leaderboard con los datos on-chain y Farcaster."""
+        """Sincroniza el leaderboard con los datos on-chain y Farcaster de forma paralela."""
         logger.info("🔄 Iniciando Sincronización de Leaderboard desde bloque %s...", settings.deployment_block)
         
         try:
-            # 1. Fetch participants from events (BLOCKING CALL -> ThreadPool)
             registry_address = settings.registry_address
             if not registry_address:
                 logger.warning("⚠️ Registry address no configurado, saltando sync.")
                 return
 
             loop = asyncio.get_running_loop()
-            
-            # Run blocking web3 call in executor with retries and chunking
-            max_retries = 3
-            chunk_size = 10000 # Celo blocks are fast, but RPCs limit range
-            logs = []
-            
             current_block = self.w3.eth.block_number
             from_block = settings.deployment_block
             
@@ -59,62 +52,71 @@ class LeaderboardSyncer:
             if from_block > current_block:
                 from_block = current_block - 1000
             
+            chunk_size = 50000 # Increased chunk size for faster scanning
+            
             logger.info(f"Fetching logs from {from_block} to {current_block} (chunks of {chunk_size})")
             
+            # 1. Parallel Log Fetching
+            rpc_sem = asyncio.Semaphore(5) # Limit concurrent RPC calls to avoid simple rate limits
+
+            def fetch_chunk_blocking(s, e):
+                # Helper for clean blocking call
+                abi = [{"anonymous": False, "inputs": [{"indexed": True, "name": "campaignId", "type": "bytes32"}, {"indexed": True, "name": "recipient", "type": "address"}, {"indexed": False, "name": "amount", "type": "uint256"}], "name": "GrantXp", "type": "event"}]
+                contract = self.w3.eth.contract(address=self.w3.to_checksum_address(registry_address), abi=abi)
+                return contract.events.GrantXp.get_logs(from_block=s, to_block=e)
+
+            async def fetch_chunk_safe(start, end):
+                async with rpc_sem:
+                    for attempt in range(3):
+                        try:
+                            # Run in thread pool
+                            return await loop.run_in_executor(None, fetch_chunk_blocking, start, end)
+                        except Exception as e:
+                            logger.warning(f"Error fetching chunk {start}-{end} (attempt {attempt+1}): {e}")
+                            await asyncio.sleep(1)
+                    logger.error(f"Failed to fetch chunk {start}-{end} after retries")
+                    return []
+
+            tasks = []
             for start_block in range(from_block, current_block + 1, chunk_size):
                 end_block = min(start_block + chunk_size - 1, current_block)
-                
-                for attempt in range(max_retries):
-                    try:
-                        def fetch_chunk_blocking(s, e):
-                            abi = [{"anonymous": False, "inputs": [{"indexed": True, "name": "campaignId", "type": "bytes32"}, {"indexed": True, "name": "recipient", "type": "address"}, {"indexed": False, "name": "amount", "type": "uint256"}], "name": "GrantXp", "type": "event"}]
-                            contract = self.w3.eth.contract(address=self.w3.to_checksum_address(registry_address), abi=abi)
-                            return contract.events.GrantXp.get_logs(from_block=s, to_block=e)
-
-                        chunk_logs = await loop.run_in_executor(None, fetch_chunk_blocking, start_block, end_block)
-                        logs.extend(chunk_logs)
-                        logger.info(f"Fetched {len(chunk_logs)} logs from {start_block}-{end_block}")
-                        break
-                    except Exception as e:
-                        if attempt == max_retries - 1:
-                            logger.error(f"Failed to fetch logs for chunk {start_block}-{end_block}: {e}")
-                            # Don't raise, try to continue with other chunks? Or raise?
-                            # Better to continue to get partial data than nothing
-                        else:
-                            logger.warning(f"Error fetching chunk {start_block}-{end_block} (attempt {attempt+1}): {e}. Retrying...")
-                            await asyncio.sleep(1 * (attempt + 1))
+                tasks.append(fetch_chunk_safe(start_block, end_block))
+            
+            results = await asyncio.gather(*tasks)
+            logs = []
+            for res in results:
+                logs.extend(res)
             
             participants = set()
             for log in logs:
                 participants.add(log["args"]["recipient"])
                 
-            logger.info("Found %d unique participants", len(participants))
+            logger.info("Found %d unique participants in blockchain history", len(participants))
             
-            # 2. Fetch current XP balances
+            # 2. Parallel Participant Processing (XP + Farcaster)
+            campaign_id_bytes = self.w3.keccak(text="demo-campaign")
             xp_abi = [{"type": "function", "name": "getXpBalance", "inputs": [{"name": "campaignId", "type": "bytes32"}, {"name": "participant", "type": "address"}], "outputs": [{"name": "", "type": "uint256"}], "stateMutability": "view"}]
             xp_contract = self.w3.eth.contract(address=self.w3.to_checksum_address(registry_address), abi=xp_abi)
-            campaign_id_bytes = self.w3.keccak(text="demo-campaign")
-
-            leaderboard_data = []
             
-            for i, participant in enumerate(participants):
-                # Get XP (BLOCKING CALL -> ThreadPool)
+            async def process_participant(participant):
+                # Get XP (Blocking)
+                xp = 0
                 try:
                     def get_xp_blocking():
                         return xp_contract.functions.getXpBalance(campaign_id_bytes, participant).call()
-                    
-                    xp = await loop.run_in_executor(None, get_xp_blocking)
+                    # Use semaphore if RPC limits are strict, but read calls are usually fine
+                    async with rpc_sem:
+                         xp = await loop.run_in_executor(None, get_xp_blocking)
                 except Exception as e:
                     logger.error(f"Error fetching XP for {participant}: {e}")
-                    xp = 0
                 
-                # Get User Info (Async - Non-blocking)
+                if xp == 0:
+                    return None # Solo incluir usuarios con XP > 0
+
+                # Get Farcaster (Async)
                 username = None
                 fid = None
-                
                 try:
-                    # Parallelize Farcaster lookup or just do it fast
-                    # Removed artificial delay to prevent Vercel timeout
                     fc_user = await self.farcaster.fetch_user_by_address(participant)
                     if fc_user:
                         username = fc_user.get("username")
@@ -122,22 +124,30 @@ class LeaderboardSyncer:
                 except Exception as e:
                     logger.warning(f"Failed to resolve Farcaster user for {participant}: {e}")
                 
-                entry = {
+                return {
                     "address": participant,
                     "xp": xp,
-                    # "score": 0.0,  # FIX: No incluir score para no sobrescribir el valor existente (AI Score)
                     "username": username,
                     "fid": fid,
                     "campaign_id": "demo-campaign",
                     "reward_type": "xp",
                     "timestamp": int(time.time())
                 }
-                
-                leaderboard_data.append(entry)
-                # Save immediately to avoid data loss on timeout
+
+            # Process all users in parallel
+            user_tasks = [process_participant(p) for p in participants]
+            processed_entries = await asyncio.gather(*user_tasks)
+            
+            # Filter None and save
+            leaderboard_data = [e for e in processed_entries if e is not None]
+            
+            # Batch record (LeaderboardStore handles sorting/limiting internally per record loop, 
+            # but we can just invoke it sequentially or optimize store to accept batch. 
+            # For now, sequential record is fast enough as it's just JSON manipulation)
+            for entry in leaderboard_data:
                 self.store.record(entry)
             
-            logger.info("✅ Leaderboard Sync Complete. Updated %d entries.", len(leaderboard_data))
+            logger.info("✅ Leaderboard Sync Complete. Updated %d active entries.", len(leaderboard_data))
             return len(leaderboard_data)
             
         except Exception as e:
