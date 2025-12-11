@@ -167,6 +167,7 @@ class FarcasterToolbox:
         # Retry logic for 429 Too Many Requests
         max_retries = 3
         base_delay = 2.0
+        data = {} # Initialize to avoid UnboundLocalError
         
         for attempt in range(max_retries):
             async with httpx.AsyncClient(timeout=10) as client:
@@ -189,7 +190,8 @@ class FarcasterToolbox:
                     break # Success
                 except Exception as exc:
                     if attempt == max_retries - 1:
-                        raise exc
+                        logger.error("❌ Error final obteniendo engagement tras %d intentos: %s", max_retries, exc)
+                        return [] # Return empty list on failure
                     logger.warning("Error temporal en engagement: %s. Reintentando...", exc)
                     await asyncio.sleep(1.0)
 
