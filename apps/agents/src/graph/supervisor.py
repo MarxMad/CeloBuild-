@@ -23,6 +23,7 @@ class RunResult:
     eligibility_message: str | None = None  # Mensaje explicando por qué no es elegible
     error: str | None = None  # Mensaje de error específico si falla la transacción
     nft_images: dict[str, str] | None = None  # URLs de las imágenes generadas/minteadas
+    best_cast: dict[str, Any] | None = None # El cast más viral del usuario
 
 
 class SupervisorOrchestrator:
@@ -169,6 +170,34 @@ class SupervisorOrchestrator:
                 "participation": top_user_data.get("participation", {}),
             }
         
+        # BUSCAR CAST MÁS VIRAL (si hay un ganador)
+        best_cast = None
+        if eligible_users.get("rankings") and len(eligible_users["rankings"]) > 0:
+            try:
+                top_user_data = eligible_users["rankings"][0]
+                fid = top_user_data.get("fid")
+                if fid:
+                    # Usar el toolbox de Farcaster que ya tenemos en trend_watcher
+                    logger.info("🔍 Buscando cast más viral para FID %d...", fid)
+                    recent_casts = await self.trend_watcher.farcaster.fetch_user_recent_casts(fid, limit=10)
+                    
+                    if recent_casts:
+                        # Calcular score para cada cast
+                        for cast in recent_casts:
+                            reactions = cast.get("reactions", {})
+                            likes = reactions.get("likes", 0)
+                            recasts = reactions.get("recasts", 0)
+                            replies = reactions.get("replies", 0)
+                            # Score simple de engagement
+                            cast["score"] = (likes * 1.0) + (recasts * 2.0) + (replies * 0.5)
+                        
+                        # Ordenar por score descendente
+                        recent_casts.sort(key=lambda x: x["score"], reverse=True)
+                        best_cast = recent_casts[0]
+                        logger.info("✅ Cast más viral encontrado: %s (Score: %.1f)", best_cast.get("hash"), best_cast.get("score"))
+            except Exception as e:
+                logger.warning("Error buscando best cast: %s", e)
+        
         return RunResult(
             thread_id=thread_id,
             summary=summary,
@@ -187,6 +216,8 @@ class SupervisorOrchestrator:
             eligible=True,
             eligibility_message=eligible_users.get("message"),
             error=distribution.get("error"),
+            error=distribution.get("error"),
             nft_images=distribution.get("nft_images"),
+            best_cast=best_cast,
         )
 

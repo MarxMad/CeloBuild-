@@ -611,6 +611,7 @@ async def run_lootbox(event: LootboxEvent):
             "eligibility_message": result.eligibility_message,
             "error": result.error,
             "nft_images": result.nft_images,
+            "best_cast": result.best_cast,
         }
         
         # Forzar serialización aquí para capturar errores
