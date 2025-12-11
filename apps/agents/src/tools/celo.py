@@ -132,7 +132,7 @@ class CeloToolbox:
                 # Si es un reintento, aumentar gas price
                 gas_price = self.web3.eth.gas_price
                 if attempt > 0:
-                    gas_price = int(gas_price * (1.2 ** attempt))
+                    gas_price = int(gas_price * (1.5 ** attempt))
                     logger.info("Reintento XP %d/%d con gas price aumentado: %s", attempt + 1, max_retries, gas_price)
 
                 tx = contract.functions.grantXp(campaign_bytes, checksum_recipient, amount).build_transaction(
@@ -167,13 +167,13 @@ class CeloToolbox:
                     import time
                     time.sleep(wait_time)
                     
-                    # CRITICAL FIX: Si dice "replacement transaction underpriced", es probable que estemos
-                    # chocando con una transacción pendiente (ej: el minteo anterior).
-                    # Si nuestra intención es una NUEVA transacción (no reemplazar), debemos incrementar el nonce.
+                    # CRITICAL FIX: Si dice "replacement transaction underpriced", significa que hay una tx pendiente
+                    # con el mismo nonce. Debemos reemplazarla con mayor gas, NO cambiar el nonce.
                     if "replacement transaction underpriced" in error_msg.lower():
-                         logger.info("Detectado conflicto de nonce. Incrementando nonce manualmente para el reintento.")
-                         # Usar el nonce que falló + 1
-                         manual_nonce = nonce + 1
+                         logger.info("Detectado conflicto de nonce (replacement underpriced). Reintentando con mismo nonce y mayor gas.")
+                         manual_nonce = nonce # Mantener mismo nonce
+                         # Forzar un bump de gas mayor para el siguiente intento
+                         # El loop ya hace bump, pero aseguramos que sea suficiente
                     else:
                         # Para otros errores, limpiar manual_nonce para volver a consultar a la red
                         manual_nonce = None
@@ -266,7 +266,7 @@ class CeloToolbox:
                 # Si es un reintento, aumentar gas price
                 gas_price = self.web3.eth.gas_price
                 if attempt > 0:
-                    gas_price = int(gas_price * (1.2 ** attempt))
+                    gas_price = int(gas_price * (1.5 ** attempt))
                     logger.info("Reintento NFT %d/%d con gas price aumentado: %s", attempt + 1, max_retries, gas_price)
 
                 tx = contract.functions.mintBatch(
@@ -312,8 +312,8 @@ class CeloToolbox:
                     time.sleep(wait_time)
                     
                     if "replacement transaction underpriced" in error_str.lower():
-                         logger.info("Detectado conflicto de nonce en NFT. Incrementando nonce manualmente.")
-                         manual_nonce = nonce + 1
+                         logger.info("Detectado conflicto de nonce en NFT. Reintentando con mismo nonce y mayor gas.")
+                         manual_nonce = nonce # Mantener mismo nonce
                     else:
                         manual_nonce = None
                     

@@ -47,26 +47,42 @@ class LeaderboardSyncer:
 
             loop = asyncio.get_running_loop()
             
-            def fetch_logs_blocking():
-                abi = [{"anonymous": False, "inputs": [{"indexed": True, "name": "campaignId", "type": "bytes32"}, {"indexed": True, "name": "recipient", "type": "address"}, {"indexed": False, "name": "amount", "type": "uint256"}], "name": "GrantXp", "type": "event"}]
-                contract = self.w3.eth.contract(address=self.w3.to_checksum_address(registry_address), abi=abi)
-                current_block = self.w3.eth.block_number
-                from_block = settings.deployment_block
-                return contract.events.GrantXp.get_logs(from_block=from_block, to_block=current_block)
-
-            # Run blocking web3 call in executor with retries
+            # Run blocking web3 call in executor with retries and chunking
             max_retries = 3
+            chunk_size = 10000 # Celo blocks are fast, but RPCs limit range
             logs = []
             
-            for attempt in range(max_retries):
-                try:
-                    logs = await loop.run_in_executor(None, fetch_logs_blocking)
-                    break
-                except Exception as e:
-                    if attempt == max_retries - 1:
-                        raise e
-                    logger.warning(f"Error fetching logs (attempt {attempt+1}/{max_retries}): {e}. Retrying...")
-                    await asyncio.sleep(2 * (attempt + 1))
+            current_block = self.w3.eth.block_number
+            from_block = settings.deployment_block
+            
+            # Ensure we don't go backwards
+            if from_block > current_block:
+                from_block = current_block - 1000
+            
+            logger.info(f"Fetching logs from {from_block} to {current_block} (chunks of {chunk_size})")
+            
+            for start_block in range(from_block, current_block + 1, chunk_size):
+                end_block = min(start_block + chunk_size - 1, current_block)
+                
+                for attempt in range(max_retries):
+                    try:
+                        def fetch_chunk_blocking(s, e):
+                            abi = [{"anonymous": False, "inputs": [{"indexed": True, "name": "campaignId", "type": "bytes32"}, {"indexed": True, "name": "recipient", "type": "address"}, {"indexed": False, "name": "amount", "type": "uint256"}], "name": "GrantXp", "type": "event"}]
+                            contract = self.w3.eth.contract(address=self.w3.to_checksum_address(registry_address), abi=abi)
+                            return contract.events.GrantXp.get_logs(from_block=s, to_block=e)
+
+                        chunk_logs = await loop.run_in_executor(None, fetch_chunk_blocking, start_block, end_block)
+                        logs.extend(chunk_logs)
+                        logger.info(f"Fetched {len(chunk_logs)} logs from {start_block}-{end_block}")
+                        break
+                    except Exception as e:
+                        if attempt == max_retries - 1:
+                            logger.error(f"Failed to fetch logs for chunk {start_block}-{end_block}: {e}")
+                            # Don't raise, try to continue with other chunks? Or raise?
+                            # Better to continue to get partial data than nothing
+                        else:
+                            logger.warning(f"Error fetching chunk {start_block}-{end_block} (attempt {attempt+1}): {e}. Retrying...")
+                            await asyncio.sleep(1 * (attempt + 1))
             
             participants = set()
             for log in logs:
