@@ -444,8 +444,6 @@ async def trigger_scan():
             "error": get_attr(result, "error"), # Pass error to frontend
         }
     except Exception as exc:
-        import logging
-        logger = logging.getLogger(__name__)
         logger.error("Error en scan manual: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
