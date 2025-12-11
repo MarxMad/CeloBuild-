@@ -87,6 +87,10 @@ except Exception as exc:
 # Inicializar Syncer (lazy init en startup)
 leaderboard_syncer = None
 
+# Inicializar Farcaster Toolbox
+from .tools.farcaster import FarcasterToolbox
+farcaster_toolbox = FarcasterToolbox(neynar_api_key=settings.neynar_api_key)
+
 # Rate limiting simple: almacenar últimos requests por IP
 # En producción, usar Redis o un middleware más robusto
 _request_timestamps: dict[str, list[int]] = {}
