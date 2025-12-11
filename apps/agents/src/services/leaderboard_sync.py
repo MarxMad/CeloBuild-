@@ -100,6 +100,17 @@ class LeaderboardSyncer:
             xp_abi = [{"type": "function", "name": "getXpBalance", "inputs": [{"name": "campaignId", "type": "bytes32"}, {"name": "participant", "type": "address"}], "outputs": [{"name": "", "type": "uint256"}], "stateMutability": "view"}]
             xp_contract = self.w3.eth.contract(address=self.w3.to_checksum_address(registry_address), abi=xp_abi)
             
+            # Step 2a: Batch fetch Farcaster profiles (Optimization)
+            unique_addresses = list(participants)
+            logger.info("Resolving Farcaster profiles for %d users...", len(unique_addresses))
+            
+            users_map = {}
+            try:
+                users_map = await self.farcaster.fetch_users_by_addresses(unique_addresses)
+                logger.info("Found %d Farcaster profiles via API", len(users_map))
+            except Exception as e:
+                logger.warning("Bulk user fetch failed (partial fallback will occur): %s", e)
+
             async def process_participant(participant):
                 # Get XP (Blocking)
                 xp = 0
@@ -115,16 +126,18 @@ class LeaderboardSyncer:
                 if xp == 0:
                     return None # Solo incluir usuarios con XP > 0
 
-                # Get Farcaster (Async)
+                # Get Farcaster from Batch Map
                 username = None
                 fid = None
-                try:
-                    fc_user = await self.farcaster.fetch_user_by_address(participant)
-                    if fc_user:
-                        username = fc_user.get("username")
-                        fid = fc_user.get("fid")
-                except Exception as e:
-                    logger.warning(f"Failed to resolve Farcaster user for {participant}: {e}")
+                
+                # Check bulk map first
+                if participant.lower() in users_map:
+                    u = users_map[participant.lower()]
+                    username = u.get("username")
+                    fid = u.get("fid")
+                
+                # Fallback: Try individual fetch if missing and critical (optional, skip for speed)
+                # We skip individual fetch to avoid 429s loop again
                 
                 return {
                     "address": participant,

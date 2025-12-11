@@ -475,6 +475,61 @@ class FarcasterToolbox:
                     await asyncio.sleep(1.0)
         return None
 
+    async def fetch_users_by_addresses(self, custody_addresses: list[str]) -> dict[str, dict[str, Any]]:
+        """Obtiene información de múltiples usuarios de Farcaster por sus addresses (Bulk).
+        
+        Retorna mapa { address_lowercase: user_data }
+        """
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            return {}
+            
+        headers = {"accept": "application/json", "api_key": self.neynar_key}
+        url = "https://api.neynar.com/v2/farcaster/user/bulk-by-address"
+        
+        # Filtrar y normalizar addresses
+        valid_addresses = [
+            addr.lower().strip() for addr in custody_addresses 
+            if addr and addr.lower().strip().startswith("0x") and len(addr.strip()) == 42
+        ]
+        
+        if not valid_addresses:
+            return {}
+            
+        # Chunking (Neynar suele permitir ~50-100 por call, usaremos 50 para seguridad)
+        chunk_size = 50
+        result_map = {}
+        
+        for i in range(0, len(valid_addresses), chunk_size):
+            chunk = valid_addresses[i:i + chunk_size]
+            addresses_str = ",".join(chunk)
+            
+            try:
+                params = {"addresses": addresses_str}
+                async with httpx.AsyncClient(timeout=15) as client:
+                    resp = await client.get(url, headers=headers, params=params)
+                    
+                    if resp.status_code == 429:
+                        logger.warning("⚠️ Rate limit (429) en bulk fetch. Esperando 2s y reintentando chunk...")
+                        await asyncio.sleep(2.0)
+                        # Simple retry once
+                        resp = await client.get(url, headers=headers, params=params)
+                        
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        # Data format: { "0x...": [user1, user2], "0x...": [] }
+                        for addr, users in data.items():
+                            if users and len(users) > 0:
+                                result_map[addr.lower()] = _normalize_user(users[0])
+                    else:
+                        logger.warning("Error fetching bulk users: %s", resp.status_code)
+                        
+                await asyncio.sleep(0.2) # Rate limit kindness
+                
+            except Exception as e:
+                logger.error("Error en batch fetch users: %s", e)
+                
+        return result_map
+
     async def fetch_user_by_fid(self, fid: int) -> dict[str, Any] | None:
         """Obtiene información de un usuario de Farcaster por su FID.
         
