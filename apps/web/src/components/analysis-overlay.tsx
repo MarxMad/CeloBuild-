@@ -72,7 +72,7 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
         // Stay at last step if not done
         return prev;
       });
-    }, 8000); // 8 seconds per step as requested
+    }, 3000); // 3 seconds per step (faster UX)
 
     return () => clearInterval(interval);
   }, [isDone, onComplete]);
