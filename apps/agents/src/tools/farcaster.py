@@ -78,12 +78,17 @@ class FarcasterToolbox:
         # 1214: linda, 1689: oyealmond (approx/popular), 60: betashop
         popular_fids = [2, 3, 5650, 1, 6, 1214, 1689, 60, 10, 31]
         
+        # OPTIMIZATION: Seleccionar solo 3 usuarios aleatorios para no saturar la API
+        # Esto reduce las llamadas de 10 a 3 por ejecución de fallback
+        import random
+        selected_fids = random.sample(popular_fids, min(3, len(popular_fids)))
+        
         all_casts: list[dict[str, Any]] = []
         
         async with httpx.AsyncClient(timeout=10) as client:
             # Obtener casts de múltiples usuarios populares con rate limiting
-            # Iterar sobre todos los FIDs definidos
-            for idx, fid in enumerate(popular_fids):
+            # Iterar sobre los FIDs seleccionados
+            for idx, fid in enumerate(selected_fids):
                 # Agregar delay entre requests para evitar rate limiting (429)
                 if idx > 0:
                     await asyncio.sleep(2.0)  # Aumentado a 2 segundos entre requests
