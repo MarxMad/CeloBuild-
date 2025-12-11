@@ -100,6 +100,7 @@ class ArtGenerator:
             "rarity": rarity,
             "type": card_type,
             "description": metadata.get("description", "A mysterious artifact."),
+            "v": "3" # Force cache bust for new assets
         })
         
         return f"{frontend_url}/api/nft-image?{params}"
