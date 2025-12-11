@@ -36,7 +36,7 @@ export function SettingsMenu() {
             </Button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-popover ring-1 ring-black ring-opacity-5 focus:outline-none z-50 animate-in fade-in zoom-in-95 duration-200 border border-neutral-200 dark:border-white/10">
+                <div className="absolute right-0 sm:right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-popover ring-1 ring-black ring-opacity-5 focus:outline-none z-50 animate-in fade-in zoom-in-95 duration-200 border border-neutral-200 dark:border-white/10 origin-top-right">
                     <div className="py-1">
                         <div className="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
                             {t('settings_lang')}

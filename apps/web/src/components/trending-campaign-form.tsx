@@ -268,7 +268,7 @@ export function TrendingCampaignForm() {
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10" />
 
         <CardHeader className="relative z-10 pb-2">
-          <CardTitle className="flex items-center gap-3 text-2xl text-white font-bold tracking-tight">
+          <CardTitle className="flex items-center gap-3 text-2xl text-neutral-900 dark:text-white font-bold tracking-tight">
             <div className="p-2 rounded-lg bg-green-600/10 dark:bg-[#FCFF52]/10 ring-1 ring-green-600/20 dark:ring-[#FCFF52]/20">
               <Sparkles className="w-5 h-5 text-green-600 dark:text-[#FCFF52] animate-pulse" />
             </div>
@@ -281,12 +281,12 @@ export function TrendingCampaignForm() {
 
         <CardContent className="space-y-8 relative z-10 pt-6">
           {!isConnected ? (
-            <div className="py-10 px-6 rounded-2xl bg-white/5 border border-white/10 text-center space-y-4 hover:bg-white/10 transition-colors group/connect">
-              <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mx-auto group-hover/connect:scale-110 transition-transform duration-500">
-                <Wallet className="w-8 h-8 text-gray-500 group-hover/connect:text-white transition-colors" />
+            <div className="py-10 px-6 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-center space-y-4 hover:bg-black/10 dark:hover:bg-white/10 transition-colors group/connect">
+              <div className="h-16 w-16 rounded-full bg-white/50 dark:bg-white/5 flex items-center justify-center mx-auto group-hover/connect:scale-110 transition-transform duration-500">
+                <Wallet className="w-8 h-8 text-gray-500 group-hover/connect:text-black dark:group-hover/connect:text-white transition-colors" />
               </div>
               <div className="space-y-1">
-                <p className="text-white font-medium text-lg">{t("nav_connect")}</p>
+                <p className="text-neutral-900 dark:text-white font-medium text-lg">{t("nav_connect")}</p>
                 <p className="text-sm text-gray-500">Minipay / Valora</p>
               </div>
             </div>
@@ -294,9 +294,9 @@ export function TrendingCampaignForm() {
             <div className="space-y-6">
               {/* Info Panel - Only show if not loading or if result is ready */}
               {!isLoading && !result && (
-                <div className="rounded-2xl bg-black/40 border border-white/10 overflow-hidden">
+                <div className="rounded-2xl bg-white/50 dark:bg-black/40 border border-neutral-200 dark:border-white/10 overflow-hidden">
                   {/* Wallet Row */}
-                  <div className="p-4 border-b border-white/5 flex items-center justify-between group/item hover:bg-white/5 transition-colors">
+                  <div className="p-4 border-b border-neutral-200 dark:border-white/5 flex items-center justify-between group/item hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="p-1.5 rounded-md bg-blue-500/10 text-blue-400">
                         <Wallet className="w-4 h-4" />
@@ -310,7 +310,7 @@ export function TrendingCampaignForm() {
 
                   {/* Farcaster Row */}
                   {farcasterUser.username && (
-                    <div className="p-4 flex items-center justify-between group/item hover:bg-white/5 transition-colors">
+                    <div className="p-4 flex items-center justify-between group/item hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="p-1.5 rounded-md bg-purple-500/10 text-purple-400">
                           <TrendingUp className="w-4 h-4" />
@@ -318,7 +318,7 @@ export function TrendingCampaignForm() {
                         <span className="text-sm text-gray-400 font-medium">Farcaster</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-white">@{farcasterUser.username}</span>
+                        <span className="font-medium text-neutral-900 dark:text-white">@{farcasterUser.username}</span>
                         {farcasterUser.fid && (
                           <span className="text-[10px] text-gray-400 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
                             FID: {farcasterUser.fid}
