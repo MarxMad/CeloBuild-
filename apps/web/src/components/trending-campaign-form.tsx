@@ -481,128 +481,111 @@ export function TrendingCampaignForm() {
       {/* Result Display */}
       {
         result && (
-          <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Success Card */}
+          <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            {/* Success Card - PREMIUM REDESIGN */}
             {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 flex flex-col gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
-                    <Box className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-lg text-foreground">{getRewardDisplay(result.reward_type).title}</h4>
-                    <p className="text-xs text-muted-foreground">{getRewardDisplay(result.reward_type).subtitle}</p>
-                    {result.reward_type === 'xp' && result.xp_granted !== undefined && result.xp_granted > 0 && (
-                      <div className="mt-1 px-3 py-1 bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 rounded-full font-bold text-sm inline-block">
-                        +{result.xp_granted} XP
-                      </div>
-                    )}
-                  </div>
-                </div>
+              <div className="relative rounded-3xl overflow-hidden p-1 p-gradient-to-br from-green-500/50 via-[#FCFF52]/50 to-green-900/50 shadow-2xl shadow-green-900/40 group/card">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-[#FCFF52]/10 to-transparent blur-xl opacity-50 animate-pulse" />
 
-                {/* NFT Image Display */}
-                {result.nft_images && (
-                  (() => {
-                    // Try to find image by address (case insensitive) or fallback to first available image
-                    const userAddress = address?.toLowerCase();
-                    const imageUri = Object.entries(result.nft_images || {}).find(([addr]) => addr.toLowerCase() === userAddress)?.[1]
-                      || Object.values(result.nft_images || {})[0];
+                <div className="relative bg-[#0a0a0a] rounded-[22px] p-6 sm:p-8 flex flex-col items-center text-center overflow-hidden">
+                  {/* Background Effects */}
+                  <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]" />
+                  <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-500/5 via-transparent to-transparent animate-spin-slow-reverse opacity-50" />
 
-                    if (imageUri) {
-                      return (
-                        <div className="rounded-xl overflow-hidden border border-white/10 shadow-lg relative aspect-[2/3] mx-auto w-2/3">
-                          <img
-                            src={imageUri}
-                            alt="NFT Reward"
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-                          <div className="absolute bottom-2 left-0 right-0 text-center">
-                            <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm border border-yellow-500/20">
-                              New Artifact
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()
-                )}
-
-                {/* Transaction Link */}
-                {result.explorer_url && (
-                  <Button variant="outline" className="w-full border-green-500/30 hover:bg-green-500/10 text-green-600 dark:text-green-400" asChild>
-                    <Link href={result.explorer_url} target="_blank">
-                      {t("overlay_view_tx")}
-                      <ExternalLink className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                )}
-
-                {/* Share Button */}
-                <Button
-                  className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold shadow-lg shadow-purple-500/20"
-                  onClick={() => {
-                    const score = result.user_analysis?.score?.toFixed(0) || "0";
-                    const rewardName = getRewardDisplay(result.reward_type).title;
-                    const text = `¡Acabo de ganar ${rewardName} en Premio.xyz! 🏆\n\nMi nivel de viralidad es: ${score}/100 🚀\n\nDescubre tu nivel y gana recompensas en crypto y NFTs aquí: https://celo-build-web-8rej.vercel.app`;
-                    const embed = "https://celo-build-web-8rej.vercel.app";
-                    const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
-
-                    // Try SDK first, fallback to window.open
-                    import("@farcaster/miniapp-sdk").then(({ sdk }) => {
-                      sdk.actions.openUrl(url);
-                    }).catch(() => {
-                      window.open(url, "_blank");
-                    });
-                  }}
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Compartir en Farcaster
-                </Button>
-              </div>
-            )}
-
-            {/* Analysis Details (Always show if available) */}
-            {(result.user_analysis || result.trend_info) && (
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-[#FCFF52]" />
-                  <h5 className="text-sm font-bold text-foreground">Detalles del Análisis</h5>
-                </div>
-
-                {result.user_analysis && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">@</span>
-                        <span className="text-sm font-semibold text-foreground">
-                          {result.user_analysis.username || "Usuario"}
-                        </span>
-                      </div>
-                      {result.user_analysis.score !== undefined && (
-                        <div className="text-sm font-mono font-bold text-[#FCFF52]">
-                          {result.user_analysis.score.toFixed(1)} Viral Score
-                        </div>
-                      )}
+                  {/* 1. HEADER & HERO XP */}
+                  <div className="relative z-10 space-y-2 mb-6 sm:mb-8">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-widest mb-2">
+                      <Sparkles className="w-3 h-3" />
+                      {getRewardDisplay(result.reward_type).title}
                     </div>
 
-                    {result.user_analysis.reasons && result.user_analysis.reasons.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {result.user_analysis.reasons.map((reason, idx) => (
-                          <span
-                            key={idx}
-                            className="text-[9px] px-2 py-0.5 rounded-full bg-[#FCFF52]/10 text-[#FCFF52] border border-[#FCFF52]/20 uppercase"
-                          >
-                            {reason}
-                          </span>
-                        ))}
+                    {result.xp_granted !== undefined && result.xp_granted > 0 && (
+                      <div className="relative">
+                        <h2 className="text-6xl sm:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FCFF52] to-yellow-600 drop-shadow-[0_2px_10px_rgba(252,255,82,0.3)] filter">
+                          +{result.xp_granted}
+                        </h2>
+                        <span className="text-xl font-bold text-yellow-500/80 tracking-widest uppercase mt-[-10px] block">
+                          XP Ganados
+                        </span>
                       </div>
                     )}
-                  </>
-                )}
+                  </div>
+
+                  {/* 2. NFT SHOWCASE (If available) */}
+                  {result.nft_images && (
+                    (() => {
+                      const userAddress = address?.toLowerCase();
+                      const imageUri = Object.entries(result.nft_images || {}).find(([addr]) => addr.toLowerCase() === userAddress)?.[1]
+                        || Object.values(result.nft_images || {})[0];
+
+                      if (imageUri) {
+                        return (
+                          <div className="relative w-full max-w-[240px] aspect-[2/3] rounded-xl overflow-hidden border border-white/10 shadow-2xl mb-8 group-hover/card:scale-[1.02] transition-transform duration-500">
+                            <img
+                              src={imageUri}
+                              alt="Legendary Artifact"
+                              className="w-full h-full object-cover"
+                            />
+                            {/* Rare Badge */}
+                            <div className="absolute top-2 right-2">
+                              <span className="bg-black/60 backdrop-blur-md text-[#FCFF52] text-[10px] font-bold px-2 py-0.5 rounded border border-[#FCFF52]/30">
+                                RARE
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()
+                  )}
+
+                  {/* 3. PRIMARY ACTION (Share) */}
+                  <Button
+                    className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold h-12 sm:h-14 text-base sm:text-lg rounded-xl shadow-lg shadow-purple-500/20 mb-3 group/share relative overflow-hidden"
+                    onClick={() => {
+                      const score = result.user_analysis?.score?.toFixed(0) || "0";
+                      const rewardName = getRewardDisplay(result.reward_type).title;
+                      const rewardVal = result.xp_granted ? `${result.xp_granted} XP` : rewardName;
+                      const username = result.user_analysis?.username || "Explorer";
+
+                      const appUrl = "https://celo-build-web-8rej.vercel.app";
+                      const victoryUrl = `${appUrl}/share/victory?user=${encodeURIComponent(username)}&xp=${result.xp_granted || 0}&score=${score}&reward=${encodeURIComponent(result.reward_type || 'XP')}&locale=es`;
+
+                      const text = `¡Victoria! He ganado ${rewardVal} en Premio.xyz 🏆\n\nReclama tu recompensa aquí 👇`;
+                      const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(victoryUrl)}`;
+
+                      import("@farcaster/miniapp-sdk").then(({ sdk }) => {
+                        sdk.actions.openUrl(warpcastUrl);
+                      }).catch(() => {
+                        window.open(warpcastUrl, "_blank");
+                      });
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/share:translate-y-0 transition-transform duration-300" />
+                    <div className="relative flex items-center justify-center gap-2">
+                      <TrendingUp className="w-5 h-5" />
+                      Presumir Victoria
+                    </div>
+                  </Button>
+
+                  {/* 4. SECONDARY ACTION (View Tx) */}
+                  {result.explorer_url && (
+                    <a
+                      href={result.explorer_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-gray-500 hover:text-green-400 transition-colors flex items-center gap-1 group/link"
+                    >
+                      Ver Transacción en Bloque
+                      <ExternalLink className="w-3 h-3 opacity-50 group-hover/link:opacity-100" />
+                    </a>
+                  )}
+
+                </div>
               </div>
             )}
+
+            {/* NOTE: Viral Score Analysis section removed as per user request to avoid confusion. */}
 
             {/* BOTÓN REINICIAR ELIMINADO para evitar spam y forzar cooldown en la UI principal */}
           </div>
