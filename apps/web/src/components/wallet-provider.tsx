@@ -22,7 +22,8 @@ const connectors = connectorsForWallets(
   ],
   {
     appName: "lootbox-minipay",
-    projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID!,
+    // Fallback ID to prevent build failure. User must set NEXT_PUBLIC_WC_PROJECT_ID in Vercel.
+    projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || "3a8170812b534d0ff9d794f19a901d64",
   }
 );
 
