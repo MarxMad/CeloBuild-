@@ -27,6 +27,7 @@ export function TrendingCampaignForm() {
   const [pendingResult, setPendingResult] = useState<AgentRunResponse | null>(null);
   const [result, setResult] = useState<AgentRunResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progressStep, setProgressStep] = useState<'idle' | 'scanning' | 'analyzing' | 'verifying' | 'sending' | 'completed'>('idle');
 
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -64,7 +65,41 @@ export function TrendingCampaignForm() {
     }
   };
 
-  const [progressStep, setProgressStep] = useState<'idle' | 'scanning' | 'analyzing' | 'verifying' | 'sending' | 'completed'>('idle');
+  const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Check for cooldown on mount
+    if (typeof window !== "undefined") {
+      const lastClaim = localStorage.getItem("lootbox_last_claim");
+      if (lastClaim) {
+        const elapsed = Date.now() - parseInt(lastClaim);
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+        if (elapsed < twentyFourHours) {
+          setCooldownRemaining(twentyFourHours - elapsed);
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Timer to decrement cooldown
+    if (cooldownRemaining !== null && cooldownRemaining > 0) {
+      const interval = setInterval(() => {
+        setCooldownRemaining((prev) => {
+          if (prev === null || prev <= 1000) return null;
+          return prev - 1000;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [cooldownRemaining]);
+
+  const formatTimeRemaining = (ms: number) => {
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+    return `${hours}h ${minutes}m ${seconds}s`;
+  };
 
   const handleAnalyzeAndClaim = async () => {
     if (!address) return;
@@ -124,6 +159,12 @@ export function TrendingCampaignForm() {
 
       setPendingResult(resultData);
       setProgressStep('completed');
+
+      // Save claim time if successful
+      if (resultData.eligible !== false && resultData.mode !== "failed") {
+        localStorage.setItem("lootbox_last_claim", Date.now().toString());
+        setCooldownRemaining(24 * 60 * 60 * 1000); // Set full cooldown
+      }
 
       // Trigger XP refresh
       if (typeof window !== 'undefined') {
@@ -290,15 +331,26 @@ export function TrendingCampaignForm() {
 
               {!result && !isLoading && (
                 <Button
-                  className="w-full bg-[#FCFF52] hover:bg-[#e6e945] text-black font-black h-14 text-lg shadow-[0_0_30px_rgba(252,255,82,0.3)] hover:shadow-[0_0_50px_rgba(252,255,82,0.5)] transition-all duration-300 rounded-xl relative overflow-hidden group/btn"
+                  className={`w-full font-black h-14 text-lg shadow-[0_0_30px_rgba(252,255,82,0.3)] transition-all duration-300 rounded-xl relative overflow-hidden group/btn ${cooldownRemaining && cooldownRemaining > 0
+                    ? "bg-gray-600 cursor-not-allowed hover:bg-gray-600 text-gray-300"
+                    : "bg-[#FCFF52] hover:bg-[#e6e945] text-black hover:shadow-[0_0_50px_rgba(252,255,82,0.5)]"
+                    }`}
                   onClick={handleAnalyzeAndClaim}
-                  disabled={isLoading}
+                  disabled={isLoading || (cooldownRemaining !== null && cooldownRemaining > 0)}
                 >
-                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
-                  <div className="relative flex items-center justify-center gap-2">
-                    <Gift className="h-5 w-5 group-hover/btn:rotate-12 transition-transform" />
-                    <span>Reclamar Recompensa</span>
-                  </div>
+                  {cooldownRemaining && cooldownRemaining > 0 ? (
+                    <div className="relative flex items-center justify-center gap-2">
+                      <span className="animate-pulse">⏳ Vuelve en {formatTimeRemaining(cooldownRemaining)}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+                      <div className="relative flex items-center justify-center gap-2">
+                        <Gift className="h-5 w-5 group-hover/btn:rotate-12 transition-transform" />
+                        <span>Reclamar Recompensa</span>
+                      </div>
+                    </>
+                  )}
                 </Button>
               )}
             </div>
@@ -426,13 +478,7 @@ export function TrendingCampaignForm() {
             </div>
           )}
 
-          {/* Reset Button */}
-          <Button variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => {
-            setResult(null);
-            setError(null);
-          }}>
-            Reiniciar Proceso
-          </Button>
+          {/* BOTÓN REINICIAR ELIMINADO para evitar spam y forzar cooldown en la UI principal */}
         </div>
       )}
 
