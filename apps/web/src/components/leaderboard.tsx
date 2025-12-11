@@ -84,14 +84,18 @@ export function Leaderboard() {
     const canScan = !lastScan || (now - parseInt(lastScan) > (6 * 60 * 60 * 1000));
 
     try {
-      // 1. Trigger backend scan if allowed (background)
+      // 1. Force Leaderboard Sync explicitly (Always allowed)
+      // This is crucial for verifying "Rotation" fix and filling the list
+      await fetch("/api/lootbox/leaderboard/sync", { method: "POST" }).catch(e => console.error("Leaderboard sync failed", e));
+
+      // 2. Trigger backend Trend Scan if allowed (background, expensive AI)
       if (canScan) {
         fetch("/api/lootbox/scan", { method: "POST" }).catch(e => console.error("Background scan failed", e));
         localStorage.setItem("lastTrendScanTime", Date.now().toString());
         setCooldownRemaining(6 * 60 * 60 * 1000);
       }
 
-      // 2. Fetch fresh data immediatey
+      // 3. Fetch fresh data immediately
       await fetchAllData();
 
     } catch (e) {
