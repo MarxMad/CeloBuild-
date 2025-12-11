@@ -54,96 +54,105 @@ class TrendWatcherAgent:
                 "status": "analyzed",
             }
 
-        logger.info("Consultando feed de tendencias de Neynar (canal=%s)...", channel_id)
+        # --- ESTRATEGIA DUAL: Viral + Comunitario ---
+        # 1. Fetch Viral Trends (Top Score)
+        logger.info("Consultando tendencias virales de Neynar (canal=%s)...", channel_id)
+        viral_casts = []
         try:
-            # Intentar usar el feed de tendencias oficial (más calidad)
-            casts = await self.farcaster.fetch_trending_feed(
+            viral_casts = await self.farcaster.fetch_trending_feed(
                 channel_id=channel_id, 
-                limit=20, 
+                limit=10, 
                 time_window="24h"
             )
         except Exception as exc:
-            logger.warning("⚠️ Error obteniendo trending feed: %s. Usando fallback a recent casts.", exc)
-            # Fallback a la lógica manual si falla el endpoint de tendencias (ej. sin créditos)
-            casts = await self.farcaster.fetch_recent_casts(channel_id=channel_id, limit=50)
+            logger.warning("⚠️ Error obteniendo trending feed: %s", exc)
 
-        if not casts:
+        # 2. Fetch Community Targets (Low Score / Verified Users)
+        target_users = ["oyealmond.base.eth", "celopg", "muchogang", "kmacb.eth"]
+        logger.info("Consultando casts de usuarios comunitarios: %s", target_users)
+        community_casts = []
+        try:
+            # Seleccionar 2 usuarios al azar cada vez para variedad
+            import random
+            selected_users = random.sample(target_users, min(2, len(target_users)))
+            community_casts = await self.farcaster.fetch_casts_from_users(selected_users, limit_per_user=2)
+        except Exception as exc:
+            logger.warning("⚠️ Error obteniendo community casts: %s", exc)
+
+        # 3. Fallback: Recent Casts (si falla todo lo anterior)
+        fallback_casts = []
+        if not viral_casts and not community_casts:
+             logger.warning("⚠️ Fallback a recent casts.")
+             fallback_casts = await self.farcaster.fetch_recent_casts(channel_id=channel_id, limit=20)
+        
+        # Combinar pools
+        all_candidates = viral_casts + community_casts + fallback_casts
+        
+        if not all_candidates:
             return {"status": "no_trends_found", **base_context}
             
+        # Scoring para unificar criterios
         scored_casts = []
-        for candidate in casts:
+        for candidate in all_candidates:
+            # Si es targeted, ya tiene flag. Si no, calcular score.
+            is_targeted = candidate.get("is_targeted", False)
             candidate_score = self._score_cast(candidate)
+            
+            # Boost artificial a los targeted para que no queden muy abajo en validaciones internas,
+            # aunque la selección final forzará su inclusión.
+            final_score = candidate_score
+            if is_targeted:
+                final_score = max(candidate_score, 0.4) # Asegurar un mínimo de respetabilidad
+
             scored_casts.append(
                 {
                     **candidate,
-                    "trend_score": candidate_score,
+                    "trend_score": final_score,
+                    "is_targeted": is_targeted
                 }
             )
 
-        scored_casts.sort(key=lambda cast: cast["trend_score"], reverse=True)
+        # Ordenar por score real para los virales
+        viral_pool = sorted([c for c in scored_casts if not c.get("is_targeted")], key=lambda x: x["trend_score"], reverse=True)
+        target_pool = [c for c in scored_casts if c.get("is_targeted")]
         
-        # Filtrar casts que pasen el umbral mínimo
-        valid_casts = [
-            cast for cast in scored_casts
-            if cast["trend_score"] >= self.settings.min_trend_score
-        ]
-        
-        # Deduplicar por usuario/autor para asegurar diversidad
-        # Seleccionar hasta 5 tendencias de diferentes usuarios
-        seen_users: set[int | str] = set()
-        valid_trends = []
-        
-        for cast in valid_casts:
-            # Obtener identificador único del usuario (FID o username)
-            author = cast.get("author", {})
-            user_id = author.get("fid") or author.get("username") or "unknown"
-            
-            # Solo agregar si no hemos visto este usuario antes
-            if user_id not in seen_users and len(valid_trends) < 5:
-                seen_users.add(user_id)
-                valid_trends.append(cast)
-            
-        if not valid_trends:
-            # Si no hay tendencias válidas, usar las top 5 de bajo umbral
-            # ... (código existente para caso 0 tendencias válidas) ...
-            # Para simplificar, reutilizamos la lógica de backfill de abajo
-            pass 
+        # --- SELECCIÓN MIXTA (Top 3 Virales + 2 Comunitarios) ---
+        final_selection = []
+        seen_ids = set()
 
-        # Backfill: Si tenemos menos de 5 tendencias, rellenar con las siguientes mejores (aunque sean débiles)
-        if len(valid_trends) < 5:
-            for cast in scored_casts:
-                # Identificar usuario
-                author = cast.get("author", {})
-                user_id = author.get("fid") or author.get("username") or "unknown"
-                
-                # Si ya está en seen_users, saltar
-                if user_id in seen_users:
-                    continue
-                
-                # Agregar a valid_trends
-                seen_users.add(user_id)
-                valid_trends.append(cast)
-                
-                if len(valid_trends) >= 5:
-                    break
-        
-        # Procesar tendencias (ahora valid_trends tiene hasta 5 items, mezclando fuertes y relleno)
+        def add_cast(cast):
+            # Deduplicar por hash y autor
+            auth_id = cast.get("author", {}).get("fid")
+            cast_hash = cast.get("hash")
+            if cast_hash not in seen_ids and auth_id not in seen_ids: # Evitar repetir usuario en la misma lista
+                final_selection.append(cast)
+                seen_ids.add(cast_hash)
+                seen_ids.add(auth_id)
+
+        # 1. Agregar Top 3 Virales
+        for cast in viral_pool:
+            if len(final_selection) >= 3:
+                break
+            add_cast(cast)
+            
+        # 2. Agregar 2 Comunitarios (Targeted)
+        # Randomize community pool to show different targeted casts
+        random.shuffle(target_pool)
+        for cast in target_pool:
+            if len(final_selection) >= 5:
+                break
+            add_cast(cast)
+            
+        # 3. Rellenar si falta (backfill con más virales)
+        for cast in viral_pool:
+            if len(final_selection) >= 5:
+                break
+            add_cast(cast)
+
+        # Procesar selección final
         detected_trends = []
-        for cast in valid_trends:
-            # Determinar si usamos AI (solo para las fuertes originales o la primera)
-            # Para optimizar, solo analizamos con AI las que superan el umbral O la primera si ninguna lo supera
-            is_strong = cast["trend_score"] >= self.settings.min_trend_score
-            
-            # Usar AI si es fuerte, o si es la #1 (para tener al menos una con análisis bueno)
-            use_ai_analysis = is_strong or (cast == valid_trends[0])
-            
-            if use_ai_analysis:
-                analysis_text, uses_ai = await self._summarize_cast(cast)
-            else:
-                # Análisis básico para las de relleno para ahorrar tokens/tiempo
-                analysis_text = cast.get("text", "")
-                uses_ai = False
-
+        for cast in final_selection:
+            # No usamos AI summary para rapidez
             topic_tags = self._extract_tags(cast.get("text", ""))
             frame_identifier = "cast-" + (cast.get("hash") or "unknown")[:8]
             
@@ -152,14 +161,18 @@ class TrendWatcherAgent:
                 "cast_hash": cast.get("hash"),
                 "trend_score": round(cast["trend_score"], 3),
                 "source_text": cast.get("text"),
-                "ai_analysis": analysis_text,
-                "ai_enabled": uses_ai,
+                "ai_analysis": cast.get("text", ""), # Direct text
+                "ai_enabled": False,
                 "topic_tags": topic_tags,
                 "channel_id": cast.get("channel_id") or channel_id,
                 "author": cast.get("author", {}),
+                "is_promoted": cast.get("is_targeted", False) # Flag for UI if needed
             })
             
-        logger.info("Retornando %d tendencias (mezcla fuertes/relleno)", len(detected_trends))
+        logger.info("Retornando %d tendencias (%d virales + %d comunitarias)", 
+                   len(detected_trends), 
+                   len([t for t in detected_trends if not t.get("is_promoted")]),
+                   len([t for t in detected_trends if t.get("is_promoted")]))
         
         # Notificar al usuario si se detectó una tendencia fuerte y hay un target_fid
         top_trend = detected_trends[0] if detected_trends else None

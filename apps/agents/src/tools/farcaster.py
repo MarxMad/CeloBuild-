@@ -685,3 +685,80 @@ class FarcasterToolbox:
                 logger.error("Error enviando notificación custom: %s", exc)
                 return {"status": "error", "message": str(exc)}
 
+    async def fetch_user_by_username(self, username: str) -> dict[str, Any] | None:
+        """Obtiene información de un usuario de Farcaster por su username."""
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            return None
+        
+        headers = {"accept": "application/json", "api_key": self.neynar_key}
+        url = "https://api.neynar.com/v2/farcaster/user/search"
+        params = {"q": username, "limit": 1}
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            try:
+                resp = await client.get(url, headers=headers, params=params)
+                if resp.status_code != 200:
+                    return None
+                data = resp.json()
+                users = data.get("result", {}).get("users", [])
+                if not users:
+                    return None
+                
+                # Verify exact match (case insensitive)
+                found_user = users[0]
+                if found_user.get("username", "").lower() != username.lower():
+                    logger.warning("Username mismatch: searched %s, found %s", username, found_user.get("username"))
+                    return None
+                
+                return _normalize_user(found_user)
+            except Exception as exc:
+                logger.error("Error fetching user %s: %s", username, exc)
+                return None
+
+    async def fetch_casts_from_users(self, usernames: list[str], limit_per_user: int = 5) -> list[dict[str, Any]]:
+        """Obtiene casts recientes de una lista específica de usuarios."""
+        all_casts = []
+        
+        for username in usernames:
+            user = await self.fetch_user_by_username(username)
+            if not user or not user.get("fid"):
+                continue
+                
+            fid = user["fid"]
+            try:
+                # Reusing fetch_recent_casts logic but targeting specific FID
+                headers = {"accept": "application/json", "api_key": self.neynar_key}
+                url = "https://api.neynar.com/v2/farcaster/feed/user/casts"
+                params = {"fid": fid, "limit": limit_per_user}
+                
+                async with httpx.AsyncClient(timeout=10) as client:
+                    resp = await client.get(url, headers=headers, params=params)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        for cast in data.get("casts", []):
+                            author = cast.get("author", {})
+                            all_casts.append({
+                                "hash": cast.get("hash"),
+                                "text": cast.get("text", ""),
+                                "author": {
+                                    "username": author.get("username"),
+                                    "fid": author.get("fid"),
+                                    "custody_address": author.get("custody_address"),
+                                    "pfp_url": author.get("pfp_url"),
+                                    "follower_count": author.get("follower_count"),
+                                },
+                                "reactions": {
+                                    "likes": cast.get("reactions", {}).get("likes_count", 0),
+                                    "recasts": cast.get("reactions", {}).get("recasts_count", 0),
+                                    "replies": cast.get("reactions", {}).get("replies_count", 0),
+                                },
+                                "timestamp": cast.get("timestamp"),
+                                "channel_id": cast.get("thread", {}).get("channel", {}).get("id") or "global",
+                                "trend_score": 0.0, # Will be calculated later but generally lower
+                                "is_targeted": True, # Flag to identify these casts
+                            })
+                    await asyncio.sleep(0.5) # Gentle rate limit
+            except Exception as exc:
+                logger.warning("Error fetching casts for %s: %s", username, exc)
+                
+        return all_casts
