@@ -92,13 +92,27 @@ export function Leaderboard() {
   };
 
   // Load cached data on mount
-  // REMOVED: User wants fresh blockchain data every time. Caching was causing confusion.
-  /*
   useEffect(() => {
-    const cachedEntries = localStorage.getItem("leaderboard_entries");
-    // ...
+    try {
+      const cachedEntries = localStorage.getItem("leaderboard_entries");
+      if (cachedEntries) {
+        setEntries(JSON.parse(cachedEntries));
+        setLoading(false);
+      }
+
+      const cachedTrends = localStorage.getItem("leaderboard_trends");
+      if (cachedTrends) {
+        setActiveTrends(JSON.parse(cachedTrends));
+      }
+
+      const cachedTrendDetails = localStorage.getItem("leaderboard_trend_details");
+      if (cachedTrendDetails) {
+        setTrendDetails(JSON.parse(cachedTrendDetails));
+      }
+    } catch (e) {
+      console.warn("Error loading cache", e);
+    }
   }, []);
-  */
 
   useEffect(() => {
     const fetchData = async () => {
@@ -190,8 +204,8 @@ export function Leaderboard() {
     // Initial fetch
     fetchData();
 
-    // Refrescar cada 30 segundos
-    const interval = setInterval(fetchData, 30000);
+    // Refrescar cada 5 segundos para sensación de tiempo real
+    const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, []);
 

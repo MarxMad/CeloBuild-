@@ -571,7 +571,7 @@ class RewardDistributorAgent:
             try:
                 # Wait a moment for the chain to index the recent grant
                 import time
-                time.sleep(2) 
+                time.sleep(5) 
                 
                 final_onchain_xp = self.celo_tool.get_xp_balance(
                     registry_address=self.settings.registry_address,

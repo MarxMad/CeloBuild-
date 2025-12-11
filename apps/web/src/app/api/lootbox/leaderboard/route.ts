@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const limit = searchParams.get("limit") || "5";
 
-        const backendUrl = `${AGENT_SERVICE_URL} /api/lootbox / leaderboard ? limit = ${limit} `;
+        const backendUrl = `${AGENT_SERVICE_URL}/api/lootbox/leaderboard?limit=${limit}`;
         const response = await fetch(backendUrl, {
             method: "GET",
             headers: { "Content-Type": "application/json" },

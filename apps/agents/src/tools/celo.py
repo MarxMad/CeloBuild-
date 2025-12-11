@@ -126,7 +126,7 @@ class CeloToolbox:
 
         # Reintentos robustos para manejar race conditions de nonce
         # Reintentos robustos para manejar race conditions de nonce
-        max_retries = 3
+        max_retries = 5
         manual_nonce = None
         
         for attempt in range(max_retries):
@@ -261,7 +261,7 @@ class CeloToolbox:
         metadata_uri = metadata_uri or "ipfs://QmExample"
         
         # Reintentos robustos para manejar race conditions de nonce
-        max_retries = 3
+        max_retries = 5
         manual_nonce = None
         
         for attempt in range(max_retries):

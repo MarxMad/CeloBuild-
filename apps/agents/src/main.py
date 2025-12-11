@@ -351,16 +351,38 @@ async def get_xp(wallet_address: str, campaign_id: str = Query(default="demo-cam
         )
 
 
+from fastapi import BackgroundTasks
+
 @app.get("/api/lootbox/leaderboard")
-async def leaderboard(limit: int = Query(50, ge=1, le=100)) -> dict[str, list[dict[str, object]]]:
-    """Devuelve el top de ganadores recientes."""
+async def leaderboard(background_tasks: BackgroundTasks, limit: int = Query(50, ge=1, le=100)) -> dict[str, list[dict[str, object]]]:
+    """Devuelve el top de ganadores recientes.
+    
+    Si el leaderboard está vacío (cold start), dispara una sincronización en background.
+    """
     try:
         # Usar supervisor del scheduler si está disponible, sino el global
         active_supervisor = scheduler_supervisor or supervisor
         if not active_supervisor:
             logger.warning("Supervisor no inicializado, retornando leaderboard vacío")
             return {"items": []}
+            
         items = active_supervisor.leaderboard.top(limit)
+        
+        # COLD START HANDLER: Si no hay items, disparar sync en background
+        if len(items) == 0:
+            logger.info("❄️ Cold Start detectado (Leaderboard vacío). Iniciando sync en background...")
+            
+            async def _bg_sync():
+                try:
+                    global leaderboard_syncer
+                    if not leaderboard_syncer:
+                        leaderboard_syncer = LeaderboardSyncer(active_supervisor.leaderboard)
+                    await leaderboard_syncer.sync()
+                except Exception as e:
+                    logger.error("Error en background sync: %s", e)
+            
+            background_tasks.add_task(_bg_sync)
+            
         return {"items": items}
     except Exception as exc:
         logger.error("Error obteniendo leaderboard: %s", exc, exc_info=True)
