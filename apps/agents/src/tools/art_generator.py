@@ -52,20 +52,33 @@ class ArtGenerator:
         # Chain the prompt and the LLM
         chain = prompt | self.llm
 
-        try:
-            result = await chain.ainvoke({"text": cast_text, "author": author})
-            # Limpiar markdown si Gemini lo incluye
-            content = result.content.replace("```json", "").replace("```", "").strip()
-            import json
-            return json.loads(content)
-        except Exception as e:
-            logger.error(f"Error generando metadata con AI: {e}")
-            return {
-                "title": f"Artifact of {author}",
-                "description": "A mysterious artifact from the decentralized web.",
-                "rarity": "Rare",
-                "type": "Artifact",
-            }
+        import asyncio
+        max_retries = 3
+        
+        for attempt in range(max_retries):
+            try:
+                result = await chain.ainvoke({"text": cast_text, "author": author})
+                # Limpiar markdown si Gemini lo incluye
+                content = result.content.replace("```json", "").replace("```", "").strip()
+                import json
+                return json.loads(content)
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                    if attempt < max_retries - 1:
+                        wait_time = 5 * (2 ** attempt) # 5s, 10s, 20s
+                        logger.warning(f"Gemini Rate Limit (429). Reintentando en {wait_time}s...")
+                        await asyncio.sleep(wait_time)
+                        continue
+                
+                logger.error(f"Error generando metadata con AI (intento {attempt+1}): {e}")
+                if attempt == max_retries - 1:
+                    return {
+                        "title": f"Artifact of {author}",
+                        "description": "A mysterious artifact from the decentralized web.",
+                        "rarity": "Rare",
+                        "type": "Artifact",
+                    }
 
     def generate_image(self, prompt: str) -> Any:
         """

@@ -137,8 +137,8 @@ class FarcasterToolbox:
                         
                     except httpx.HTTPStatusError as exc:
                         if exc.response.status_code == 429:
-                            wait_time = 2.0 * (2 ** attempt)
-                            logger.warning("Rate limit (429) para usuario %s. Esperando %.1fs...", fid, wait_time)
+                            wait_time = 5 * (2 ** attempt) # 5s, 10s, 20s
+                            logger.warning(f"Rate limit alcanzado (429) para usuario {fid}. Esperando {wait_time}s...")
                             await asyncio.sleep(wait_time)
                             continue
                         else:
