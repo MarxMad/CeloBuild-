@@ -78,13 +78,83 @@ export function TrendingCampaignForm() {
       const lastClaim = localStorage.getItem("lootbox_last_claim");
       if (lastClaim) {
         const elapsed = Date.now() - parseInt(lastClaim);
-        const twentyFourHours = 24 * 60 * 60 * 1000;
-        if (elapsed < twentyFourHours) {
-          setCooldownRemaining(twentyFourHours - elapsed);
+        // FARM MODE: 30 seconds cooldown for testing
+        const cooldownTime = 30 * 1000;
+        if (elapsed < cooldownTime) {
+          setCooldownRemaining(cooldownTime - elapsed);
         }
       }
     }
   }, []);
+
+  const handleRechargeShare = async () => {
+    const text = `¡Estoy ganando recompensas crypto en Premio.xyz! 🏆\n\nMira si eres elegible por tu actividad en Farcaster. 👇`;
+    const embed = "https://celo-build-web-8rej.vercel.app";
+    const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
+
+    // Try Farcaster SDK first (Mobile native)
+    try {
+      const { sdk } = await import("@farcaster/miniapp-sdk");
+      sdk.actions.openUrl(warpcastUrl);
+    } catch (e) {
+      // Fallback to window.open (Web)
+      window.open(warpcastUrl, "_blank");
+    }
+
+    // Call Verification API
+    setIsLoading(true);
+    const btn = document.getElementById('recharge-btn');
+    if (btn) btn.innerText = "Verificando en Farcaster...";
+
+    const verifyWithRetry = async (attempts = 5, delay = 2000) => {
+      for (let i = 0; i < attempts; i++) {
+        if (btn) btn.innerText = `Verificando (${i + 1}/${attempts})...`;
+
+        try {
+          await new Promise(r => setTimeout(r, delay));
+          if (!address) throw new Error("No wallet connected");
+
+          const response = await fetch("/api/lootbox/verify-recharge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              address: address,
+              fid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined
+            }),
+          });
+
+          const data = await response.json();
+
+          if (data.verified) {
+            localStorage.removeItem("lootbox_last_claim");
+            setCooldownRemaining(null);
+            setShowRechargeModal(false);
+            setVerificationError(null);
+
+            setShowThankYou(true);
+            setTimeout(() => {
+              setShowThankYou(false);
+            }, 4000);
+
+            return true;
+          } else {
+            setVerificationError(data.message || "No encontramos tu cast. Asegúrate de incluir 'premio.xyz' en el texto.");
+          }
+        } catch (e) {
+          console.error("Verification attempt failed:", e);
+          setVerificationError("Error de conexión. Intenta de nuevo.");
+        }
+      }
+      return false;
+    };
+
+    verifyWithRetry().then((success) => {
+      if (!success && !verificationError) {
+        setVerificationError("Intentos agotados. Verifica que tu cast sea público.");
+      }
+    }).finally(() => setIsLoading(false));
+  };
+
 
   useEffect(() => {
     // Timer to decrement cooldown
@@ -393,74 +463,7 @@ export function TrendingCampaignForm() {
                           <div className="pt-2 space-y-3">
                             <Button
                               className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold gap-2"
-                              onClick={() => {
-                                // 1. Open Share
-                                const text = `¡Estoy ganando recompensas crypto en Premio.xyz! 🏆\n\nMira si eres elegible por tu actividad en Farcaster. 👇`;
-                                const embed = "https://celo-build-web-8rej.vercel.app";
-                                const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embed)}`;
-                                window.open(url, "_blank");
-
-                                // 2. Call Verification API
-                                setIsLoading(true);
-                                const btn = document.getElementById('recharge-btn');
-                                if (btn) btn.innerText = "Verificando en Farcaster...";
-
-                                // Wait a bit for Farcaster to index (optimistic delay)
-                                const verifyWithRetry = async (attempts = 5, delay = 2000) => {
-                                  for (let i = 0; i < attempts; i++) {
-                                    if (btn) btn.innerText = `Verificando (${i + 1}/${attempts})...`;
-
-                                    try {
-                                      // Wait before attempt
-                                      await new Promise(r => setTimeout(r, delay));
-
-                                      // Get fresh address/fid
-                                      // validation: we need a wallet
-                                      if (!address) throw new Error("No wallet connected");
-
-                                      const response = await fetch("/api/lootbox/verify-recharge", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({
-                                          address: address,
-                                          fid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined
-                                        }),
-                                      });
-
-                                      const data = await response.json();
-
-                                      if (data.verified) {
-                                        localStorage.removeItem("lootbox_last_claim");
-                                        setCooldownRemaining(null);
-                                        setShowRechargeModal(false);
-                                        // Clean feedback
-                                        setVerificationError(null);
-
-                                        // NEW THANK YOU FLOW
-                                        setShowThankYou(true);
-                                        setTimeout(() => {
-                                          setShowThankYou(false);
-                                        }, 4000);
-
-                                        return true;
-                                      } else {
-                                        // Show error in UI instead of alert
-                                        setVerificationError(data.message || "No encontramos tu cast. Asegúrate de incluir 'premio.xyz' en el texto.");
-                                      }
-                                    } catch (e) {
-                                      console.error("Verification attempt failed:", e);
-                                      setVerificationError("Error de conexión. Intenta de nuevo.");
-                                    }
-                                  }
-                                  return false;
-                                };
-
-                                verifyWithRetry().then((success) => {
-                                  if (!success && !verificationError) {
-                                    setVerificationError("Intentos agotados. Verifica que tu cast sea público.");
-                                  }
-                                }).finally(() => setIsLoading(false));
-                              }}
+                              onClick={handleRechargeShare}
                               id="recharge-btn"
                             >
                               <TrendingUp className="w-4 h-4" />
@@ -665,7 +668,7 @@ export function TrendingCampaignForm() {
       }
       {/* Version Indicator for Debugging */}
       <div className="text-[10px] text-gray-500/50 text-center mt-4">
-        v1.2 (Recharge Update)
+        v1.3 (Farm Mode + Fixed Mobile)
       </div>
     </div >
   );
