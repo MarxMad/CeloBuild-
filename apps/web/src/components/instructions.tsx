@@ -6,17 +6,17 @@ export function Instructions() {
         {
             icon: Zap,
             title: "1. Sistema de Energía",
-            description: "Tienes 3 rayos de energía máxima. Cada análisis consume 1 rayo. Se recarga 1 rayo cada 20 minutos, ¡o comparte tu victoria para recargar al instante!",
+            description: "Tienes 3 rayos de energía. Cada análisis consume 1 rayo y se recarga cada 20 min. ¡Comparte tu victoria para recargar al instante!",
         },
         {
             icon: Search,
-            title: "2. Análisis de Último Cast",
-            description: "Analizamos tu publicación más reciente en Farcaster. Si es original y no ha sido premiada antes, eres elegible.",
+            title: "2. Análisis de Casts",
+            description: "Analizamos tu último cast y tu historial reciente. Cuanto más activo seas en tendencias, ¡más chances de premios!",
         },
         {
             icon: Gift,
-            title: "3. Recompensa Única",
-            description: "Recibes un NFT con arte generado por AI basado en lo que escribiste, o XP para subir en el ranking global.",
+            title: "3. Gana NFTs y XP",
+            description: "Recibe un Loot Box NFT generado por IA y XP. ¡Entre más casts hagas sobre temas calientes, más recompensas ganarás!",
         },
     ];
 

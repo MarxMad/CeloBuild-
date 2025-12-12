@@ -515,9 +515,6 @@ export function TrendingCampaignForm() {
                         Gracias por compartir Premio.xyz
                       </p>
                     </div>
-                    <div className="absolute bottom-10 left-0 right-0 flex justify-center">
-                      <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
-                    </div>
                   </div>
                 </div>
               )}
@@ -532,13 +529,7 @@ export function TrendingCampaignForm() {
       {
         result && (
           <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            {/* DEBUG: Remove after verification */}
-            <div className="bg-black/50 p-2 rounded text-[10px] items-center text-left text-green-400 font-mono break-all block">
-              DATA DEBUG:
-              XP: {String(result.xp_granted)} |
-              CAST: {String(result.cast_text?.substring(0, 10))}... |
-              HASH: {String(result.cast_hash?.substring(0, 10))}
-            </div>
+
 
             {/* Success Card - PREMIUM REDESIGN */}
             {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
@@ -618,7 +609,7 @@ export function TrendingCampaignForm() {
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 hover:underline"
                               >
-                                Ver en Warpcast <ExternalLink className="w-3 h-3" />
+                                Ver en Farcaster <ExternalLink className="w-3 h-3" />
                               </a>
                             )}
                           </div>
@@ -749,10 +740,7 @@ export function TrendingCampaignForm() {
           )
         )
       }
-      {/* Version Indicator for Debugging */}
-      <div className="text-[10px] text-gray-500/50 text-center mt-4">
-        v1.3 (Farm Mode + Fixed Mobile)
-      </div>
+
     </div >
   );
 }
