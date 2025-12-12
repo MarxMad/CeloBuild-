@@ -603,9 +603,10 @@ export function TrendingCampaignForm() {
                               <span className="text-xs font-medium uppercase tracking-wider">Cast Premiado</span>
                             </div>
                             {result.cast_hash && result.user_analysis?.username && (
-                              <span
                                 onClick={() => {
-                                  const url = `https://warpcast.com/${result.user_analysis.username}/${result.cast_hash.substring(0, 10)}`;
+                                  const username = result.user_analysis?.username || 'unknown';
+                                  const hash = result.cast_hash ? result.cast_hash.substring(0, 10) : '';
+                                  const url = `https://warpcast.com/${username}/${hash}`;
                                   import("@farcaster/miniapp-sdk").then(({ sdk }) => {
                                     sdk.actions.openUrl(url);
                                   }).catch(() => {
@@ -624,127 +625,127 @@ export function TrendingCampaignForm() {
                             </p>
                           </div>
                         </div>
-                      )}
-
-                      {/* XP Row */}
-                      {result.xp_granted !== undefined && (
-                        <div className="flex items-center justify-between bg-black/40 rounded-lg p-3 border border-white/5">
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-[#FCFF52]" />
-                            <span className="text-sm font-bold text-gray-200">Recompensa Extra</span>
-                          </div>
-                          <span className="text-[#FCFF52] font-mono font-bold">+{result.xp_granted} XP</span>
-                        </div>
-                      )}
-                    </div>
                   )}
 
-                  {/* 3. PRIMARY ACTION (Share) */}
-                  <Button
-                    className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold h-12 sm:h-14 text-base sm:text-lg rounded-xl shadow-lg shadow-purple-500/20 mb-3 group/share relative overflow-hidden"
-                    onClick={() => {
-                      const score = result.user_analysis?.score?.toFixed(0) || "0";
-                      const rewardName = getRewardDisplay(result.reward_type).title;
-                      const rewardVal = result.xp_granted ? `${result.xp_granted} XP` : rewardName;
-                      const username = result.user_analysis?.username || "Explorer";
+                  {/* XP Row */}
+                  {result.xp_granted !== undefined && (
+                    <div className="flex items-center justify-between bg-black/40 rounded-lg p-3 border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-[#FCFF52]" />
+                        <span className="text-sm font-bold text-gray-200">Recompensa Extra</span>
+                      </div>
+                      <span className="text-[#FCFF52] font-mono font-bold">+{result.xp_granted} XP</span>
+                    </div>
+                  )}
+                </div>
+                  )}
 
-                      const appUrl = "https://celo-build-web-8rej.vercel.app";
-                      const victoryUrl = `${appUrl}/share/victory?user=${encodeURIComponent(username)}&xp=${result.xp_granted || 0}&score=${score}&reward=${encodeURIComponent(result.reward_type || 'XP')}&locale=es`;
+                {/* 3. PRIMARY ACTION (Share) */}
+                <Button
+                  className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold h-12 sm:h-14 text-base sm:text-lg rounded-xl shadow-lg shadow-purple-500/20 mb-3 group/share relative overflow-hidden"
+                  onClick={() => {
+                    const score = result.user_analysis?.score?.toFixed(0) || "0";
+                    const rewardName = getRewardDisplay(result.reward_type).title;
+                    const rewardVal = result.xp_granted ? `${result.xp_granted} XP` : rewardName;
+                    const username = result.user_analysis?.username || "Explorer";
 
-                      const text = `¡Victoria! He ganado ${rewardVal} en Premio.xyz 🏆\n\nReclama tu recompensa aquí 👇`;
-                      const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(victoryUrl)}`;
+                    const appUrl = "https://celo-build-web-8rej.vercel.app";
+                    const victoryUrl = `${appUrl}/share/victory?user=${encodeURIComponent(username)}&xp=${result.xp_granted || 0}&score=${score}&reward=${encodeURIComponent(result.reward_type || 'XP')}&locale=es`;
 
-                      import("@farcaster/miniapp-sdk").then(({ sdk }) => {
-                        sdk.actions.openUrl(warpcastUrl);
-                      }).catch(() => {
-                        window.open(warpcastUrl, "_blank");
-                      });
-                    }}
+                    const text = `¡Victoria! He ganado ${rewardVal} en Premio.xyz 🏆\n\nReclama tu recompensa aquí 👇`;
+                    const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(victoryUrl)}`;
+
+                    import("@farcaster/miniapp-sdk").then(({ sdk }) => {
+                      sdk.actions.openUrl(warpcastUrl);
+                    }).catch(() => {
+                      window.open(warpcastUrl, "_blank");
+                    });
+                  }}
+                >
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/share:translate-y-0 transition-transform duration-300" />
+                  <div className="relative flex items-center justify-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Presumir Victoria
+                  </div>
+                </Button>
+
+                {/* 4. SECONDARY ACTION (View Tx) */}
+                {result.explorer_url && (
+                  <a
+                    href={result.explorer_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative z-20 text-xs text-gray-500 hover:text-green-400 transition-colors flex items-center justify-center gap-1 group/link p-2"
                   >
-                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/share:translate-y-0 transition-transform duration-300" />
-                    <div className="relative flex items-center justify-center gap-2">
-                      <TrendingUp className="w-5 h-5" />
-                      Presumir Victoria
-                    </div>
-                  </Button>
-
-                  {/* 4. SECONDARY ACTION (View Tx) */}
-                  {result.explorer_url && (
-                    <a
-                      href={result.explorer_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative z-20 text-xs text-gray-500 hover:text-green-400 transition-colors flex items-center justify-center gap-1 group/link p-2"
-                    >
-                      Ver Transacción en Bloque
-                      <ExternalLink className="w-3 h-3 opacity-50 group-hover/link:opacity-100" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* NOTE: Viral Score Analysis section removed as per user request to avoid confusion. */}
-
-            {/* BOTÓN REINICIAR ELIMINADO para evitar spam y forzar cooldown en la UI principal */}
-          </div>
-        )
-      }
-
-      {/* Error Display */}
-      {
-        error && (
-          <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                <span className="text-red-400 text-lg">⚠️</span>
-              </div>
-              <h4 className="font-bold text-base text-red-300">No Eres Elegible</h4>
-            </div>
-            <p className="text-sm text-red-400/90 pl-10">
-              {error}
-            </p>
-          </div>
-        )
-      }
-
-      {/* Transaction Failed Display */}
-      {
-        result && result.mode === "failed" && (
-          // Check for specific "already rewarded" error
-          result.error?.includes("already rewarded") ? (
-            <div className="mt-6 rounded-xl bg-blue-500/10 border border-blue-500/30 p-5 text-blue-200 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <span className="text-blue-400 text-lg">ℹ️</span>
-                </div>
-                <h4 className="font-bold text-base text-blue-100">¡Ya premiamos este Cast!</h4>
-              </div>
-              <p className="text-sm text-blue-200/80 pl-10">
-                Tu último cast ya se convirtió en NFT. <br />
-                <strong>¡Publica algo nuevo en Farcaster para ganar otro premio!</strong>
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6 rounded-xl bg-orange-500/10 border border-orange-500/30 p-5 text-orange-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center">
-                  <span className="text-orange-400 text-lg">⚠️</span>
-                </div>
-                <h4 className="font-bold text-base text-orange-300">Error en la Transacción</h4>
-              </div>
-              <p className="text-sm text-orange-400/90 pl-10">
-                Hubo un problema enviando tu recompensa on-chain.
-                {result.error && (
-                  <span className="block mt-1 font-mono text-xs opacity-80 bg-black/20 p-2 rounded">
-                    Error: {result.error}
-                  </span>
+                    Ver Transacción en Bloque
+                    <ExternalLink className="w-3 h-3 opacity-50 group-hover/link:opacity-100" />
+                  </a>
                 )}
-              </p>
-            </div>
-          )
-        )
-      }
+              </div>
+              </div>
+        )}
+
+      {/* NOTE: Viral Score Analysis section removed as per user request to avoid confusion. */}
+
+      {/* BOTÓN REINICIAR ELIMINADO para evitar spam y forzar cooldown en la UI principal */}
+    </div>
+  )
+}
+
+{/* Error Display */ }
+{
+  error && (
+    <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="flex items-center gap-2">
+        <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
+          <span className="text-red-400 text-lg">⚠️</span>
+        </div>
+        <h4 className="font-bold text-base text-red-300">No Eres Elegible</h4>
+      </div>
+      <p className="text-sm text-red-400/90 pl-10">
+        {error}
+      </p>
+    </div>
+  )
+}
+
+{/* Transaction Failed Display */ }
+{
+  result && result.mode === "failed" && (
+    // Check for specific "already rewarded" error
+    result.error?.includes("already rewarded") ? (
+      <div className="mt-6 rounded-xl bg-blue-500/10 border border-blue-500/30 p-5 text-blue-200 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+            <span className="text-blue-400 text-lg">ℹ️</span>
+          </div>
+          <h4 className="font-bold text-base text-blue-100">¡Ya premiamos este Cast!</h4>
+        </div>
+        <p className="text-sm text-blue-200/80 pl-10">
+          Tu último cast ya se convirtió en NFT. <br />
+          <strong>¡Publica algo nuevo en Farcaster para ganar otro premio!</strong>
+        </p>
+      </div>
+    ) : (
+      <div className="mt-6 rounded-xl bg-orange-500/10 border border-orange-500/30 p-5 text-orange-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+            <span className="text-orange-400 text-lg">⚠️</span>
+          </div>
+          <h4 className="font-bold text-base text-orange-300">Error en la Transacción</h4>
+        </div>
+        <p className="text-sm text-orange-400/90 pl-10">
+          Hubo un problema enviando tu recompensa on-chain.
+          {result.error && (
+            <span className="block mt-1 font-mono text-xs opacity-80 bg-black/20 p-2 rounded">
+              Error: {result.error}
+            </span>
+          )}
+        </p>
+      </div>
+    )
+  )
+}
 
     </div >
   );
