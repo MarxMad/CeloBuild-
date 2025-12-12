@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
         const MAX_ENERGY = 3;
         const RECHARGE_TIME = 20 * 60; // 1200 seconds
 
-        let data = {};
+        let data: Record<string, any> = {};
         try {
             const fileContent = await fs.readFile(dataPath, 'utf-8');
             data = JSON.parse(fileContent);
