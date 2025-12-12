@@ -5,7 +5,7 @@ import { useAccount, usePublicClient } from "wagmi";
 import { MINTER_ADDRESS, MINTER_ABI } from "@/lib/contracts";
 import { parseAbiItem } from "viem";
 import Link from "next/link";
-import { ArrowLeft, Crown, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Crown, Loader2, RefreshCw, Sparkles, Trophy, Zap } from "lucide-react";
 
 type NFT = {
     tokenId: string;
@@ -133,103 +133,133 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
+        <div className="min-h-screen bg-[#0a0a0a] text-white p-4 md:p-8 relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="fixed inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03] pointer-events-none" />
+            <div className="fixed top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-500/5 via-transparent to-transparent opacity-50 pointer-events-none" />
+
             {/* Navbar / Header */}
             <div className="sticky top-0 z-50 mb:mb-8">
-                <div className="max-w-6xl mx-auto flex items-center justify-between bg-background/60 backdrop-blur-xl rounded-2xl border shadow-sm p-4 mb-6">
+                <div className="max-w-6xl mx-auto flex items-center justify-between bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg p-4 mb-6">
                     <Link
                         href="/"
-                        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                        className="group flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
                     >
-                        <ArrowLeft className="w-5 h-5" />
-                        <span className="font-medium">Volver</span>
+                        <div className="p-1.5 rounded-full bg-white/5 group-hover:bg-[#FCFF52]/20 transition-colors">
+                            <ArrowLeft className="w-4 h-4 group-hover:text-[#FCFF52]" />
+                        </div>
+                        <span className="font-bold text-sm">Volver</span>
                     </Link>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={fetchNFTs}
                             disabled={loading}
-                            className="p-2 text-muted-foreground hover:text-yellow-600 transition-colors disabled:opacity-50"
+                            className="p-2 text-gray-400 hover:text-[#FCFF52] transition-colors disabled:opacity-50"
                             title="Recargar colección"
                         >
                             <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
                         </button>
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20">
-                            <Crown className="w-4 h-4 text-yellow-600" />
-                            <span className="text-sm font-bold text-yellow-600 uppercase tracking-wider">Colección</span>
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FCFF52]/10 border border-[#FCFF52]/30 shadow-[0_0_15px_rgba(252,255,82,0.1)]">
+                            <Crown className="w-3.5 h-3.5 text-[#FCFF52]" />
+                            <span className="text-xs font-black text-[#FCFF52] uppercase tracking-widest">Colección</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-6xl mx-auto relative z-10">
                 {/* Stats Section */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-background/60 backdrop-blur-xl rounded-2xl border p-4 flex flex-col items-center justify-center text-center">
-                        <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Rango Global</span>
-                        <span className="text-2xl font-black text-purple-500">#{rank ?? "-"}</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+                    <div className="bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 p-5 flex flex-col items-center justify-center text-center hover:border-purple-500/50 transition-colors group">
+                        <div className="mb-2 p-2 bg-purple-500/20 rounded-lg text-purple-400 group-hover:scale-110 transition-transform">
+                            <Trophy className="w-5 h-5" />
+                        </div>
+                        <span className="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">Ranking</span>
+                        <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-purple-300 to-purple-600">#{rank ?? "-"}</span>
                     </div>
-                    <div className="bg-background/60 backdrop-blur-xl rounded-2xl border p-4 flex flex-col items-center justify-center text-center">
-                        <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">XP Total</span>
-                        <span className="text-2xl font-black text-yellow-500">{xp}</span>
+
+                    <div className="bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 p-5 flex flex-col items-center justify-center text-center hover:border-[#FCFF52]/50 transition-colors group">
+                        <div className="mb-2 p-2 bg-[#FCFF52]/20 rounded-lg text-[#FCFF52] group-hover:scale-110 transition-transform">
+                            <Zap className="w-5 h-5" />
+                        </div>
+                        <span className="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">XP Total</span>
+                        <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FCFF52] to-yellow-600">{xp}</span>
                     </div>
-                    <div className="bg-background/60 backdrop-blur-xl rounded-2xl border p-4 flex flex-col items-center justify-center text-center">
-                        <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Victorias</span>
-                        <span className="text-2xl font-black text-green-500">{nfts.length}</span>
+
+                    <div className="bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 p-5 flex flex-col items-center justify-center text-center hover:border-green-500/50 transition-colors group">
+                        <div className="mb-2 p-2 bg-green-500/20 rounded-lg text-green-400 group-hover:scale-110 transition-transform">
+                            <Crown className="w-5 h-5" />
+                        </div>
+                        <span className="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">Premios</span>
+                        <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-green-300 to-green-600">{nfts.length}</span>
                     </div>
-                    <div className="bg-background/60 backdrop-blur-xl rounded-2xl border p-4 flex flex-col items-center justify-center text-center">
-                        <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Estatus</span>
-                        <span className="text-sm font-bold text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full">Verificado</span>
+
+                    <div className="bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 p-5 flex flex-col items-center justify-center text-center hover:border-blue-500/50 transition-colors group">
+                        <div className="mb-2 p-2 bg-blue-500/20 rounded-lg text-blue-400 group-hover:scale-110 transition-transform">
+                            <Sparkles className="w-5 h-5" />
+                        </div>
+                        <span className="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">Estado</span>
+                        <span className="text-sm font-bold text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">Verificado</span>
                     </div>
                 </div>
 
-                <header className="mb-8 text-center">
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-                        Mis Tarjetas Premiadas
-                    </h1>
-                    <p className="text-muted-foreground text-lg">
-                        Colección de artefactos digitales ganados en campañas.
+                <header className="mb-10 text-center relative">
+                    <div className="inline-block relative">
+                        <h1 className="text-4xl md:text-5xl font-black text-white mb-3 tracking-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                            Mis Artefactos
+                        </h1>
+                        <div className="absolute -top-6 -right-8 text-[#FCFF52] animate-bounce delay-100 hidden md:block">
+                            <Sparkles className="w-8 h-8" />
+                        </div>
+                    </div>
+
+                    <p className="text-gray-400 text-lg max-w-lg mx-auto font-medium">
+                        Colección de recompensas digitales ganadas por tu impacto en la comunidad.
                     </p>
                 </header>
 
                 {loading && nfts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-4">
-                        <Loader2 className="w-10 h-10 text-yellow-600 animate-spin" />
-                        <p className="text-muted-foreground animate-pulse">Buscando tus tesoros...</p>
+                        <Loader2 className="w-12 h-12 text-[#FCFF52] animate-spin" />
+                        <p className="text-gray-400 animate-pulse font-mono text-sm">Escaneando la blockchain...</p>
                     </div>
                 ) : nfts.length === 0 ? (
-                    <div className="text-center py-20 bg-background/60 backdrop-blur-xl rounded-2xl border shadow-sm">
-                        <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Crown className="w-8 h-8 text-muted-foreground" />
+                    <div className="text-center py-24 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl mx-4">
+                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
+                            <Crown className="w-10 h-10 text-gray-500/50" />
                         </div>
-                        <p className="text-xl text-foreground mb-2 font-medium">Aún no tienes tarjetas</p>
-                        <p className="text-muted-foreground">¡Participa en campañas activas para ganar tu primer NFT!</p>
-                        <button
-                            onClick={fetchNFTs}
-                            className="mt-6 px-6 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 rounded-full text-sm font-bold transition-colors border border-yellow-500/20"
+                        <p className="text-2xl text-white font-bold mb-3">Tu bóveda está vacía</p>
+                        <p className="text-gray-400 mb-8 max-w-xs mx-auto">
+                            ¡Participa en las campañas activas para ganar tu primer Loot Box NFT!
+                        </p>
+                        <Link
+                            href="/"
+                            className="px-8 py-3 bg-[#FCFF52] hover:bg-[#EBEF40] text-black rounded-xl text-base font-black transition-all hover:scale-105 shadow-[0_0_20px_rgba(252,255,82,0.4)]"
                         >
-                            Intentar recargar
-                        </button>
+                            Comenzar Aventura
+                        </Link>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 px-2">
                         {nfts.map((nft) => (
                             <div
                                 key={nft.tokenId}
-                                className="group relative bg-background/60 backdrop-blur-xl rounded-2xl border shadow-sm overflow-hidden hover:border-yellow-500/30 transition-all duration-300 hover:shadow-md"
+                                className="group relative bg-[#121212] rounded-3xl border border-white/10 overflow-hidden hover:border-[#FCFF52]/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(252,255,82,0.1)] hover:-translate-y-1"
                             >
                                 {/* Image Container */}
-                                <div className="aspect-[2/3] relative overflow-hidden bg-muted">
+                                <div className="aspect-[2/3] relative overflow-hidden bg-black/50">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-transparent to-transparent opacity-60 z-10" />
                                     <img
                                         src={nft.image}
                                         alt={nft.name}
-                                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
                                         loading="lazy"
                                     />
 
                                     {/* Rarity Badge */}
                                     {nft.rarity && (
-                                        <div className="absolute top-3 right-3 bg-yellow-500/10 backdrop-blur-md border border-yellow-500/20 px-2 py-0.5 rounded-full shadow-sm">
-                                            <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider">
+                                        <div className="absolute top-4 right-4 z-20">
+                                            <span className="bg-black/80 backdrop-blur-md text-[#FCFF52] text-[10px] font-black px-3 py-1 rounded-lg border border-[#FCFF52]/30 shadow-lg uppercase tracking-wider">
                                                 {nft.rarity}
                                             </span>
                                         </div>
@@ -237,30 +267,36 @@ export default function ProfilePage() {
                                 </div>
 
                                 {/* Content */}
-                                <div className="p-3 md:p-4">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="text-sm md:text-lg font-bold text-foreground group-hover:text-yellow-600 transition-colors line-clamp-1">
+                                <div className="relative z-20 -mt-20 p-5 pt-10 bg-gradient-to-t from-[#121212] via-[#121212] to-transparent">
+                                    <div className="flex justify-between items-end mb-3">
+                                        <h3 className="text-lg md:text-xl font-black text-white group-hover:text-[#FCFF52] transition-colors leading-tight line-clamp-1">
                                             {nft.name}
                                         </h3>
-                                        <span className="text-[10px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded hidden md:inline-block">
-                                            #{nft.tokenId}
-                                        </span>
                                     </div>
 
-                                    <p className="text-muted-foreground text-xs line-clamp-2 mb-4 leading-relaxed hidden md:block">
-                                        {nft.description}
-                                    </p>
-
-                                    <div className="pt-3 border-t border-border flex justify-between items-center">
-                                        <div className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold uppercase flex items-center gap-1.5">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                            Active
-                                        </div>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className="text-[10px] font-mono font-bold text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/5">
+                                            #{nft.tokenId}
+                                        </span>
                                         {nft.type && (
-                                            <span className="text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded border border-border/50 hidden md:inline-block">
+                                            <span className="text-[10px] font-bold text-gray-400 bg-white/5 px-2 py-1 rounded border border-white/5">
                                                 {nft.type}
                                             </span>
                                         )}
+                                    </div>
+
+                                    <p className="text-gray-400 text-xs line-clamp-2 leading-relaxed h-8 mb-4">
+                                        {nft.description}
+                                    </p>
+
+                                    <div className="pt-4 border-t border-white/5 flex justify-between items-center">
+                                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                            <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">Active</span>
+                                        </div>
+                                        <button className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                                            <Sparkles className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
