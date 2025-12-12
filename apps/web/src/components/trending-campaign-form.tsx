@@ -291,7 +291,7 @@ export function TrendingCampaignForm() {
           </div>
         );
       case 'verifying':
-  return (
+        return (
           <div className="flex flex-col items-center justify-center py-10 space-y-6 animate-in fade-in zoom-in duration-500">
             <div className="relative">
               <div className="absolute inset-0 bg-purple-500/20 rounded-full animate-pulse" />
@@ -299,7 +299,7 @@ export function TrendingCampaignForm() {
                 <Box className="h-10 w-10 text-purple-400 animate-bounce" />
               </div>
             </div>
-             <div className="text-center space-y-2">
+            <div className="text-center space-y-2">
               <h3 className="text-xl font-bold text-white">{t("form_status_verify")}</h3>
               <p className="text-sm text-gray-400">{t("overlay_step3")}</p>
             </div>
@@ -313,14 +313,14 @@ export function TrendingCampaignForm() {
               <div className="relative h-20 w-20 bg-black/50 rounded-full border border-green-500/30 flex items-center justify-center backdrop-blur-md">
                 <Gift className="h-10 w-10 text-green-400 animate-pulse" />
               </div>
-                </div>
+            </div>
             <div className="text-center space-y-2">
               <h3 className="text-xl font-bold text-white">{t("form_status_send")}</h3>
               <p className="text-sm text-gray-400">{t("overlay_step4")}</p>
               <p className="text-[10px] text-gray-500 pt-2 animate-pulse">
                 {t("form_status_verify")}...
-                </p>
-             </div>
+              </p>
+            </div>
           </div>
         );
       default:
