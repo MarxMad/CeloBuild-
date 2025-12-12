@@ -17,6 +17,7 @@ export type AgentRunResponse = {
   error?: string;
   reward_type?: "nft" | "cusd" | "xp" | "analysis";
   xp_granted?: number;
+  cast_text?: string;
   nft_images?: Record<string, string>;
   user_analysis?: {
     username?: string;
