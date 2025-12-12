@@ -627,6 +627,7 @@ async def run_lootbox(event: LootboxEvent):
             "cast_text": getattr(result, "cast_text", None),
             "cast_hash": getattr(result, "cast_hash", None),
             "xp_granted": getattr(result, "xp_granted", 0),
+            "trace_logs": getattr(result, "trace_logs", []),
         }
         
         # Forzar serialización aquí para capturar errores

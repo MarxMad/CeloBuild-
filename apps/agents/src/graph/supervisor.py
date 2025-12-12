@@ -30,6 +30,7 @@ class RunResult:
     cast_text: str | None = None
     cast_hash: str | None = None
     xp_granted: int = 0
+    trace_logs: list[str] = field(default_factory=list)
 
 
 class SupervisorOrchestrator:
@@ -261,5 +262,6 @@ class SupervisorOrchestrator:
             cast_text=distribution.get("cast_text"),
             cast_hash=distribution.get("cast_hash"),
             xp_granted=distribution.get("xp_granted", 0),
+            trace_logs=distribution.get("trace_logs", []),
         )
 

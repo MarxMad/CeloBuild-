@@ -90,6 +90,7 @@ class RewardDistributorAgent:
         captured_cast_hash = None 
         final_granted_xp: int = 0
         final_nft_uri: str | None = None
+        trace_logs: list[str] = [] # Debug trace for frontend
         
         # Configurar campaña automáticamente si no es "demo-campaign"
         # En producción, el agente debe ser owner para poder configurar campañas dinámicamente
@@ -258,13 +259,16 @@ class RewardDistributorAgent:
                         latest_cast = None
                         
                         if fid:
+                            trace_logs.append(f"FID found: {fid}. Fetching latest cast...")
                             try:
                                 logger.info("Fetching latest cast for FID: %s", fid)
                                 latest_cast = await self.farcaster_tool.fetch_user_latest_cast(fid)
                                 if latest_cast:
                                     logger.info("Found latest cast: %s (Hash: %s)", latest_cast.get("text")[:20], latest_cast.get("hash"))
+                                    trace_logs.append(f"Latest cast found via API. Hash: {latest_cast.get('hash')}")
                                 else:
                                     logger.warning("No latest cast found for FID: %s", fid)
+                                    trace_logs.append("API returned no recent casts. Attempting fallback...")
                                     
                                     # FALLBACK: Try to use a "related cast" from participation analysis
                                     participation = user_info.get("participation", {})
@@ -272,16 +276,17 @@ class RewardDistributorAgent:
                                     if related_casts:
                                         latest_cast = related_casts[0]
                                         logger.info("Using FALLBACK related cast: %s (Hash: %s)", latest_cast.get("text")[:20], latest_cast.get("hash"))
+                                        trace_logs.append(f"Fallback SUCCESS with related cast. Hash: {latest_cast.get('hash')}")
                                     else:
-                                         # FALLBACK 2: Check if 'best_cast' is in the ranking info (some agents might put it there)
-                                         # or try strictly fetching best cast by topic if available
-                                         pass
+                                        trace_logs.append("Fallback FAILED. No related casts found.")
 
                             except Exception as fc_err:
                                 logger.warning("Failed to fetch latest cast for uniqueness check: %s", fc_err)
+                                trace_logs.append(f"Exception during fetch: {str(fc_err)}")
                             
                         else:
                             logger.warning("No FID found for user address: %s", address)
+                            trace_logs.append(f"No FID found for address {address}")
                         
                         # Process the cast if we found one (either latest or fallback)
                         if latest_cast:
@@ -292,6 +297,7 @@ class RewardDistributorAgent:
                             if mint_history.has_minted(address, cast_hash):
                                 logger.warning("User %s already minted this cast %s. Blocking reward.", address, cast_hash)
                                 self.last_mint_error = "Cast already rewarded. Post something new!"
+                                trace_logs.append(f"Reward BLOCKED: Cast {cast_hash} already minted.")
                                 continue # Skip this user
                             
                             # Use this cast for art generation
@@ -299,6 +305,9 @@ class RewardDistributorAgent:
                             final_cast_text = cast_text # Capture for UI
                             captured_cast_hash = cast_hash # Capture exact hash
                             logger.info("Using cast for NFT: %s... Hash captured: %s", cast_text[:30], captured_cast_hash)
+                            trace_logs.append(f"Cast CAPTURED for reward. Hash: {captured_cast_hash}")
+                        else:
+                            trace_logs.append("No cast available to reward.")
 
                         # Generar arte AI para el NFT
                         from ..tools.art_generator import ArtGenerator
@@ -650,6 +659,7 @@ class RewardDistributorAgent:
             "xp_granted": final_granted_xp,
             "cast_text": final_cast_text,
             "cast_hash": captured_cast_hash,
+            "trace_logs": trace_logs,
         }
 
     def _record_leaderboard(
