@@ -148,8 +148,7 @@ export function TrendingCampaignForm() {
           const data = await response.json();
 
           if (data.verified) {
-            localStorage.removeItem("lootbox_last_claim");
-            setCooldownRemaining(null);
+
             setShowRechargeModal(false);
             setVerificationError(null);
 
@@ -474,7 +473,7 @@ export function TrendingCampaignForm() {
                       <div>
                         <h3 className="text-xl font-bold text-foreground">¡Sin Energía! 🔋</h3>
                         <p className="text-sm text-muted-foreground mt-2">
-                          Debes esperar <span className="font-mono font-bold text-amber-500">{formatTimeRemaining(cooldownRemaining || 0)}</span> para el siguiente loot.
+                          Debes esperar <span className="font-mono font-bold text-amber-500">{formatTimeRemaining(energy.seconds * 1000)}</span> para el siguiente loot.
                         </p>
                         <p className="text-sm font-medium text-foreground mt-4">
                           ¿Quieres recargar instantáneamente?
