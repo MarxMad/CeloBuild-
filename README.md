@@ -6,7 +6,7 @@
   **Viral Rewards on Farcaster powered by Celo & AI**
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-  [![Celo](https://img.shields.io/badge/Built_On-Celo-FBCC5C?logo=celo&logoColor=white)](https://celo.org)
+  [![Celo](https://img.shields.io/badge/Mainnet-Live-FBCC5C?logo=celo&logoColor=white)](https://celo.org)
   [![MiniPay](https://img.shields.io/badge/Mobile-MiniPay-000000)](https://minipay.celo.org)
   [![Farcaster](https://img.shields.io/badge/Social-Farcaster-855DCD)](https://farcaster.xyz)
 </div>
@@ -27,6 +27,9 @@ No claiming, no signing, no friction. Just participate and get rewarded.
 - **🤖 Autonomous Agents:** LangGraph-based agents that scan, analyze, and execute transactions without human intervention.
 - **📱 Mobile-First:** Designed specifically for **MiniPay** inside Opera Mini.
 - **⚡ Instant Rewards:** Automated distribution of cUSD (via MiniPay) and NFTs (via Contracts).
+- **🎨 Premium UI:** Full "Dark Sci-Fi" aesthetic with Glassmorphism, Neon accents, and smooth animations.
+- **🔋 Energy System:** Gamified user interaction with recharge mechanics and cooldowns to prevent spam.
+- **🖼️ Viral Frames:** Native Farcaster Frames for sharing victories and driving viral growth.
 - **🧠 AI Analysis:** Google Gemini AI analyzes sentiment and "viral score" to filter spam.
 - **🌍 Bilingual & Themed:** Full English/Spanish support and Dark/Light modes.
 
@@ -41,6 +44,7 @@ graph TD
     subgraph "📱 User Experience (MiniApp)"
         UI[Next.js Frontend]
         Wallet[MiniPay Wallet]
+        Frame[Viral Share Frame]
     end
     
     subgraph "🧠 Agentic Brain (Python/LangGraph)"
@@ -48,9 +52,10 @@ graph TD
         Trend[Trend Watcher]
         Elig[Eligibility Engine]
         Dist[Reward Distributor]
+        Energy[Energy Service]
     end
     
-    subgraph "🔗 On-Chain Infrastructure (Celo)"
+    subgraph "🔗 On-Chain Infrastructure (Celo Mainnet)"
         Registry[LootAccessRegistry]
         Vault[LootBoxVault (Funds)]
         NFT[LootBoxMinter (NFTs)]
@@ -62,20 +67,22 @@ graph TD
     end
 
     UI -->|1. Trigger Scan| Orchestrator
-    Orchestrator -->|2. Delegate| Trend
-    Trend -->|3. Fetch Casts| Neynar
-    Trend -->|4. Analyze Sentiment| Gemini
-    Trend -->|5. Viral Candidates| Elig
+    Orchestrator -->|2. Check Stamina| Energy
+    Orchestrator -->|3. Delegate| Trend
+    Trend -->|4. Fetch Casts| Neynar
+    Trend -->|5. Analyze Sentiment| Gemini
+    Trend -->|6. Viral Candidates| Elig
     
-    Elig -->|6. Check Reputation| Registry
-    Elig -->|7. Verify User| Dist
+    Elig -->|7. Check Reputation| Registry
+    Elig -->|8. Verify User| Dist
     
-    Dist -->|8. Mint NFT| NFT
-    Dist -->|9. Send cUSD| Vault
-    Dist -->|10. Grant XP| Registry
+    Dist -->|9. Mint NFT| NFT
+    Dist -->|10. Send cUSD| Vault
+    Dist -->|11. Grant XP| Registry
     
     NFT -.->|Ownership| Wallet
     Vault -.->|cUSD Transfer| Wallet
+    Frame -->|Deep Link| UI
 ```
 
 ---
@@ -85,9 +92,11 @@ graph TD
 1.  **Detection**: The `TrendWatcher` agent constantly scans Farcaster for hashtags or keywords associated with active campaigns.
 2.  **Scoring**: User interactions are analyzed. A "Viral Score" (0-100) is calculated based on likes, recasts, replies, and user reputation (Power Badge).
 3.  **Reward**:
-    *   **Score > 85**: Grants a **Rare Loot NFT** 🎨.
+    *   **Score > 85**: Grants a **Rare Loot NFT** 🎨 (Dynamic Art based on your Cast).
     *   **Score > 60**: Sends **cUSD** directly to the user (Micropayments) 💵.
     *   **Score < 60**: Awards **XP** (On-chain reputation) ⭐.
+4.  **Viral Loop**: Winners share their "Victory Frame" on Farcaster, which allows others to launch the MiniApp directly.
+5.  **Recharge**: Users can share their status to recharge their energy and play again.
 
 ---
 
@@ -95,9 +104,10 @@ graph TD
 
 ### Frontend (Apps/Web)
 *   **Next.js 14**: App Router, Server Components.
-*   **TailwindCSS**: Styling with custom "Sci-Fi" design system.
-*   **Wagmi / Viem**: Blockchain interaction.
+*   **TailwindCSS**: Custom "Sci-Fi" design system with detailed animations.
+*   **Wagmi / Viem**: Blockchain interaction on Celo Mainnet.
 *   **Farcaster Auth**: Farcaster Kit for login.
+*   **Farcaster Frames**: Native integration for sharing.
 *   **I18n**: Custom lightweight internationalization.
 
 ### Backend Agents (Apps/Agents)
@@ -166,9 +176,9 @@ Visit `http://localhost:3000` to see the app running.
 
 | Contract | Address |
 |----------|---------|
-| **LootBoxVault** | [`0x4f7aa310c1f90e435f292f5d9ba07cb102409990`](https://celoscan.io/address/0x4f7aa310c1f90e435f292f5d9ba07cb102409990) |
-| **LootAccessRegistry** | [`0x28a499be43d2e9720e129725e052781746e59d1d`](https://celoscan.io/address/0x28a499be43d2e9720e129725e052781746e59d1d) |
-| **LootBoxMinter** | [`0x39b93bac43ed50df42ea9e0dde38bcd072f0a771`](https://celoscan.io/address/0x39b93bac43ed50df42ea9e0dde38bcd072f0a771) |
+| **LootBoxVault** | [`0x2c8c787af0d123a7bedf20064f3ad45aaafd6020`](https://celoscan.io/address/0x2c8c787af0d123a7bedf20064f3ad45aaafd6020) |
+| **LootAccessRegistry** | [`0x4a948a06422116fcd8dcd9eacac32e5c40b0e400`](https://celoscan.io/address/0x4a948a06422116fcd8dcd9eacac32e5c40b0e400) |
+| **LootBoxMinter** | [`0x455fa0b0de62fead3032f8485cddd9e606cc7c7d`](https://celoscan.io/address/0x455fa0b0de62fead3032f8485cddd9e606cc7c7d) |
 
 ---
 
