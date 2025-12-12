@@ -255,32 +255,50 @@ class RewardDistributorAgent:
                         cast_hash_to_reward = None
                         
                         # Fetch latest cast if FID is present
+                        latest_cast = None
+                        
                         if fid:
                             try:
                                 logger.info("Fetching latest cast for FID: %s", fid)
                                 latest_cast = await self.farcaster_tool.fetch_user_latest_cast(fid)
                                 if latest_cast:
-                                    cast_hash = latest_cast.get("hash")
-                                    logger.info("Found latest cast: %s (Hash: %s)", latest_cast.get("text")[:20], cast_hash)
-                                    
-                                    # CHECK UNIQUENESS
-                                    if mint_history.has_minted(address, cast_hash):
-                                        logger.warning("User %s already minted this cast %s. Blocking reward.", address, cast_hash)
-                                        self.last_mint_error = "Cast already rewarded. Post something new!"
-                                        continue # Skip this user
-                                    
-                                    # Use this cast for art generation
-                                    cast_text = latest_cast.get("text", "")[:280] # Limit length
-                                    cast_hash_to_reward = cast_hash
-                                    final_cast_text = cast_text # Capture for UI
-                                    captured_cast_hash = cast_hash # Capture exact hash
-                                    logger.info("Using user's latest cast for NFT: %s... Hash captured: %s", cast_text[:30], captured_cast_hash)
+                                    logger.info("Found latest cast: %s (Hash: %s)", latest_cast.get("text")[:20], latest_cast.get("hash"))
                                 else:
                                     logger.warning("No latest cast found for FID: %s", fid)
+                                    
+                                    # FALLBACK: Try to use a "related cast" from participation analysis
+                                    participation = user_info.get("participation", {})
+                                    related_casts = participation.get("related_casts", [])
+                                    if related_casts:
+                                        latest_cast = related_casts[0]
+                                        logger.info("Using FALLBACK related cast: %s (Hash: %s)", latest_cast.get("text")[:20], latest_cast.get("hash"))
+                                    else:
+                                         # FALLBACK 2: Check if 'best_cast' is in the ranking info (some agents might put it there)
+                                         # or try strictly fetching best cast by topic if available
+                                         pass
+
                             except Exception as fc_err:
                                 logger.warning("Failed to fetch latest cast for uniqueness check: %s", fc_err)
+                            
                         else:
                             logger.warning("No FID found for user address: %s", address)
+                        
+                        # Process the cast if we found one (either latest or fallback)
+                        if latest_cast:
+                            cast_hash = latest_cast.get("hash")
+                            cast_text = latest_cast.get("text", "")[:280]
+
+                             # CHECK UNIQUENESS
+                            if mint_history.has_minted(address, cast_hash):
+                                logger.warning("User %s already minted this cast %s. Blocking reward.", address, cast_hash)
+                                self.last_mint_error = "Cast already rewarded. Post something new!"
+                                continue # Skip this user
+                            
+                            # Use this cast for art generation
+                            cast_hash_to_reward = cast_hash
+                            final_cast_text = cast_text # Capture for UI
+                            captured_cast_hash = cast_hash # Capture exact hash
+                            logger.info("Using cast for NFT: %s... Hash captured: %s", cast_text[:30], captured_cast_hash)
 
                         # Generar arte AI para el NFT
                         from ..tools.art_generator import ArtGenerator
