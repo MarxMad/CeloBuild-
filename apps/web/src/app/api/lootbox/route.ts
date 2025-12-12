@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { LootboxEventPayload } from "@/lib/lootbox";
 
+export const dynamic = 'force-dynamic';
+
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL ?? process.env.NEXT_PUBLIC_AGENT_SERVICE_URL;
 
 export async function POST(request: Request) {
