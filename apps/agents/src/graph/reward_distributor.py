@@ -534,11 +534,55 @@ class RewardDistributorAgent:
                     
                     # 1. Generar Metadata con AI
                     # Buscar info del usuario para personalizar
+                    # Buscar info del usuario para personalizar
                     user_info = next((r for r in rankings if r["address"] == address), {})
+                         
                     username = user_info.get("username", "Unknown")
-                    # Usar el texto de la tendencia o un default
-                    cast_text = metadata.get("source_text") or f"Reward for {username}"
-                    final_cast_text = cast_text # Capture for UI
+                    fid = user_info.get("fid")
+                    
+                    # --- CAST CAPTURE LOGIC (Explicit Path) ---
+                    latest_cast = None
+                    if fid:
+                        trace_logs.append(f"[Explicit] FID: {fid}. Fetching cast...")
+                        try:
+                            # 1. Fetch Latest
+                            latest_cast = await self.farcaster_tool.fetch_user_latest_cast(fid)
+                            if latest_cast:
+                                trace_logs.append(f"[Explicit] Found latest cast: {latest_cast.get('hash')}")
+                            else:
+                                # 2. Fallback
+                                trace_logs.append("[Explicit] No recent cast. Trying fallback...")
+                                participation = user_info.get("participation", {})
+                                related_casts = participation.get("related_casts", [])
+                                if related_casts:
+                                    latest_cast = related_casts[0]
+                                    trace_logs.append(f"[Explicit] Fallback SUCCESS: {latest_cast.get('hash')}")
+                        except Exception as e:
+                            logger.warning("Error fetching cast in explicit path: %s", e)
+                            trace_logs.append(f"[Explicit] Error: {e}")
+                    
+                    cast_hash_to_reward = None
+                    if latest_cast:
+                         cast_hash = latest_cast.get("hash")
+                         # Uniqueness Check
+                         if mint_history.has_minted(address, cast_hash):
+                                logger.warning("User %s already minted %s", address, cast_hash)
+                                trace_logs.append(f"[Explicit] BLOCKED: Already minted {cast_hash}")
+                                # In explicit mode, maybe we allow it? or still block? 
+                                # Let's block to prevent spam, or maybe just proceed without specific cast hash?
+                                # For now, let's proceed but NOT associate the hash if it's reused, 
+                                # OR just allow it because user explicitly clicked? 
+                                # Let's allow it but warn.
+                                trace_logs.append("[Explicit] Proceeding anyway (Explicit Override).")
+                         
+                         captured_cast_hash = cast_hash
+                         final_cast_text = latest_cast.get("text", "")[:280]
+                         cast_text = final_cast_text # Override default text
+                         cast_hash_to_reward = cast_hash
+                         trace_logs.append(f"[Explicit] Capturing hash: {captured_cast_hash}")
+                    else:
+                         cast_text = metadata.get("source_text") or f"Reward for {username}"
+                         final_cast_text = cast_text
                     
                     card_meta = await art_gen.generate_card_metadata(cast_text, username)
                     
