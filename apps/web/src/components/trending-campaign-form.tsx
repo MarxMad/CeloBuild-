@@ -589,6 +589,40 @@ export function TrendingCampaignForm() {
                     })()
                   )}
 
+                  {/* 2.5 BONUS REWARD SUMMARY (NEW) */}
+                  {(result.cast_text || result.xp_granted) && (
+                    <div className="w-full max-w-sm bg-white/5 border border-white/10 rounded-xl p-4 mb-6 backdrop-blur-sm">
+
+                      {/* Cast Quote */}
+                      {result.cast_text && (
+                        <div className="mb-4 text-left">
+                          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                            <div className="p-1 bg-blue-500/20 rounded-lg">
+                              <MessageSquare className="w-3 h-3 text-blue-400" />
+                            </div>
+                            <span className="text-xs font-medium uppercase tracking-wider">Cast Premiado</span>
+                          </div>
+                          <div className="relative pl-3 border-l-2 border-green-500/50">
+                            <p className="text-sm text-gray-300 italic line-clamp-3">
+                              "{result.cast_text}"
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* XP Row */}
+                      {result.xp_granted !== undefined && (
+                        <div className="flex items-center justify-between bg-black/40 rounded-lg p-3 border border-white/5">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-[#FCFF52]" />
+                            <span className="text-sm font-bold text-gray-200">Recompensa Extra</span>
+                          </div>
+                          <span className="text-[#FCFF52] font-mono font-bold">+{result.xp_granted} XP</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* 3. PRIMARY ACTION (Share) */}
                   <Button
                     className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold h-12 sm:h-14 text-base sm:text-lg rounded-xl shadow-lg shadow-purple-500/20 mb-3 group/share relative overflow-hidden"

@@ -919,7 +919,8 @@ class RewardDistributorAgent:
             "reward_type": reward_type,
             "nft_images": nft_images if 'nft_images' in locals() else {},
             "error": self.last_mint_error if hasattr(self, "last_mint_error") else None,
-            "xp_granted": granted_xp if reward_type == "xp" and xp_awards else 0,
+            "xp_granted": granted_xp if reward_type == "xp" and xp_awards else (xp_amount if 'xp_amount' in locals() else 0),
+            "cast_text": cast_text if 'cast_text' in locals() else None,
         }
 
     def _record_leaderboard(
