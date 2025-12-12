@@ -14,19 +14,17 @@ export async function generateMetadata(
     const reward = searchParams.reward as string || "XP";
     const locale = searchParams.locale as string || "en";
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://premio.xyz";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://celo-build-web-8rej.vercel.app";
 
     // Construct dynamic OG Image URL
     const ogImageUrl = `${appUrl}/api/og?type=victory&user=${encodeURIComponent(user)}&score=${score}&reward=${encodeURIComponent(reward)}&locale=${locale}`;
-
-    // Construct MiniApp Deep Link
-    const miniappUrl = `https://warpcast.com/~/compose?text=I%20want%20to%20earn%20rewards%20too!%20%40${user}&embeds[]=${encodeURIComponent(appUrl)}`;
 
     return {
         title: `Victory: ${user} won ${reward}!`,
         description: `Join ${user} and earn rewards on Premio.`,
         openGraph: {
             title: `Victory: ${user} won ${reward}!`,
+            description: `Join ${user} and earn rewards on Premio.`,
             images: [ogImageUrl],
         },
         other: {
@@ -34,11 +32,11 @@ export async function generateMetadata(
             "fc:frame:image": ogImageUrl,
             "fc:frame:button:1": locale === "es" ? "🚀 Jugar Ahora" : "🚀 Play Now",
             "fc:frame:button:1:action": "link",
-            "fc:frame:button:1:target": miniappUrl,
+            "fc:frame:button:1:target": appUrl, // Fix: Launch the app directly
             // Optional: Add a second button to view leaderboard
             "fc:frame:button:2": locale === "es" ? "🏆 Ver Ranking" : "🏆 Leaderboard",
             "fc:frame:button:2:action": "link",
-            "fc:frame:button:2:target": appUrl,
+            "fc:frame:button:2:target": `${appUrl}/?view=leaderboard`,
         },
     };
 }

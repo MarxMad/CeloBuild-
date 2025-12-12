@@ -282,16 +282,21 @@ export function Leaderboard() {
 
               {/* Link a la tendencia */}
               <div className="mt-2">
-                <a
-                  href={`https://warpcast.com/${trend.author_username || 'unknown'}/${trend.cast_hash || ''}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-green-700 dark:text-[#FCFF52] hover:underline group/link"
+                <span
+                  onClick={() => {
+                    const url = `https://warpcast.com/${trend.author_username || 'unknown'}/${trend.cast_hash || ''}`;
+                    import("@farcaster/miniapp-sdk").then(({ sdk }) => {
+                      sdk.actions.openUrl(url);
+                    }).catch(() => {
+                      window.open(url, "_blank");
+                    });
+                  }}
+                  className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-green-700 dark:text-[#FCFF52] hover:underline group/link cursor-pointer"
                 >
                   <Sparkles className="w-3 h-3 group-hover/link:animate-pulse" />
                   {t("trend_join")}
                   <ExternalLink className="w-3 h-3 opacity-70" />
-                </a>
+                </span>
               </div>
 
               {/* Tags */}

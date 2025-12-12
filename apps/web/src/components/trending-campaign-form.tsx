@@ -603,14 +603,19 @@ export function TrendingCampaignForm() {
                               <span className="text-xs font-medium uppercase tracking-wider">Cast Premiado</span>
                             </div>
                             {result.cast_hash && result.user_analysis?.username && (
-                              <a
-                                href={`https://warpcast.com/${result.user_analysis.username}/${result.cast_hash.substring(0, 10)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 hover:underline"
+                              <span
+                                onClick={() => {
+                                  const url = `https://warpcast.com/${result.user_analysis.username}/${result.cast_hash.substring(0, 10)}`;
+                                  import("@farcaster/miniapp-sdk").then(({ sdk }) => {
+                                    sdk.actions.openUrl(url);
+                                  }).catch(() => {
+                                    window.open(url, "_blank");
+                                  });
+                                }}
+                                className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
                               >
                                 Ver en Farcaster <ExternalLink className="w-3 h-3" />
-                              </a>
+                              </span>
                             )}
                           </div>
                           <div className="relative pl-3 border-l-2 border-green-500/50">
