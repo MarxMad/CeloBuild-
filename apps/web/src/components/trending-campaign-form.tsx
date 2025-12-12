@@ -245,12 +245,6 @@ export function TrendingCampaignForm() {
       setPendingResult(resultData);
       setProgressStep('completed');
 
-      // Save claim time if successful
-      if (resultData.eligible !== false && resultData.mode !== "failed") {
-        localStorage.setItem("lootbox_last_claim", Date.now().toString());
-        setCooldownRemaining(24 * 60 * 60 * 1000); // Set full cooldown
-      }
-
       // Trigger XP refresh
       if (typeof window !== 'undefined') {
         console.log("🎁 Reward processed. Triggering XP refresh...");
