@@ -194,15 +194,15 @@ export function TrendingCampaignForm() {
     setPendingResult(null);
     setResult(null);
     setError(null);
-
+    
     // Start UI Sequence
     setProgressStep('scanning');
-
+    
     try {
-      const payload: LootboxEventPayload = {
+    const payload: LootboxEventPayload = {
         frameId: undefined,
-        channelId: "global",
-        trendScore: 0,
+      channelId: "global",
+      trendScore: 0,
         targetAddress: address,
         targetFid: farcasterUser.fid ? Number(farcasterUser.fid) : undefined,
       };
@@ -291,7 +291,7 @@ export function TrendingCampaignForm() {
           </div>
         );
       case 'verifying':
-        return (
+  return (
           <div className="flex flex-col items-center justify-center py-10 space-y-6 animate-in fade-in zoom-in duration-500">
             <div className="relative">
               <div className="absolute inset-0 bg-purple-500/20 rounded-full animate-pulse" />
@@ -299,7 +299,7 @@ export function TrendingCampaignForm() {
                 <Box className="h-10 w-10 text-purple-400 animate-bounce" />
               </div>
             </div>
-            <div className="text-center space-y-2">
+             <div className="text-center space-y-2">
               <h3 className="text-xl font-bold text-white">{t("form_status_verify")}</h3>
               <p className="text-sm text-gray-400">{t("overlay_step3")}</p>
             </div>
@@ -313,14 +313,14 @@ export function TrendingCampaignForm() {
               <div className="relative h-20 w-20 bg-black/50 rounded-full border border-green-500/30 flex items-center justify-center backdrop-blur-md">
                 <Gift className="h-10 w-10 text-green-400 animate-pulse" />
               </div>
-            </div>
+                </div>
             <div className="text-center space-y-2">
               <h3 className="text-xl font-bold text-white">{t("form_status_send")}</h3>
               <p className="text-sm text-gray-400">{t("overlay_step4")}</p>
               <p className="text-[10px] text-gray-500 pt-2 animate-pulse">
                 {t("form_status_verify")}...
-              </p>
-            </div>
+                </p>
+             </div>
           </div>
         );
       default:
@@ -437,8 +437,8 @@ export function TrendingCampaignForm() {
                         <Zap className="h-5 w-5 fill-current" />
                         <span>⚡ Recargar Ahora</span>
                       </div>
-                    ) : (
-                      <>
+                ) : (
+                <>
                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
                         <div className="relative flex items-center justify-center gap-2">
                           <Gift className="h-5 w-5 group-hover/btn:rotate-12 transition-transform" />
@@ -448,7 +448,7 @@ export function TrendingCampaignForm() {
                     )}
                   </Button>
                 </>
-              )}
+                )}
 
               {/* Recharge Modal Overlay */}
               {showRechargeModal && (
@@ -490,7 +490,7 @@ export function TrendingCampaignForm() {
                           onClick={() => setShowRechargeModal(false)}
                         >
                           Esperar
-                        </Button>
+            </Button>
                       </div>
                     </div>
                   </div>
@@ -633,12 +633,12 @@ export function TrendingCampaignForm() {
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-[#FCFF52]" />
                         <span className="text-sm font-bold text-gray-200">Recompensa Extra</span>
-                      </div>
+                        </div>
                       <span className="text-[#FCFF52] font-mono font-bold">+{result.xp_granted} XP</span>
                     </div>
-                  )}
+                    )}
                 </div>
-                  )}
+             )}
 
                 {/* 3. PRIMARY ACTION (Share) */}
                 <Button
@@ -666,7 +666,7 @@ export function TrendingCampaignForm() {
                   <div className="relative flex items-center justify-center gap-2">
                     <TrendingUp className="w-5 h-5" />
                     Presumir Victoria
-                  </div>
+            </div> 
                 </Button>
 
                 {/* 4. SECONDARY ACTION (View Tx) */}
@@ -682,71 +682,63 @@ export function TrendingCampaignForm() {
                   </a>
                 )}
               </div>
-              </div>
+          </div>
         )}
 
       {/* NOTE: Viral Score Analysis section removed as per user request to avoid confusion. */}
 
       {/* BOTÓN REINICIAR ELIMINADO para evitar spam y forzar cooldown en la UI principal */}
-    </div>
-  )
-}
 
-{/* Error Display */ }
-{
-  error && (
-    <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="flex items-center gap-2">
-        <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
-          <span className="text-red-400 text-lg">⚠️</span>
-        </div>
-        <h4 className="font-bold text-base text-red-300">No Eres Elegible</h4>
-      </div>
-      <p className="text-sm text-red-400/90 pl-10">
-        {error}
-      </p>
-    </div>
-  )
-}
-
-{/* Transaction Failed Display */ }
-{
-  result && result.mode === "failed" && (
-    // Check for specific "already rewarded" error
-    result.error?.includes("already rewarded") ? (
-      <div className="mt-6 rounded-xl bg-blue-500/10 border border-blue-500/30 p-5 text-blue-200 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-            <span className="text-blue-400 text-lg">ℹ️</span>
+      {/* Error Display */}
+        {error && (
+        <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
+              <span className="text-red-400 text-lg">⚠️</span>
+            </div>
+            <h4 className="font-bold text-base text-red-300">No Eres Elegible</h4>
           </div>
-          <h4 className="font-bold text-base text-blue-100">¡Ya premiamos este Cast!</h4>
+          <p className="text-sm text-red-400/90 pl-10">
+            {error}
+          </p>
         </div>
-        <p className="text-sm text-blue-200/80 pl-10">
-          Tu último cast ya se convirtió en NFT. <br />
-          <strong>¡Publica algo nuevo en Farcaster para ganar otro premio!</strong>
-        </p>
-      </div>
-    ) : (
-      <div className="mt-6 rounded-xl bg-orange-500/10 border border-orange-500/30 p-5 text-orange-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center">
-            <span className="text-orange-400 text-lg">⚠️</span>
-          </div>
-          <h4 className="font-bold text-base text-orange-300">Error en la Transacción</h4>
-        </div>
-        <p className="text-sm text-orange-400/90 pl-10">
-          Hubo un problema enviando tu recompensa on-chain.
-          {result.error && (
-            <span className="block mt-1 font-mono text-xs opacity-80 bg-black/20 p-2 rounded">
-              Error: {result.error}
-            </span>
-          )}
-        </p>
-      </div>
-    )
-  )
-}
+      )}
 
-    </div >
+      {/* Transaction Failed Display */}
+      {result && result.mode === "failed" && (
+        // Check for specific "already rewarded" error
+        result.error?.includes("already rewarded") ? (
+          <div className="mt-6 rounded-xl bg-blue-500/10 border border-blue-500/30 p-5 text-blue-200 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <span className="text-blue-400 text-lg">ℹ️</span>
+              </div>
+              <h4 className="font-bold text-base text-blue-100">¡Ya premiamos este Cast!</h4>
+            </div>
+            <p className="text-sm text-blue-200/80 pl-10">
+              Tu último cast ya se convirtió en NFT. <br />
+              <strong>¡Publica algo nuevo en Farcaster para ganar otro premio!</strong>
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 rounded-xl bg-orange-500/10 border border-orange-500/30 p-5 text-orange-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+                <span className="text-orange-400 text-lg">⚠️</span>
+              </div>
+              <h4 className="font-bold text-base text-orange-300">Error en la Transacción</h4>
+            </div>
+            <p className="text-sm text-orange-400/90 pl-10">
+              Hubo un problema enviando tu recompensa on-chain.
+              {result.error && (
+                <span className="block mt-1 font-mono text-xs opacity-80 bg-black/20 p-2 rounded">
+                  Error: {result.error}
+                </span>
+              )}
+            </p>
+          </div>
+        )
+        )}
+    </div>
   );
 }
