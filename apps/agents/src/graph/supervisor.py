@@ -27,6 +27,8 @@ class RunResult:
     error: str | None = None  # Mensaje de error específico si falla la transacción
     nft_images: dict[str, str] | None = None  # URLs de las imágenes generadas/minteadas
     best_cast: dict[str, Any] | None = None # El cast más viral del usuario
+    cast_text: str | None = None
+    xp_granted: int = 0
 
 
 class SupervisorOrchestrator:
@@ -255,5 +257,7 @@ class SupervisorOrchestrator:
             error=distribution.get("error"),
             nft_images=distribution.get("nft_images"),
             best_cast=best_cast,
+            cast_text=distribution.get("cast_text"),
+            xp_granted=distribution.get("xp_granted", 0),
         )
 

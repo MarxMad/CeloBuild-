@@ -624,6 +624,8 @@ async def run_lootbox(event: LootboxEvent):
             "error": result.error,
             "nft_images": result.nft_images,
             "best_cast": result.best_cast,
+            "cast_text": getattr(result, "cast_text", None),
+            "xp_granted": getattr(result, "xp_granted", 0),
         }
         
         # Forzar serialización aquí para capturar errores
