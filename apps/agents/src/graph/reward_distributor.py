@@ -200,6 +200,11 @@ class RewardDistributorAgent:
         xp_awards: dict[str, str] = {}
         nft_images: dict[str, str] = {}
         
+        # Execution Context Tracking (for UI feedback)
+        final_cast_text: str | None = None
+        final_granted_xp: int = 0
+        final_nft_uri: str | None = None
+        
         # Si reward_type no fue determinado, asignar por usuario según score (tiers)
         if reward_type is None:
             # Distribuir recompensas según tiers dinámicos
@@ -233,6 +238,7 @@ class RewardDistributorAgent:
                                     # Use this cast for art generation
                                     cast_text = latest_cast.get("text", "")[:280] # Limit length
                                     cast_hash_to_reward = cast_hash
+                                    final_cast_text = cast_text # Capture for UI
                                     logger.info("Using user's latest cast for NFT: %s...", cast_text[:30])
                             except Exception as fc_err:
                                 logger.warning("Failed to fetch latest cast for uniqueness check: %s", fc_err)
@@ -294,6 +300,7 @@ class RewardDistributorAgent:
                             import time
                             time.sleep(5)
                             xp_amount = self._calculate_dynamic_xp(user_score)
+                            final_granted_xp = xp_amount # Capture for UI
                             tx_xp = self.celo_tool.grant_xp(
                                 registry_address=self.settings.registry_address,
                                 campaign_id=campaign_id,
@@ -570,6 +577,7 @@ class RewardDistributorAgent:
                                     # Use this cast for art generation
                                     cast_text = latest_cast.get("text", "")[:280] # Limit length
                                     cast_hash_to_reward = cast_hash
+                                    final_cast_text = cast_text # Capture for UI
                                     logger.info("Using user's latest cast for NFT: %s...", cast_text[:30])
                             except Exception as fc_err:
                                 logger.warning("Failed to fetch latest cast for uniqueness check: %s", fc_err)
@@ -803,6 +811,7 @@ class RewardDistributorAgent:
                     username = user_info.get("username", "Unknown")
                     # Usar el texto de la tendencia o un default
                     cast_text = metadata.get("source_text") or f"Reward for {username}"
+                    final_cast_text = cast_text # Capture for UI
                     
                     card_meta = await art_gen.generate_card_metadata(cast_text, username)
                     
@@ -846,6 +855,7 @@ class RewardDistributorAgent:
                         # user_info = ... (ya estÃ¡ definido)
                         user_score = user_info.get("score", 0.0)
                         xp_amount = self._calculate_dynamic_xp(user_score)
+                        final_granted_xp = xp_amount # Capture for UI
                         
                         self.celo_tool.grant_xp(
                             registry_address=self.settings.registry_address,
@@ -917,10 +927,10 @@ class RewardDistributorAgent:
             "micropayments": micropayments,
             "xp_awards": xp_awards,
             "reward_type": reward_type,
-            "nft_images": nft_images if 'nft_images' in locals() else {},
+            "nft_images": nft_images,
             "error": self.last_mint_error if hasattr(self, "last_mint_error") else None,
-            "xp_granted": granted_xp if reward_type == "xp" and xp_awards else (xp_amount if 'xp_amount' in locals() else 0),
-            "cast_text": cast_text if 'cast_text' in locals() else None,
+            "xp_granted": final_granted_xp,
+            "cast_text": final_cast_text,
         }
 
     def _record_leaderboard(
