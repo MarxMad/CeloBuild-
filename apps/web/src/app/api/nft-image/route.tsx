@@ -111,6 +111,7 @@ export async function GET(request: NextRequest) {
                 >
                     <div
                         style={{
+                            display: "flex",
                             background: "linear-gradient(90deg, #FFD700 0%, #FDB931 100%)",
                             padding: "6px 24px",
                             borderRadius: 8,
