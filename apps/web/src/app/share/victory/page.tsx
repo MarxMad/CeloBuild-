@@ -17,7 +17,8 @@ export async function generateMetadata(
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://celo-build-web-8rej.vercel.app";
 
     // Construct dynamic OG Image URL
-    const ogImageUrl = `${appUrl}/api/og?type=victory&user=${encodeURIComponent(user)}&score=${score}&reward=${encodeURIComponent(reward)}&locale=${locale}`;
+    // Added v=2 to bust cache for new CSS
+    const ogImageUrl = `${appUrl}/api/og?type=victory&user=${encodeURIComponent(user)}&score=${score}&reward=${encodeURIComponent(reward)}&locale=${locale}&v=2`;
 
     return {
         title: `Victory: ${user} won ${reward}!`,

@@ -36,10 +36,12 @@ export async function GET(request: Request) {
                         alignItems: 'center',
                         justifyContent: 'center',
                         backgroundColor: '#0f172a',
-                        backgroundImage: 'radial-gradient(circle at 25px 25px, #1e293b 2%, transparent 0%), radial-gradient(circle at 75px 75px, #1e293b 2%, transparent 0%)',
+                        // Simplified background pattern safe for Satori
+                        backgroundImage: 'radial-gradient(circle at 25px 25px, rgba(255, 255, 255, 0.05) 2%, transparent 0%), radial-gradient(circle at 75px 75px, rgba(255, 255, 255, 0.05) 2%, transparent 0%)',
                         backgroundSize: '100px 100px',
                         color: 'white',
-                        fontFamily: 'sans-serif',
+                        // Use system font stack safe fallback
+                        fontFamily: '"Inter", "Roboto", sans-serif',
                     }}
                 >
                     <div
