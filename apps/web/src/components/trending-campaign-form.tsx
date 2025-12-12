@@ -532,6 +532,13 @@ export function TrendingCampaignForm() {
       {
         result && (
           <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            {/* DEBUG: Remove after verification */}
+            <div className="bg-black/50 p-2 rounded text-[10px] items-center text-left text-green-400 font-mono break-all block">
+              DATA DEBUG:
+              XP: {String(result.xp_granted)} |
+              CAST: {String(result.cast_text)}
+            </div>
+
             {/* Success Card - PREMIUM REDESIGN */}
             {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
               <div className="relative rounded-3xl overflow-hidden p-1 p-gradient-to-br from-green-500/50 via-[#FCFF52]/50 to-green-900/50 shadow-2xl shadow-green-900/40 group/card">
