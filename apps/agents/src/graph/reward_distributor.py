@@ -202,7 +202,7 @@ class RewardDistributorAgent:
         
         # Execution Context Tracking (for UI feedback)
         final_cast_text: str | None = None
-        final_cast_hash = None # Explicit init
+        captured_cast_hash = None # NEW NAME to fix NameError
         final_granted_xp: int = 0
         final_nft_uri: str | None = None
         
@@ -241,7 +241,7 @@ class RewardDistributorAgent:
                                     cast_text = latest_cast.get("text", "")[:280] # Limit length
                                     cast_hash_to_reward = cast_hash
                                     final_cast_text = cast_text # Update capture
-                                    final_cast_hash = cast_hash # Capture exact hash
+                                    captured_cast_hash = cast_hash # Capture exact hash
                                     logger.info("Using user's latest cast for NFT: %s...", cast_text[:30])
                             except Exception as fc_err:
                                 logger.warning("Failed to fetch latest cast for uniqueness check: %s", fc_err)
@@ -934,7 +934,7 @@ class RewardDistributorAgent:
             "error": self.last_mint_error if hasattr(self, "last_mint_error") else None,
             "xp_granted": final_granted_xp,
             "cast_text": final_cast_text,
-            "cast_hash": final_cast_hash,
+            "cast_hash": captured_cast_hash,
         }
 
     def _record_leaderboard(
