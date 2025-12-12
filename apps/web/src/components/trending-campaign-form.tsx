@@ -536,7 +536,8 @@ export function TrendingCampaignForm() {
             <div className="bg-black/50 p-2 rounded text-[10px] items-center text-left text-green-400 font-mono break-all block">
               DATA DEBUG:
               XP: {String(result.xp_granted)} |
-              CAST: {String(result.cast_text)}
+              CAST: {String(result.cast_text?.substring(0, 10))}... |
+              HASH: {String(result.cast_hash?.substring(0, 10))}
             </div>
 
             {/* Success Card - PREMIUM REDESIGN */}
@@ -603,11 +604,23 @@ export function TrendingCampaignForm() {
                       {/* Cast Quote */}
                       {result.cast_text && (
                         <div className="mb-4 text-left">
-                          <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                            <div className="p-1 bg-blue-500/20 rounded-lg">
-                              <MessageSquare className="w-3 h-3 text-blue-400" />
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <div className="p-1 bg-blue-500/20 rounded-lg">
+                                <MessageSquare className="w-3 h-3 text-blue-400" />
+                              </div>
+                              <span className="text-xs font-medium uppercase tracking-wider">Cast Premiado</span>
                             </div>
-                            <span className="text-xs font-medium uppercase tracking-wider">Cast Premiado</span>
+                            {result.cast_hash && result.user_analysis?.username && (
+                              <a
+                                href={`https://warpcast.com/${result.user_analysis.username}/${result.cast_hash.substring(0, 10)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 hover:underline"
+                              >
+                                Ver en Warpcast <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
                           </div>
                           <div className="relative pl-3 border-l-2 border-green-500/50">
                             <p className="text-sm text-gray-300 italic line-clamp-3">

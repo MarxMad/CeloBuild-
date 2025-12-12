@@ -28,6 +28,7 @@ class RunResult:
     nft_images: dict[str, str] | None = None  # URLs de las imágenes generadas/minteadas
     best_cast: dict[str, Any] | None = None # El cast más viral del usuario
     cast_text: str | None = None
+    cast_hash: str | None = None
     xp_granted: int = 0
 
 
@@ -258,6 +259,7 @@ class SupervisorOrchestrator:
             nft_images=distribution.get("nft_images"),
             best_cast=best_cast,
             cast_text=distribution.get("cast_text"),
+            cast_hash=distribution.get("cast_hash"),
             xp_granted=distribution.get("xp_granted", 0),
         )
 
