@@ -257,9 +257,12 @@ class RewardDistributorAgent:
                         # Fetch latest cast if FID is present
                         if fid:
                             try:
+                                logger.info("Fetching latest cast for FID: %s", fid)
                                 latest_cast = await self.farcaster_tool.fetch_user_latest_cast(fid)
                                 if latest_cast:
                                     cast_hash = latest_cast.get("hash")
+                                    logger.info("Found latest cast: %s (Hash: %s)", latest_cast.get("text")[:20], cast_hash)
+                                    
                                     # CHECK UNIQUENESS
                                     if mint_history.has_minted(address, cast_hash):
                                         logger.warning("User %s already minted this cast %s. Blocking reward.", address, cast_hash)
@@ -271,9 +274,13 @@ class RewardDistributorAgent:
                                     cast_hash_to_reward = cast_hash
                                     final_cast_text = cast_text # Capture for UI
                                     captured_cast_hash = cast_hash # Capture exact hash
-                                    logger.info("Using user's latest cast for NFT: %s...", cast_text[:30])
+                                    logger.info("Using user's latest cast for NFT: %s... Hash captured: %s", cast_text[:30], captured_cast_hash)
+                                else:
+                                    logger.warning("No latest cast found for FID: %s", fid)
                             except Exception as fc_err:
                                 logger.warning("Failed to fetch latest cast for uniqueness check: %s", fc_err)
+                        else:
+                            logger.warning("No FID found for user address: %s", address)
 
                         # Generar arte AI para el NFT
                         from ..tools.art_generator import ArtGenerator
