@@ -202,7 +202,7 @@ class RewardDistributorAgent:
         
         # Execution Context Tracking (for UI feedback)
         final_cast_text: str | None = None
-        final_cast_hash: str | None = None
+        final_cast_hash = None # Explicit init
         final_granted_xp: int = 0
         final_nft_uri: str | None = None
         
@@ -223,7 +223,6 @@ class RewardDistributorAgent:
                         fid = user_info.get("fid")
                         cast_text = metadata.get("source_text") or f"Reward for {user_info.get('username', 'Unknown')}"
                         final_cast_text = cast_text # Default capture
-                        final_cast_hash: str | None = None
                         cast_hash_to_reward = None
                         
                         # Fetch latest cast if FID is present
