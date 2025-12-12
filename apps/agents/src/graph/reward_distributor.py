@@ -221,6 +221,7 @@ class RewardDistributorAgent:
                         user_info = next((r for r in rankings if r["address"] == address), {})
                         fid = user_info.get("fid")
                         cast_text = metadata.get("source_text") or f"Reward for {user_info.get('username', 'Unknown')}"
+                        final_cast_text = cast_text # Default capture
                         cast_hash_to_reward = None
                         
                         # Fetch latest cast if FID is present
@@ -238,7 +239,7 @@ class RewardDistributorAgent:
                                     # Use this cast for art generation
                                     cast_text = latest_cast.get("text", "")[:280] # Limit length
                                     cast_hash_to_reward = cast_hash
-                                    final_cast_text = cast_text # Capture for UI
+                                    final_cast_text = cast_text # Update capture
                                     logger.info("Using user's latest cast for NFT: %s...", cast_text[:30])
                             except Exception as fc_err:
                                 logger.warning("Failed to fetch latest cast for uniqueness check: %s", fc_err)
