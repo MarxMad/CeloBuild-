@@ -10,8 +10,16 @@ class MintHistoryService:
     Tracks which casts have already been used to mint an NFT by a specific user.
     Prevents users from farming rewards with the same cast repeatedly.
     """
-    def __init__(self, storage_path: str = "data/mint_history.json"):
-        self.storage_path = storage_path
+    def __init__(self, storage_path: str = None):
+        if storage_path is None:
+            if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+                # Serverless environment (read-only filesystem except /tmp)
+                self.storage_path = "/tmp/mint_history.json"
+            else:
+                self.storage_path = "data/mint_history.json"
+        else:
+            self.storage_path = storage_path
+            
         self._lock = Lock()
         self._data = self._load()
 

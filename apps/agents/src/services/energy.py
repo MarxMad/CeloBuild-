@@ -26,8 +26,17 @@ class EnergyService:
     MAX_ENERGY = 3
     RECHARGE_TIME = 20 * 60  # 20 minutes in seconds
 
-    def __init__(self, storage_path: str = "data/energy_store.json"):
-        self.storage_path = storage_path
+    def __init__(self, storage_path: str = None):
+        if storage_path is None:
+            import os
+            if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+                # Serverless environment (read-only filesystem except /tmp)
+                self.storage_path = "/tmp/energy_store.json"
+            else:
+                self.storage_path = "data/energy_store.json"
+        else:
+            self.storage_path = storage_path
+            
         self._lock = Lock()
         self._data: Dict[str, EnergyState] = self._load()
 
