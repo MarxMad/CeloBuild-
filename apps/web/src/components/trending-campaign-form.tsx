@@ -11,6 +11,7 @@ import { useAccount } from "wagmi";
 import { useFarcasterUser } from "./farcaster-provider";
 import { AnalysisOverlay } from "./analysis-overlay";
 import { useLanguage } from "@/components/language-provider";
+import { EnergyDisplay } from "./energy-display";
 
 type FormState = {
   frameId: string;
@@ -68,24 +69,45 @@ export function TrendingCampaignForm() {
     }
   };
 
-  const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(null);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [showThankYou, setShowThankYou] = useState(false);
 
-  useEffect(() => {
-    // Check for cooldown on mount
-    if (typeof window !== "undefined") {
-      const lastClaim = localStorage.getItem("lootbox_last_claim");
-      if (lastClaim) {
-        const elapsed = Date.now() - parseInt(lastClaim);
-        // FARM MODE: 30 seconds cooldown for testing
-        const cooldownTime = 30 * 1000;
-        if (elapsed < cooldownTime) {
-          setCooldownRemaining(cooldownTime - elapsed);
-        }
+  // ENERGY SYSTEM STATE
+  const [energy, setEnergy] = useState({ current: 3, max: 3, seconds: 0 });
+
+  const fetchEnergy = async () => {
+    if (!address) return;
+    try {
+      const res = await fetch(`/api/lootbox/energy?address=${address}`);
+      const data = await res.json();
+      if (data && typeof data.current_energy === 'number') {
+        setEnergy({
+          current: data.current_energy,
+          max: data.max_energy,
+          seconds: data.seconds_to_refill
+        });
       }
+    } catch (e) {
+      console.error("Failed to fetch energy", e);
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    if (address) {
+      fetchEnergy();
+      // Poll every 60s to sync
+      const interval = setInterval(fetchEnergy, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [address]);
+
+  // Refresh energy when result happens (consumption)
+  useEffect(() => {
+    if (result || error) {
+      // Wait a bit for backend to process consumption if it happened during request
+      setTimeout(fetchEnergy, 2000);
+    }
+  }, [result, error]);
 
   const handleRechargeShare = async () => {
     const text = `¡Estoy ganando recompensas crypto en Premio.xyz! 🏆\n\nMira si eres elegible por tu actividad en Farcaster. 👇`;
@@ -156,18 +178,7 @@ export function TrendingCampaignForm() {
   };
 
 
-  useEffect(() => {
-    // Timer to decrement cooldown
-    if (cooldownRemaining !== null && cooldownRemaining > 0) {
-      const interval = setInterval(() => {
-        setCooldownRemaining((prev) => {
-          if (prev === null || prev <= 1000) return null;
-          return prev - 1000;
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [cooldownRemaining]);
+
 
   const formatTimeRemaining = (ms: number) => {
     const hours = Math.floor(ms / (1000 * 60 * 60));
@@ -406,24 +417,32 @@ export function TrendingCampaignForm() {
 
               {!result && !isLoading && (
                 <>
+                  <div className="mb-4 flex flex-col items-center">
+                    <EnergyDisplay
+                      currentEnergy={energy.current}
+                      maxEnergy={energy.max}
+                      secondsToRefill={energy.seconds}
+                    />
+                  </div>
+
                   <Button
-                    className={`w-full font-black h-14 text-lg shadow-lg dark:shadow-[0_0_30px_rgba(252,255,82,0.3)] transition-all duration-300 rounded-xl relative overflow-hidden group/btn ${cooldownRemaining && cooldownRemaining > 0
+                    className={`w-full font-black h-14 text-lg shadow-lg dark:shadow-[0_0_30px_rgba(252,255,82,0.3)] transition-all duration-300 rounded-xl relative overflow-hidden group/btn ${energy.current === 0
                       ? "bg-amber-500 hover:bg-amber-600 dark:bg-orange-500 dark:hover:bg-orange-600 text-white animate-pulse"
                       : "bg-green-600 dark:bg-[#FCFF52] hover:bg-green-700 dark:hover:bg-[#e6e945] text-white dark:text-black hover:shadow-xl dark:hover:shadow-[0_0_50px_rgba(252,255,82,0.5)]"
                       }`}
                     onClick={() => {
-                      if (cooldownRemaining && cooldownRemaining > 0) {
-                        setShowRechargeModal(true);
-                      } else {
+                      if (energy.current > 0) {
                         handleAnalyzeAndClaim();
+                      } else {
+                        setShowRechargeModal(true);
                       }
                     }}
                     disabled={isLoading}
                   >
-                    {cooldownRemaining && cooldownRemaining > 0 ? (
+                    {energy.current === 0 ? (
                       <div className="relative flex items-center justify-center gap-2">
                         <Zap className="h-5 w-5 fill-current" />
-                        <span>⚡ {t("form_recharge_btn")}</span>
+                        <span>⚡ Recargar Ahora</span>
                       </div>
                     ) : (
                       <>
@@ -435,81 +454,82 @@ export function TrendingCampaignForm() {
                       </>
                     )}
                   </Button>
-
-                  {/* Recharge Modal Overlay */}
-                  {showRechargeModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                      <div className="bg-background border border-border w-full max-w-sm rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-
-                        {/* Background FX */}
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
-                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl" />
-
-                        <div className="text-center space-y-4 relative z-10">
-                          <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto border border-amber-500/20">
-                            <Zap className="w-8 h-8 text-amber-500" />
-                          </div>
-
-                          <div>
-                            <h3 className="text-xl font-bold text-foreground">¡Sin Energía! 🔋</h3>
-                            <p className="text-sm text-muted-foreground mt-2">
-                              Debes esperar <span className="font-mono font-bold text-amber-500">{formatTimeRemaining(cooldownRemaining || 0)}</span> para el siguiente loot.
-                            </p>
-                            <p className="text-sm font-medium text-foreground mt-4">
-                              ¿Quieres recargar instantáneamente?
-                            </p>
-                          </div>
-
-                          <div className="pt-2 space-y-3">
-                            <Button
-                              className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold gap-2"
-                              onClick={handleRechargeShare}
-                              id="recharge-btn"
-                            >
-                              <TrendingUp className="w-4 h-4" />
-                              Compartir para Recargar
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              className="w-full text-muted-foreground hover:text-foreground"
-                              onClick={() => setShowRechargeModal(false)}
-                            >
-                              Esperar
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Thank You Message Overlay */}
-                  {showThankYou && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-500">
-                      <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in zoom-in slide-in-from-bottom-10 duration-500">
-                        <div className="relative">
-                          <div className="absolute inset-0 bg-green-500/30 rounded-full animate-ping blur-xl" />
-                          <div className="relative h-24 w-24 bg-[#FCFF52]/10 rounded-full flex items-center justify-center border border-[#FCFF52]/50 shadow-[0_0_30px_rgba(252,255,82,0.3)]">
-                            <Sparkles className="w-12 h-12 text-[#FCFF52] animate-pulse" />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <h2 className="text-3xl font-black text-white tracking-tight">
-                            ¡Energía Recargada!
-                          </h2>
-                          <p className="text-lg text-green-300 font-medium max-w-xs mx-auto">
-                            Gracias por compartir Premio.xyz
-                          </p>
-                        </div>
-                        <div className="absolute bottom-10 left-0 right-0 flex justify-center">
-                          <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                 </>
               )}
+
+              {/* Recharge Modal Overlay */}
+              {showRechargeModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                  <div className="bg-background border border-border w-full max-w-sm rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+
+                    {/* Background FX */}
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl" />
+
+                    <div className="text-center space-y-4 relative z-10">
+                      <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto border border-amber-500/20">
+                        <Zap className="w-8 h-8 text-amber-500" />
+                      </div>
+
+                      <div>
+                        <h3 className="text-xl font-bold text-foreground">¡Sin Energía! 🔋</h3>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Debes esperar <span className="font-mono font-bold text-amber-500">{formatTimeRemaining(cooldownRemaining || 0)}</span> para el siguiente loot.
+                        </p>
+                        <p className="text-sm font-medium text-foreground mt-4">
+                          ¿Quieres recargar instantáneamente?
+                        </p>
+                      </div>
+
+                      <div className="pt-2 space-y-3">
+                        <Button
+                          className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold gap-2"
+                          onClick={handleRechargeShare}
+                          id="recharge-btn"
+                        >
+                          <TrendingUp className="w-4 h-4" />
+                          Compartir para Recargar
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          className="w-full text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowRechargeModal(false)}
+                        >
+                          Esperar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Thank You Message Overlay */}
+              {showThankYou && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-500">
+                  <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in zoom-in slide-in-from-bottom-10 duration-500">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-green-500/30 rounded-full animate-ping blur-xl" />
+                      <div className="relative h-24 w-24 bg-[#FCFF52]/10 rounded-full flex items-center justify-center border border-[#FCFF52]/50 shadow-[0_0_30px_rgba(252,255,82,0.3)]">
+                        <Sparkles className="w-12 h-12 text-[#FCFF52] animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <h2 className="text-3xl font-black text-white tracking-tight">
+                        ¡Energía Recargada!
+                      </h2>
+                      <p className="text-lg text-green-300 font-medium max-w-xs mx-auto">
+                        Gracias por compartir Premio.xyz
+                      </p>
+                    </div>
+                    <div className="absolute bottom-10 left-0 right-0 flex justify-center">
+                      <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
             </div>
           )}
         </CardContent>
@@ -648,22 +668,38 @@ export function TrendingCampaignForm() {
       {/* Transaction Failed Display */}
       {
         result && result.mode === "failed" && (
-          <div className="mt-6 rounded-xl bg-orange-500/10 border border-orange-500/30 p-5 text-orange-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center">
-                <span className="text-orange-400 text-lg">⚠️</span>
+          // Check for specific "already rewarded" error
+          result.error?.includes("already rewarded") ? (
+            <div className="mt-6 rounded-xl bg-blue-500/10 border border-blue-500/30 p-5 text-blue-200 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <span className="text-blue-400 text-lg">ℹ️</span>
+                </div>
+                <h4 className="font-bold text-base text-blue-100">¡Ya premiamos este Cast!</h4>
               </div>
-              <h4 className="font-bold text-base text-orange-300">Error en la Transacción</h4>
+              <p className="text-sm text-blue-200/80 pl-10">
+                Tu último cast ya se convirtió en NFT. <br />
+                <strong>¡Publica algo nuevo en Farcaster para ganar otro premio!</strong>
+              </p>
             </div>
-            <p className="text-sm text-orange-400/90 pl-10">
-              Hubo un problema enviando tu recompensa on-chain.
-              {result.error && (
-                <span className="block mt-1 font-mono text-xs opacity-80 bg-black/20 p-2 rounded">
-                  Error: {result.error}
-                </span>
-              )}
-            </p>
-          </div>
+          ) : (
+            <div className="mt-6 rounded-xl bg-orange-500/10 border border-orange-500/30 p-5 text-orange-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <span className="text-orange-400 text-lg">⚠️</span>
+                </div>
+                <h4 className="font-bold text-base text-orange-300">Error en la Transacción</h4>
+              </div>
+              <p className="text-sm text-orange-400/90 pl-10">
+                Hubo un problema enviando tu recompensa on-chain.
+                {result.error && (
+                  <span className="block mt-1 font-mono text-xs opacity-80 bg-black/20 p-2 rounded">
+                    Error: {result.error}
+                  </span>
+                )}
+              </p>
+            </div>
+          )
         )
       }
       {/* Version Indicator for Debugging */}

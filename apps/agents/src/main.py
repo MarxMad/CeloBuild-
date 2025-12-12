@@ -485,10 +485,15 @@ async def verify_recharge(req: VerifyRechargeRequest):
             if verified:
                 break
         
-        # 3. Return result
+        # 3. Refill Energy if verified
+        if verified:
+            from .services.energy import energy_service
+            energy_service.refill_energy(req.address)
+
+        # 4. Return result
         return {
             "verified": verified,
-            "message": "¡Verificado! Recargando energía..." if verified else "No encontramos un cast reciente con el enlace. ¡Intenta compartir de nuevo!",
+            "message": "¡Verificado! Recargando energía... ⚡" if verified else "No encontramos un cast reciente con el enlace. ¡Intenta compartir de nuevo!",
             "execution_time_ms": (datetime.now() - verify_start).total_seconds() * 1000
         }
 

@@ -837,3 +837,18 @@ class FarcasterToolbox:
                 logger.warning("Error fetching casts for %s: %s", username, exc)
                 
         return all_casts
+
+    async def fetch_user_latest_cast(self, user_fid: int) -> dict[str, Any] | None:
+        """Obtiene el ÚLTIMO cast (más reciente) de un usuario.
+        
+        Args:
+            user_fid: FID del usuario
+            
+        Returns:
+            Dict con los datos del cast o None si no tiene casts recientes.
+        """
+        # Reutilizamos fetch_user_recent_casts con el límite mínimo posible
+        casts = await self.fetch_user_recent_casts(user_fid, limit=1)
+        if casts and len(casts) > 0:
+            return casts[0]
+        return None

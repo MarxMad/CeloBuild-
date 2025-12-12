@@ -61,6 +61,40 @@ class SupervisorOrchestrator:
 
     async def run(self, payload: dict[str, Any]) -> RunResult:
         """Ejecución mínima: detectar tendencia -> filtrar usuarios -> recompensar."""
+        # 0. ENERGY CHECK (STAMINA SYSTEM)
+        # Check target_address from payload (if manual trigger) or extract from context later?
+        # Ideally we check early.
+        target_address = payload.get("target_address")
+        
+        # Determine effective address to charge
+        # If payload has target_address, use it.
+        # If not, we might not know the user yet (e.g. passive monitoring).
+        # Assuming this flow is mainly triggered by the Frontend "Manual Claim" which sends 'target_address'.
+        if target_address:
+            from ..services.energy import energy_service
+            
+            # Check if we should block (consume returns False if empty)
+            # NOTE: We only consume if we proceed? Or do we consume on attempt?
+            # Standard: Consume on attempt to prevent spamming? 
+            # Or better: Check status first, then consume if eligible?
+            # To be friendly, we check status first. If > 0, we consume.
+            
+            if not energy_service.consume_energy(target_address):
+                # No energy!
+                status = energy_service.get_status(target_address)
+                next_refill = status.get("seconds_to_refill", 0)
+                minutes = int(next_refill // 60)
+                seconds = int(next_refill % 60)
+                
+                thread_id = payload.get("thread_id") or "unknown"
+                return RunResult(
+                    thread_id=thread_id,
+                    summary=f"Sin energía. Recarga en {minutes}m {seconds}s.",
+                    mode="no_energy",
+                    eligibility_message=f"¡Te has quedado sin energía! ⚡\nTu próximo rayo se recargará en {minutes}m {seconds}s.",
+                    eligible=False
+                )
+
         mode = None
         trend_context = await self.trend_watcher.handle(payload)
         
