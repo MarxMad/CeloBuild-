@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Loader2, Send, Wallet, ExternalLink, Box, Sparkles, TrendingUp, Gift, Zap } from "lucide-react";
+import { Loader2, Send, Wallet, ExternalLink, Box, Sparkles, TrendingUp, Gift, Zap, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
