@@ -139,8 +139,4 @@ export async function GET(request: NextRequest) {
             height: 860,
         }
     );
-} catch (e) {
-    console.error("Error generating NFT image:", e);
-    return new Response(`Error generating image: ${e}`, { status: 500 });
-}
 }
