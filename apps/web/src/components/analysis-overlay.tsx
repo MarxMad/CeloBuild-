@@ -58,7 +58,7 @@ export function AnalysisOverlay({ isDone, onComplete }: { isDone: boolean; onCom
   // Step progression logic
   // Step progression logic
   useEffect(() => {
-    const stepDuration = isDone ? 500 : 3000; // Speed up if API is done
+    const stepDuration = isDone ? 50 : 3000; // Hyper-speed if API is done
 
     const interval = setInterval(() => {
       setCurrentStep((prev) => {
