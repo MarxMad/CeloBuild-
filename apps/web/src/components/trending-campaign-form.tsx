@@ -389,7 +389,7 @@ export function TrendingCampaignForm() {
                         <span className="text-sm text-gray-400 font-medium">Farcaster</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-neutral-900 dark:text-white">@{farcasterUser.username}</span>
+                        <span className="text-sm font-medium text-neutral-900 dark:text-white">@{farcasterUser.username}</span>
                         {farcasterUser.fid && (
                           <span className="text-[10px] text-gray-400 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
                             FID: {farcasterUser.fid}
