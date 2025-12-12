@@ -177,6 +177,12 @@ class RewardDistributorAgent:
             return {"mode": "noop", "tx_hash": None, "campaign_id": campaign_id}
 
         # Validaciones de seguridad: verificar duplicados y límites
+        # Execution Context Tracking (Moved to top for safety)
+        final_cast_text: str | None = None
+        captured_cast_hash = None 
+        final_granted_xp: int = 0
+        final_nft_uri: str | None = None
+
         unique_addresses = set()
         for recipient in recipients:
             if recipient in unique_addresses:
@@ -200,11 +206,7 @@ class RewardDistributorAgent:
         xp_awards: dict[str, str] = {}
         nft_images: dict[str, str] = {}
         
-        # Execution Context Tracking (for UI feedback)
-        final_cast_text: str | None = None
-        captured_cast_hash = None # NEW NAME to fix NameError
-        final_granted_xp: int = 0
-        final_nft_uri: str | None = None
+        # Execution Context Tracking (Moved to top)
         
         # Si reward_type no fue determinado, asignar por usuario según score (tiers)
         if reward_type is None:
