@@ -640,7 +640,8 @@ export function TrendingCampaignForm() {
                 </div>
               )}
 
-              {/* 3. PRIMARY ACTION (Share) */}
+            {/* 3. PRIMARY ACTION (Share) */}
+            {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
               <Button
                 className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold h-12 sm:h-14 text-base sm:text-lg rounded-xl shadow-lg shadow-purple-500/20 mb-3 group/share relative overflow-hidden"
                 onClick={() => {
@@ -668,21 +669,22 @@ export function TrendingCampaignForm() {
                   Presumir Victoria
                 </div>
               </Button>
+            )}
 
-              {/* 4. SECONDARY ACTION (View Tx) */}
-              {result.explorer_url && (
-                <a
-                  href={result.explorer_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="relative z-20 text-xs text-gray-500 hover:text-green-400 transition-colors flex items-center justify-center gap-1 group/link p-2"
-                >
-                  Ver Transacción en Bloque
-                  <ExternalLink className="w-3 h-3 opacity-50 group-hover/link:opacity-100" />
-                </a>
-              )}
-            </div>
-          )}
+            {/* 4. SECONDARY ACTION (View Tx) */}
+            {result.explorer_url && result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
+              <a
+                href={result.explorer_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative z-20 text-xs text-gray-500 hover:text-green-400 transition-colors flex items-center justify-center gap-1 group/link p-2"
+              >
+                Ver Transacción en Bloque
+                <ExternalLink className="w-3 h-3 opacity-50 group-hover/link:opacity-100" />
+              </a>
+            )}
+          </div>
+        )}
 
       {/* NOTE: Viral Score Analysis section removed as per user request to avoid confusion. */}
 
