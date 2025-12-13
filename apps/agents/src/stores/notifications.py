@@ -58,6 +58,19 @@ class NotificationStore:
     def get_token(self, fid: int) -> dict[str, str] | None:
         """Obtiene token y url para un FID."""
         return self._data.get(str(fid))
+    
+    def add_address_mapping(self, address: str, fid: int) -> None:
+        """Guarda mapeo dirección -> FID."""
+        if "address_map" not in self._data:
+            self._data["address_map"] = {}
+        self._data["address_map"][address.lower()] = fid
+        self._save()
+        logger.info("Mapeo guardado: %s -> FID %s", address, fid)
+    
+    def get_fid_by_address(self, address: str) -> int | None:
+        """Obtiene FID por dirección."""
+        address_map = self._data.get("address_map", {})
+        return address_map.get(address.lower())
 
 # Instancia global (singleton simple)
 # En producción real, usar Redis/Postgres

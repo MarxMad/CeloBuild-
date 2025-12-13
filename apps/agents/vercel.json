@@ -10,6 +10,10 @@
     {
       "path": "/api/lootbox/scan",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/lootbox/notify-energy",
+      "schedule": "0 12 * * *"
     }
   ]
 }

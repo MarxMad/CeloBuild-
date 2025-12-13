@@ -60,7 +60,7 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
         // Si ya tiene refill_at, usarlo tal cual - es la fuente de verdad del backend
         // El backend calcula refill_at como bolt_time + RECHARGE_TIME (timestamp absoluto)
         // NUNCA recalcular, porque eso reiniciaría la cuenta regresiva
-        console.log(`[EnergyDisplay] ✅ Usando refill_at del backend para bolt ${bolt.index}: ${refill_at} (ahora: ${now}, tiempo restante: ${Math.floor(bolt.refill_at - now)}s)`);
+        console.log(`[EnergyDisplay] ✅ Usando refill_at del backend para bolt ${bolt.index}: ${bolt.refill_at} (ahora: ${now}, tiempo restante: ${Math.floor(bolt.refill_at - now)}s)`);
         return bolt;
       }
       return bolt;

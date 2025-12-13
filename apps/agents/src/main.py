@@ -659,6 +659,13 @@ async def run_lootbox(event: LootboxEvent):
             )
             
             
+        # Guardar mapeo dirección -> FID si está disponible
+        if event.target_address and event.target_fid:
+            from .stores.notifications import get_notification_store
+            store = get_notification_store()
+            store.add_address_mapping(event.target_address, event.target_fid)
+            logger.info(f"💾 Mapeo guardado: {event.target_address} -> FID {event.target_fid}")
+        
         # Ejecutar el supervisor
         payload = event.model_dump()
         result = await active_supervisor.run(payload)
@@ -763,5 +770,108 @@ async def farcaster_webhook(request: Request):
         
     except Exception as exc:
         logger.error("Error procesando webhook: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/lootbox/notify-energy")
+async def notify_energy_reminder():
+    """Endpoint para enviar notificaciones diarias a usuarios recordándoles usar sus rayos de energía.
+    
+    Este endpoint se ejecuta automáticamente cada 24 horas mediante Vercel Cron Jobs.
+    Envía notificaciones a usuarios que tienen al menos 1 rayo disponible o que están recargando.
+    """
+    try:
+        from .services.energy import energy_service
+        from .tools.farcaster import FarcasterToolbox
+        from .config import settings
+        
+        logger.info("🔔 Iniciando envío de notificaciones de energía...")
+        
+        # Obtener todas las direcciones con estado de energía
+        addresses = energy_service.get_all_addresses()
+        logger.info(f"📋 Encontradas {len(addresses)} direcciones con estado de energía")
+        
+        if not addresses:
+            return {"status": "success", "notifications_sent": 0, "message": "No hay usuarios con energía registrada"}
+        
+        # Inicializar Farcaster toolbox
+        farcaster = FarcasterToolbox(neynar_key=settings.neynar_api_key)
+        
+        notifications_sent = 0
+        notifications_failed = 0
+        
+        # Obtener store de notificaciones para mapeo dirección -> FID
+        from .stores.notifications import get_notification_store
+        store = get_notification_store()
+        
+        # Para cada dirección, buscar su FID y enviar notificación
+        for address in addresses:
+            try:
+                # Obtener estado de energía
+                energy_status = energy_service.get_status(address)
+                current_energy = energy_status.get("current_energy", 0)
+                max_energy = energy_status.get("max_energy", 3)
+                seconds_to_refill = energy_status.get("seconds_to_refill", 0)
+                
+                # Solo notificar si el usuario tiene todos los rayos disponibles (3/3) o está recargando
+                # No notificar si tiene 1-2 rayos disponibles
+                if current_energy > 0 and current_energy < max_energy:
+                    # Usuario con algunos rayos pero no todos, saltar
+                    continue
+                
+                if current_energy == 0 and seconds_to_refill == 0:
+                    # Usuario sin energía y sin recargas pendientes, saltar
+                    continue
+                
+                # Buscar FID usando el mapeo guardado
+                fid = store.get_fid_by_address(address)
+                if not fid:
+                    logger.debug(f"⚠️ No se encontró FID para dirección {address}, saltando...")
+                    continue
+                
+                logger.info(f"📨 Enviando notificación a FID {fid} (dirección: {address}, energía: {current_energy}/{max_energy})")
+                
+                # Preparar mensaje según estado de energía
+                if current_energy == max_energy:
+                    title = "⚡ ¡Tus Rayos Están Listos!"
+                    body = f"Tienes {current_energy} rayos disponibles. ¡Obtén tu recompensa ahora!"
+                else:
+                    # Usuario sin energía pero recargando
+                    hours = seconds_to_refill // 3600
+                    minutes = (seconds_to_refill % 3600) // 60
+                    title = "⚡ Rayos Recargando"
+                    body = f"Tu próximo rayo estará listo en {hours}h {minutes}m. ¡Vuelve pronto!"
+                
+                # Enviar notificación
+                result = await farcaster.publish_frame_notification(
+                    target_fids=[fid],
+                    title=title,
+                    body=body,
+                    target_url="https://celo-build-web-8rej.vercel.app/"
+                )
+                
+                if result.get("status") == "success" or "status" not in result:
+                    notifications_sent += 1
+                    logger.info(f"✅ Notificación enviada a FID {fid}")
+                else:
+                    notifications_failed += 1
+                    logger.warning(f"❌ Error enviando notificación a FID {fid}: {result}")
+                    
+            except Exception as exc:
+                logger.error(f"Error procesando dirección {address}: {exc}")
+                notifications_failed += 1
+                continue
+        
+        logger.info(f"✅ Notificaciones completadas: {notifications_sent} enviadas, {notifications_failed} fallidas")
+        
+        return {
+            "status": "success",
+            "notifications_sent": notifications_sent,
+            "notifications_failed": notifications_failed,
+            "total_addresses": len(addresses)
+        }
+        
+    except Exception as exc:
+        logger.error("Error en notificaciones de energía: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc))
 

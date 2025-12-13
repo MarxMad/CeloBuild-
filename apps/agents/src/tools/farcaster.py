@@ -703,13 +703,13 @@ class FarcasterToolbox:
         
         url = "https://api.neynar.com/v2/farcaster/frame/notifications"
         
+        # Formato correcto según documentación de Neynar v2
+        # El payload debe ser plano, no anidado
         payload = {
-            "notification": {
-                "title": title,
-                "body": body,
-                "target_url": target_url,
-                "target_fids": target_fids
-            }
+            "title": title,
+            "body": body,
+            "target_url": target_url,
+            "target_fids": target_fids
         }
         
         async with httpx.AsyncClient(timeout=10) as client:
