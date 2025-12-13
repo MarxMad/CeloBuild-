@@ -45,6 +45,11 @@ export function TrendingCampaignForm() {
     if (isAnimationComplete && pendingResult) {
       setResult(pendingResult);
       setIsLoading(false);
+      // Forzar actualización de energía cuando se muestra el resultado
+      console.log("🎁 [Result] Mostrando resultado, actualizando energía...");
+      fetchEnergy();
+      setTimeout(() => fetchEnergy(), 1000);
+      setTimeout(() => fetchEnergy(), 2000);
     } else if (isAnimationComplete && error) {
       setIsLoading(false);
     }
