@@ -197,11 +197,12 @@ class EnergyService:
                 ]
             }
         """
-        # CRITICAL: En serverless (Vercel), recargar datos del archivo antes de leer
+        # CRITICAL: En serverless (Vercel), recargar datos del archivo/Redis antes de leer
         # porque cada invocación puede ser una nueva instancia
+        # Esto asegura que siempre tengamos el estado más reciente
         with self._lock:
             self._data = self._load()
-            logger.debug(f"📖 [GetStatus] Datos cargados para {address}: {len(self._data)} usuarios en memoria")
+            logger.info(f"📖 [GetStatus] Datos cargados para {address}: {len(self._data)} usuarios en memoria")
         
         address = address.lower()
         state = self._data.get(address)
