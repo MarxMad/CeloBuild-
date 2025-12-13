@@ -89,11 +89,12 @@ export function TrendingCampaignForm() {
   const fetchEnergy = async (force: boolean = false) => {
     if (!address) return;
     
-    // Si tenemos energía de la respuesta reciente (menos de 10 segundos), no sobrescribir
+    // Si tenemos energía de la respuesta reciente (menos de 30 segundos), no sobrescribir
     // a menos que se fuerce explícitamente
+    // Aumentado a 30s para dar tiempo al backend de sincronizar en Redis
     if (!force && energyFromResponse !== null) {
       const timeSinceResponse = Date.now() - energyFromResponse.timestamp;
-      if (timeSinceResponse < 10000) {
+      if (timeSinceResponse < 30000) {
         console.log(`⚡ [Energy] Ignorando consulta (${Math.floor(timeSinceResponse/1000)}s desde respuesta), usando energía de respuesta: ${energyFromResponse.value}`);
         return;
       }
@@ -162,9 +163,9 @@ export function TrendingCampaignForm() {
   useEffect(() => {
     if (address) {
       // Solo consultar energía inicialmente si no tenemos estado reciente
-      // Si tenemos energía de la respuesta reciente (< 10 segundos), no consultar
+      // Si tenemos energía de la respuesta reciente (< 30 segundos), no consultar
       const timeSinceResponse = energyFromResponse ? Date.now() - energyFromResponse.timestamp : Infinity;
-      if (timeSinceResponse >= 10000) {
+      if (timeSinceResponse >= 30000) {
         // Solo consultar si no tenemos estado reciente
         fetchEnergy(true); // Forzar consulta inicial
       } else {
@@ -373,10 +374,14 @@ export function TrendingCampaignForm() {
           
           // Marcar que tenemos energía de la respuesta (para evitar sobrescribir con consultas)
           // Esto asegura que el estado se mantenga correctamente
+          // Usar timestamp actual para proteger el estado por 30 segundos
           setEnergyFromResponse({
             value: newEnergy,
             timestamp: Date.now()
           });
+          
+          // NO llamar a fetchEnergy aquí - el estado ya está actualizado desde la respuesta
+          // Cualquier llamada a fetchEnergy en los próximos 30s será ignorada
           
           // Log para debugging
           console.log(`⚡ [Energy] Estado guardado desde respuesta: ${newEnergy}/${energyStatus.max_energy || 3}, bolts:`, energyStatus.bolts?.length || 0);
@@ -391,8 +396,8 @@ export function TrendingCampaignForm() {
       } else {
         // Fallback: intentar obtener energía del endpoint si no viene en la respuesta
         console.log("⚠️ [Energy] No se recibió energy_status en la respuesta, consultando endpoint...");
-        await fetchEnergy();
-        setTimeout(() => fetchEnergy(), 1000);
+        // Esperar un poco antes de consultar para dar tiempo al backend de sincronizar
+        setTimeout(() => fetchEnergy(true), 2000);
       }
 
       setPendingResult(resultData);
