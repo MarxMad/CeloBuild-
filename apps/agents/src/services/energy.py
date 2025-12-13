@@ -87,10 +87,15 @@ class EnergyService:
         path = Path(self.storage_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
+            # Usar modo 'w' con flush para asegurar que se escriba inmediatamente
             with open(path, "w") as f:
                 json.dump(self._data, f, indent=2)
+                f.flush()
+                import os
+                os.fsync(f.fileno())  # Forzar escritura a disco
+            logger.debug(f"💾 [Save] Datos guardados en {self.storage_path}: {len(self._data)} usuarios")
         except Exception as e:
-            logger.error(f"Failed to save energy store: {e}")
+            logger.error(f"❌ [Save] Failed to save energy store to {self.storage_path}: {e}", exc_info=True)
 
     def get_status(self, address: str) -> dict:
         """
