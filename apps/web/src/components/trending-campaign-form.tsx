@@ -785,7 +785,7 @@ export function TrendingCampaignForm() {
                     <div className="flex flex-wrap items-center justify-center gap-2">
                       {energy.bolts
                         .filter((b: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }) => !b.available && b.seconds_to_refill > 0)
-                        .map((bolt, idx) => {
+                        .map((bolt: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }, idx: number) => {
                           const minutes = Math.floor(bolt.seconds_to_refill / 60);
                           const seconds = bolt.seconds_to_refill % 60;
                           return (
