@@ -639,50 +639,50 @@ export function TrendingCampaignForm() {
                     </div>
                   )}
                 </div>
-             )}
+              )}
 
-                {/* 3. PRIMARY ACTION (Share) */}
-                <Button
-                  className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold h-12 sm:h-14 text-base sm:text-lg rounded-xl shadow-lg shadow-purple-500/20 mb-3 group/share relative overflow-hidden"
-                  onClick={() => {
-                    const score = result.user_analysis?.score?.toFixed(0) || "0";
-                    const rewardName = getRewardDisplay(result.reward_type).title;
-                    const rewardVal = result.xp_granted ? `${result.xp_granted} XP` : rewardName;
-                    const username = result.user_analysis?.username || "Explorer";
+              {/* 3. PRIMARY ACTION (Share) */}
+              <Button
+                className="w-full bg-[#855DCD] hover:bg-[#7C55C3] text-white font-bold h-12 sm:h-14 text-base sm:text-lg rounded-xl shadow-lg shadow-purple-500/20 mb-3 group/share relative overflow-hidden"
+                onClick={() => {
+                  const score = result.user_analysis?.score?.toFixed(0) || "0";
+                  const rewardName = getRewardDisplay(result.reward_type).title;
+                  const rewardVal = result.xp_granted ? `${result.xp_granted} XP` : rewardName;
+                  const username = result.user_analysis?.username || "Explorer";
 
-                    const appUrl = "https://celo-build-web-8rej.vercel.app";
-                    const victoryUrl = `${appUrl}/share/victory?user=${encodeURIComponent(username)}&xp=${result.xp_granted || 0}&score=${score}&reward=${encodeURIComponent(result.reward_type || 'XP')}&locale=es`;
+                  const appUrl = "https://celo-build-web-8rej.vercel.app";
+                  const victoryUrl = `${appUrl}/share/victory?user=${encodeURIComponent(username)}&xp=${result.xp_granted || 0}&score=${score}&reward=${encodeURIComponent(result.reward_type || 'XP')}&locale=es`;
 
-                    const text = `¡Victoria! He ganado ${rewardVal} en Premio.xyz 🏆\n\nReclama tu recompensa aquí 👇`;
-                    const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(victoryUrl)}`;
+                  const text = `¡Victoria! He ganado ${rewardVal} en Premio.xyz 🏆\n\nReclama tu recompensa aquí 👇`;
+                  const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(victoryUrl)}`;
 
-                    import("@farcaster/miniapp-sdk").then(({ sdk }) => {
-                      sdk.actions.openUrl(warpcastUrl);
-                    }).catch(() => {
-                      window.open(warpcastUrl, "_blank");
-                    });
-                  }}
+                  import("@farcaster/miniapp-sdk").then(({ sdk }) => {
+                    sdk.actions.openUrl(warpcastUrl);
+                  }).catch(() => {
+                    window.open(warpcastUrl, "_blank");
+                  });
+                }}
+              >
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/share:translate-y-0 transition-transform duration-300" />
+                <div className="relative flex items-center justify-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Presumir Victoria
+                </div>
+              </Button>
+
+              {/* 4. SECONDARY ACTION (View Tx) */}
+              {result.explorer_url && (
+                <a
+                  href={result.explorer_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative z-20 text-xs text-gray-500 hover:text-green-400 transition-colors flex items-center justify-center gap-1 group/link p-2"
                 >
-                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/share:translate-y-0 transition-transform duration-300" />
-                  <div className="relative flex items-center justify-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
-                    Presumir Victoria
-            </div> 
-                </Button>
-
-                {/* 4. SECONDARY ACTION (View Tx) */}
-                {result.explorer_url && (
-                  <a
-                    href={result.explorer_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative z-20 text-xs text-gray-500 hover:text-green-400 transition-colors flex items-center justify-center gap-1 group/link p-2"
-                  >
-                    Ver Transacción en Bloque
-                    <ExternalLink className="w-3 h-3 opacity-50 group-hover/link:opacity-100" />
-                  </a>
-                )}
-              </div>
+                  Ver Transacción en Bloque
+                  <ExternalLink className="w-3 h-3 opacity-50 group-hover/link:opacity-100" />
+                </a>
+              )}
+            </div>
           </div>
         )}
 
@@ -691,7 +691,7 @@ export function TrendingCampaignForm() {
       {/* BOTÓN REINICIAR ELIMINADO para evitar spam y forzar cooldown en la UI principal */}
 
       {/* Error Display */}
-        {error && (
+      {error && (
         <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -739,7 +739,7 @@ export function TrendingCampaignForm() {
             </p>
           </div>
         )
-        )}
+      )}
     </div>
   );
 }
