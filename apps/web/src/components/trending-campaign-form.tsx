@@ -253,11 +253,30 @@ export function TrendingCampaignForm() {
 
       console.log("🚀 Enviando solicitud de análisis y recompensa:", payload);
 
-      // Start API call in background
+      // Start API call in background with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutos timeout
+      
       const apiPromise = fetch("/api/lootbox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
+      }).then(response => {
+        clearTimeout(timeoutId);
+        console.log(`📡 [API] Respuesta recibida: ${response.status} ${response.statusText}`);
+        if (!response.ok) {
+          console.error(`❌ [API] Error en respuesta: ${response.status}`);
+        }
+        return response;
+      }).catch(error => {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          console.error("⏱️ [API] Timeout: La solicitud tardó más de 2 minutos");
+          throw new Error("La solicitud está tardando demasiado. Por favor intenta de nuevo.");
+        }
+        console.error("❌ [API] Error en fetch:", error);
+        throw error;
       });
 
       // Enforce minimum durations for each step (Sequential UX)
@@ -274,9 +293,21 @@ export function TrendingCampaignForm() {
       setProgressStep('sending');
 
       // Wait for API response (if not already done)
+      console.log("⏳ [API] Esperando respuesta del backend...");
       const response = await apiPromise;
-      const resultData = await response.json();
-      console.log("✅ Resultado:", resultData);
+      console.log(`📥 [API] Respuesta recibida: ${response.status}`);
+      
+      let resultData;
+      try {
+        const responseText = await response.text();
+        console.log(`📄 [API] Body recibido (primeros 500 chars):`, responseText.substring(0, 500));
+        resultData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("❌ [API] Error parseando respuesta JSON:", parseError);
+        throw new Error("Error parseando respuesta del servidor");
+      }
+      
+      console.log("✅ [API] Resultado parseado:", resultData);
 
       if (!response.ok) {
         const errorMessage = resultData?.error || resultData?.detail || "Error en la solicitud";

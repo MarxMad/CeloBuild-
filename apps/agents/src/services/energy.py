@@ -43,10 +43,12 @@ class EnergyService:
         """Loads energy data from JSON file and migrates old format if needed."""
         path = Path(self.storage_path)
         if not path.exists():
+            logger.debug(f"📂 [Load] Archivo no existe: {self.storage_path}, retornando datos vacíos")
             return {}
         try:
             with open(path, "r") as f:
                 data = json.load(f)
+            logger.debug(f"📂 [Load] Datos cargados desde {self.storage_path}: {len(data)} usuarios")
             
             # Migrate old format to new format
             migrated = False
@@ -93,7 +95,12 @@ class EnergyService:
                 f.flush()
                 import os
                 os.fsync(f.fileno())  # Forzar escritura a disco
-            logger.debug(f"💾 [Save] Datos guardados en {self.storage_path}: {len(self._data)} usuarios")
+            # Verificar que se escribió correctamente
+            if path.exists():
+                file_size = path.stat().st_size
+                logger.info(f"💾 [Save] Datos guardados en {self.storage_path}: {len(self._data)} usuarios, {file_size} bytes")
+            else:
+                logger.error(f"❌ [Save] ADVERTENCIA: Archivo no existe después de guardar: {self.storage_path}")
         except Exception as e:
             logger.error(f"❌ [Save] Failed to save energy store to {self.storage_path}: {e}", exc_info=True)
 
@@ -123,6 +130,7 @@ class EnergyService:
         # porque cada invocación puede ser una nueva instancia
         with self._lock:
             self._data = self._load()
+            logger.debug(f"📖 [GetStatus] Datos cargados para {address}: {len(self._data)} usuarios en memoria")
         
         address = address.lower()
         state = self._data.get(address)

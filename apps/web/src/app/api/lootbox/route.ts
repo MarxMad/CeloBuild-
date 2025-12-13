@@ -53,13 +53,32 @@ export async function POST(request: Request) {
     console.log(`[LOOTBOX] Llamando al backend: ${backendUrl}`);
     console.log(`[LOOTBOX] Payload:`, JSON.stringify(requestBody, null, 2));
 
-    const response = await fetch(backendUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
-    });
+    // Agregar timeout de 2 minutos
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
 
-    console.log(`[LOOTBOX] Respuesta del backend: ${response.status} ${response.statusText}`);
+    let response;
+    try {
+      response = await fetch(backendUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      console.log(`[LOOTBOX] Respuesta del backend: ${response.status} ${response.statusText}`);
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error(`[LOOTBOX] Timeout: El backend no respondió en 2 minutos`);
+        return NextResponse.json(
+          { error: "El backend está tardando demasiado en responder. Por favor intenta de nuevo." },
+          { status: 504 }
+        );
+      }
+      console.error(`[LOOTBOX] Error de conexión:`, fetchError);
+      throw fetchError;
+    }
 
     if (!response.ok) {
       // Leer el error una sola vez
