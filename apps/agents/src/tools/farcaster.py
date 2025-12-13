@@ -839,6 +839,45 @@ class FarcasterToolbox:
                 
         return all_casts
 
+    async def crawl_embed_metadata(self, url: str) -> dict[str, Any] | None:
+        """Obtiene metadatos de embed para una URL usando Neynar API.
+        
+        Útil para validar que los metadatos Open Graph sean correctos antes de compartir un cast.
+        
+        Args:
+            url: URL a validar/crawlear
+            
+        Returns:
+            Dict con metadatos del embed o None si hay error
+        """
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            logger.warning("NEYNAR_API_KEY no configurada, no se pueden validar metadatos de embed")
+            return None
+        
+        headers = {
+            "accept": "application/json",
+            "api_key": self.neynar_key
+        }
+        
+        url_endpoint = "https://api.neynar.com/v2/farcaster/cast/embed/crawl"
+        params = {"url": url}
+        
+        async with httpx.AsyncClient(timeout=15) as client:
+            try:
+                resp = await client.get(url_endpoint, headers=headers, params=params)
+                
+                if resp.status_code == 402:
+                    logger.error("Neynar API: Sin créditos para crawl de embed (402)")
+                    return None
+                
+                resp.raise_for_status()
+                data = resp.json()
+                return data.get("metadata")
+                
+            except Exception as exc:
+                logger.warning("Error obteniendo metadatos de embed para %s: %s", url, exc)
+                return None
+    
     async def fetch_user_latest_cast(self, user_fid: int) -> dict[str, Any] | None:
         """Obtiene el ÚLTIMO cast (más reciente) de un usuario.
         
