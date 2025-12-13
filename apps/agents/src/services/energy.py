@@ -45,12 +45,16 @@ class EnergyService:
         """Loads energy data from JSON file and migrates old format if needed."""
         path = Path(self.storage_path)
         if not path.exists():
-            logger.debug(f"📂 [Load] Archivo no existe: {self.storage_path}, retornando datos vacíos")
+            logger.info(f"📂 [Load] ⚠️ Archivo no existe: {self.storage_path}, retornando datos vacíos")
+            logger.info(f"📂 [Load] Directorio padre existe: {path.parent.exists() if path.parent else 'N/A'}")
+            logger.info(f"📂 [Load] Ruta completa: {path.absolute()}")
             return {}
         try:
             with open(path, "r") as f:
                 data = json.load(f)
-            logger.debug(f"📂 [Load] Datos cargados desde {self.storage_path}: {len(data)} usuarios")
+            logger.info(f"📂 [Load] ✅ Datos cargados desde {self.storage_path}: {len(data)} usuarios")
+            if data:
+                logger.info(f"📂 [Load] Direcciones encontradas: {list(data.keys())[:5]}...")  # Primeras 5
             
             # Migrate old format to new format
             migrated = False

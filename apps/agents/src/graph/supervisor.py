@@ -83,6 +83,11 @@ class SupervisorOrchestrator:
             # Or better: Check status first, then consume if eligible?
             # To be friendly, we check status first. If > 0, we consume.
             
+            # Log antes de consumir
+            from ..services.energy import energy_service as es
+            pre_status = es.get_status(target_address)
+            logger.info(f"⚡ [Supervisor] Estado ANTES de consumir para {target_address}: {pre_status['current_energy']}/{pre_status['max_energy']}")
+            
             if not energy_service.consume_energy(target_address):
                 # No energy!
                 status = energy_service.get_status(target_address)
@@ -98,6 +103,10 @@ class SupervisorOrchestrator:
                     eligibility_message=f"¡Te has quedado sin energía! ⚡\nTu próximo rayo se recargará en {minutes}m {seconds}s.",
                     eligible=False
                 )
+            
+            # Log después de consumir
+            post_status = energy_service.get_status(target_address)
+            logger.info(f"⚡ [Supervisor] Estado DESPUÉS de consumir para {target_address}: {post_status['current_energy']}/{post_status['max_energy']}")
 
         mode = None
         trend_context = await self.trend_watcher.handle(payload)
