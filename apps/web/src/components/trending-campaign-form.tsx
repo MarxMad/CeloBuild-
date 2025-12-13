@@ -32,6 +32,8 @@ export function TrendingCampaignForm() {
   const [error, setError] = useState<string | null>(null);
   const [progressStep, setProgressStep] = useState<'idle' | 'scanning' | 'analyzing' | 'verifying' | 'sending' | 'completed'>('idle');
   const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [energyConsumed, setEnergyConsumed] = useState(false);
+  const [previousEnergy, setPreviousEnergy] = useState(3);
 
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -81,8 +83,19 @@ export function TrendingCampaignForm() {
       const res = await fetch(`/api/lootbox/energy?address=${address}`);
       const data = await res.json();
       if (data && typeof data.current_energy === 'number') {
+        const newEnergy = data.current_energy;
+        const oldEnergy = energy.current;
+        
+        // Detectar si se consumió energía
+        if (oldEnergy > newEnergy && oldEnergy > 0) {
+          setEnergyConsumed(true);
+          setPreviousEnergy(oldEnergy);
+          // Ocultar el mensaje después de 5 segundos
+          setTimeout(() => setEnergyConsumed(false), 5000);
+        }
+        
         setEnergy({
-          current: data.current_energy,
+          current: newEnergy,
           max: data.max_energy,
           seconds: data.seconds_to_refill
         });
@@ -104,8 +117,11 @@ export function TrendingCampaignForm() {
   // Refresh energy when result happens (consumption)
   useEffect(() => {
     if (result || error) {
-      // Wait a bit for backend to process consumption if it happened during request
+      // Refresh immediately, then retry after backend processes
+      fetchEnergy();
+      setTimeout(fetchEnergy, 1000);
       setTimeout(fetchEnergy, 2000);
+      setTimeout(fetchEnergy, 3000);
     }
   }, [result, error]);
 
@@ -410,12 +426,32 @@ export function TrendingCampaignForm() {
 
               {!result && !isLoading && (
                 <>
-                  <div className="mb-4 flex flex-col items-center">
+                  <div className="mb-4 flex flex-col items-center gap-3">
                     <EnergyDisplay
                       currentEnergy={energy.current}
                       maxEnergy={energy.max}
                       secondsToRefill={energy.seconds}
                     />
+                    
+                    {/* Mensaje de energía consumida */}
+                    {energyConsumed && (
+                      <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2 text-center">
+                        <div className="flex items-center justify-center gap-2 text-amber-400">
+                          <Zap className="w-4 h-4" />
+                          <span className="text-sm font-medium">
+                            ⚡ Se consumió 1 rayo de energía
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-400/80 mt-1">
+                          Tienes {energy.current} de {energy.max} rayos disponibles
+                        </p>
+                        {energy.seconds > 0 && (
+                          <p className="text-xs text-amber-400/60 mt-1">
+                            Próximo rayo en {Math.floor(energy.seconds / 60)}m {energy.seconds % 60}s
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <Button
@@ -528,7 +564,35 @@ export function TrendingCampaignForm() {
       {/* Result Display */}
       {result && (
         <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-
+          {/* Mensaje de energía consumida después de obtener recompensa */}
+          {energyConsumed && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-center mb-4">
+              <div className="flex items-center justify-center gap-2 text-amber-400 mb-2">
+                <Zap className="w-5 h-5" />
+                <span className="text-sm font-bold">
+                  ⚡ Se consumió 1 rayo de energía
+                </span>
+              </div>
+              <p className="text-xs text-amber-400/90 mb-2">
+                Has usado 1 de tus {energy.max} rayos para obtener esta recompensa
+              </p>
+              <div className="flex items-center justify-center gap-4 text-xs">
+                <div className="flex items-center gap-1 text-amber-300">
+                  <span>Rayos restantes:</span>
+                  <span className="font-bold">{energy.current}/{energy.max}</span>
+                </div>
+                {energy.seconds > 0 && (
+                  <div className="flex items-center gap-1 text-amber-300">
+                    <span>Próximo rayo en:</span>
+                    <span className="font-bold">{Math.floor(energy.seconds / 60)}m {energy.seconds % 60}s</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] text-amber-400/70 mt-2">
+                💡 Cada rayo se recarga automáticamente 60 minutos después de ser consumido
+              </p>
+            </div>
+          )}
 
           {/* Success Card - PREMIUM REDESIGN */}
           {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (

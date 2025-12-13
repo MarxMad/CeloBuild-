@@ -296,6 +296,35 @@ async def healthcheck() -> dict[str, object]:
 
 
 
+@app.get("/api/lootbox/energy")
+async def get_energy_status(address: str = Query(...)):
+    """
+    Obtiene el estado de energía de un usuario.
+    
+    Args:
+        address: Dirección de la wallet del usuario
+    
+    Returns:
+        {
+            "current_energy": int,      # 0-3
+            "max_energy": int,          # 3
+            "next_refill_at": float,    # Timestamp o None
+            "seconds_to_refill": int    # Segundos hasta la próxima recarga
+        }
+    """
+    try:
+        from ..services.energy import energy_service
+        
+        status = energy_service.get_status(address)
+        return status
+    except Exception as exc:
+        logger.error("Error obteniendo estado de energía para %s: %s", address, exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error leyendo energía: {str(exc)}"
+        )
+
+
 @app.get("/api/lootbox/xp/{wallet_address}")
 async def get_xp(wallet_address: str, campaign_id: str = Query(default="demo-campaign")):
     """
