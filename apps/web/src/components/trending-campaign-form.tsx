@@ -142,9 +142,11 @@ export function TrendingCampaignForm() {
     setEnergyFromResponse(null);
     // Actualizar energía al regresar (forzar para obtener estado actualizado)
     // Esto mostrará los rayos actualizados (con los consumidos mostrando cuenta regresiva)
+    // Hacer múltiples intentos para asegurar que se actualice correctamente
+    console.log("🔄 [Reset] Actualizando energía después de resetear...");
     fetchEnergy(true);
-    // También actualizar después de un pequeño delay para asegurar que se actualice
-    setTimeout(() => fetchEnergy(true), 500);
+    setTimeout(() => fetchEnergy(true), 300);
+    setTimeout(() => fetchEnergy(true), 800);
   };
 
   useEffect(() => {
