@@ -15,11 +15,18 @@ export async function GET(req: NextRequest) {
     if (!AGENT_SERVICE_URL) {
         console.error("[Energy Proxy] AGENT_SERVICE_URL not configured");
         // Fallback: return full energy if backend not configured
+        const bolts = Array.from({ length: 3 }).map((_, i) => ({
+            index: i,
+            available: true,
+            seconds_to_refill: 0,
+            refill_at: null
+        }));
         return NextResponse.json({
             current_energy: 3,
             max_energy: 3,
             next_refill_at: null,
-            seconds_to_refill: 0
+            seconds_to_refill: 0,
+            bolts: bolts
         });
     }
 
@@ -42,11 +49,18 @@ export async function GET(req: NextRequest) {
             console.error(`[Energy Proxy] Error body: ${errorText}`);
             
             // Fallback: return full energy if backend error
+            const bolts = Array.from({ length: 3 }).map((_, i) => ({
+                index: i,
+                available: true,
+                seconds_to_refill: 0,
+                refill_at: null
+            }));
             return NextResponse.json({
                 current_energy: 3,
                 max_energy: 3,
                 next_refill_at: null,
-                seconds_to_refill: 0
+                seconds_to_refill: 0,
+                bolts: bolts
             });
         }
 
@@ -72,11 +86,18 @@ export async function GET(req: NextRequest) {
     } catch (error) {
         console.error("[Energy Proxy] Error proxying energy request:", error);
         // Fallback: return full energy on error
+        const bolts = Array.from({ length: 3 }).map((_, i) => ({
+            index: i,
+            available: true,
+            seconds_to_refill: 0,
+            refill_at: null
+        }));
         return NextResponse.json({
             current_energy: 3,
             max_energy: 3,
             next_refill_at: null,
-            seconds_to_refill: 0
+            seconds_to_refill: 0,
+            bolts: bolts
         });
     }
 }

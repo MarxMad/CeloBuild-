@@ -34,6 +34,24 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
 
   // Actualizar cuenta regresiva de cada rayo cada segundo
   useEffect(() => {
+    if (!bolts || bolts.length === 0) {
+      // Si no hay información de bolts, crear estado por defecto
+      setBoltsState(
+        Array.from({ length: maxEnergy }).map((_, i) => ({
+          index: i,
+          available: i < currentEnergy,
+          seconds_to_refill: 0,
+          refill_at: null
+        }))
+      );
+      return;
+    }
+
+    setBoltsState(bolts);
+  }, [bolts, maxEnergy, currentEnergy]);
+
+  // Actualizar cuenta regresiva cada segundo
+  useEffect(() => {
     const interval = setInterval(() => {
       setBoltsState(prev => {
         const now = Date.now() / 1000;
@@ -55,7 +73,7 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timeLeft, bolts]);
+  }, [timeLeft]);
 
   const formatTime = (seconds: number) => {
     if (seconds <= 0) return "Listo";
