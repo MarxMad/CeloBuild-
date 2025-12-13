@@ -138,15 +138,23 @@ export function TrendingCampaignForm() {
     setProgressStep('idle');
     setIsAnimationComplete(false);
     setEnergyConsumed(false);
-    // Limpiar energía de respuesta para permitir consulta fresca
-    setEnergyFromResponse(null);
-    // Actualizar energía al regresar (forzar para obtener estado actualizado)
-    // Esto mostrará los rayos actualizados (con los consumidos mostrando cuenta regresiva)
-    // Hacer múltiples intentos para asegurar que se actualice correctamente
-    console.log("🔄 [Reset] Actualizando energía después de resetear...");
-    fetchEnergy(true);
-    setTimeout(() => fetchEnergy(true), 300);
-    setTimeout(() => fetchEnergy(true), 800);
+    
+    // NO limpiar energyFromResponse inmediatamente - mantener el estado actual
+    // Solo consultar el endpoint si pasaron más de 5 segundos desde la última actualización
+    const timeSinceResponse = energyFromResponse ? Date.now() - energyFromResponse.timestamp : Infinity;
+    
+    if (timeSinceResponse < 5000) {
+      // Usar el estado que ya tenemos (de la respuesta del backend)
+      console.log("🔄 [Reset] Usando estado de energía de la respuesta reciente, no consultando endpoint");
+      // El estado de energía ya está actualizado desde la respuesta, no necesitamos consultar
+    } else {
+      // Si pasó mucho tiempo, consultar el endpoint para obtener estado actualizado
+      console.log("🔄 [Reset] Consultando endpoint para obtener estado actualizado de energía...");
+      setEnergyFromResponse(null); // Limpiar para permitir consulta fresca
+      fetchEnergy(true);
+      setTimeout(() => fetchEnergy(true), 300);
+      setTimeout(() => fetchEnergy(true), 800);
+    }
   };
 
   useEffect(() => {
