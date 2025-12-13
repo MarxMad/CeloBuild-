@@ -73,7 +73,7 @@ else:
 # Inicializar supervisor con manejo de errores
 _supervisor_error = None
 try:
-supervisor = SupervisorOrchestrator.from_settings(settings)
+    supervisor = SupervisorOrchestrator.from_settings(settings)
 except Exception as exc:
     import logging
     logger = logging.getLogger(__name__)
