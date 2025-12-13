@@ -31,6 +31,7 @@ class RunResult:
     cast_hash: str | None = None
     xp_granted: int = 0
     trace_logs: list[str] = field(default_factory=list)
+    energy_status: dict[str, Any] | None = None  # Estado de energía después de consumir
 
 
 class SupervisorOrchestrator:
@@ -104,9 +105,14 @@ class SupervisorOrchestrator:
                     eligible=False
                 )
             
-            # Log después de consumir
+            # Log después de consumir y guardar estado para incluir en respuesta
             post_status = energy_service.get_status(target_address)
             logger.info(f"⚡ [Supervisor] Estado DESPUÉS de consumir para {target_address}: {post_status['current_energy']}/{post_status['max_energy']}")
+            # Guardar estado de energía para incluir en RunResult
+            energy_status_after_consume = post_status
+        else:
+            # Si no hay target_address, no se consume energía
+            energy_status_after_consume = None
 
         mode = None
         trend_context = await self.trend_watcher.handle(payload)

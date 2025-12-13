@@ -317,14 +317,39 @@ export function TrendingCampaignForm() {
         throw new Error(errorMessage);
       }
 
-      // Actualizar energía inmediatamente después de obtener resultado exitoso
-      // La energía ya fue consumida en el backend, así que forzamos actualización
-      await fetchEnergy();
-      // Retry múltiples veces para asegurar que se actualice
-      setTimeout(() => fetchEnergy(), 500);
-      setTimeout(() => fetchEnergy(), 1000);
-      setTimeout(() => fetchEnergy(), 2000);
-      setTimeout(() => fetchEnergy(), 3000);
+      // CRITICAL: Usar el estado de energía de la respuesta del backend directamente
+      // Esto evita problemas de persistencia en serverless donde /tmp no persiste entre invocaciones
+      if (resultData?.energy_status) {
+        const energyStatus = resultData.energy_status;
+        console.log("⚡ [Energy] Estado recibido de la respuesta del backend:", energyStatus);
+        
+        if (energyStatus && typeof energyStatus.current_energy === 'number') {
+          const newEnergy = energyStatus.current_energy;
+          const oldEnergy = energy.current;
+          
+          console.log(`⚡ [Energy] Actualizando desde respuesta: ${oldEnergy} -> ${newEnergy}`);
+          
+          // Actualizar estado de energía directamente desde la respuesta
+          setEnergy({
+            current: newEnergy,
+            max: energyStatus.max_energy || 3,
+            seconds: energyStatus.seconds_to_refill || 0,
+            bolts: energyStatus.bolts || []
+          });
+          
+          // Detectar si se consumió energía
+          if (oldEnergy > newEnergy && oldEnergy > 0) {
+            console.log(`⚡ [Energy] Energía consumida detectada: ${oldEnergy} -> ${newEnergy}`);
+            setEnergyConsumed(true);
+            setPreviousEnergy(oldEnergy);
+          }
+        }
+      } else {
+        // Fallback: intentar obtener energía del endpoint si no viene en la respuesta
+        console.log("⚠️ [Energy] No se recibió energy_status en la respuesta, consultando endpoint...");
+        await fetchEnergy();
+        setTimeout(() => fetchEnergy(), 1000);
+      }
 
       setPendingResult(resultData);
       setProgressStep('completed');

@@ -734,6 +734,7 @@ async def run_lootbox(event: LootboxEvent):
             "cast_hash": getattr(result, "cast_hash", None),
             "xp_granted": getattr(result, "xp_granted", 0),
             "trace_logs": getattr(result, "trace_logs", []),
+            "energy_status": getattr(result, "energy_status", None),  # Estado de energía después de consumir
         }
         
         # Forzar serialización aquí para capturar errores
