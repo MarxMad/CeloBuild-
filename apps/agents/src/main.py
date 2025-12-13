@@ -322,77 +322,26 @@ async def get_energy_status(address: str = Query(...)):
     """
     try:
         from ..services.energy import energy_service
-        import time
         
-        # CRITICAL: get_status ya recarga los datos del archivo, pero asegurémonos
+        # CRITICAL: get_status ya recarga los datos del archivo/Redis y calcula todo correctamente
+        # No necesitamos duplicar la lógica aquí
         logger.info(f"🔋 [Energy API] Consultando energía para {address}")
+        
+        # get_status ya hace todo: recarga datos, calcula estado, filtra rayos recargados, y devuelve bolts
         status = energy_service.get_status(address)
+        
         logger.info(f"🔋 [Energy API] Estado obtenido: {status['current_energy']}/{status['max_energy']} rayos")
+        logger.info(f"🔋 [Energy API] Rayos disponibles: {sum(1 for b in status.get('bolts', []) if b.get('available', False))}")
+        logger.info(f"🔋 [Energy API] Rayos recargando: {sum(1 for b in status.get('bolts', []) if not b.get('available', False))}")
         
-        # Obtener información detallada de cada rayo
-        # Usar el lock del servicio para acceso seguro
-        address_lower = address.lower()
-        now = time.time()
-        bolts_info = []
+        # Verificar que bolts esté presente
+        if 'bolts' not in status or not status['bolts']:
+            logger.warning(f"🔋 [Energy API] ⚠️ No se encontraron bolts en la respuesta, creando array por defecto")
+            status['bolts'] = [
+                {"index": i, "available": True, "seconds_to_refill": 0, "refill_at": None}
+                for i in range(energy_service.MAX_ENERGY)
+            ]
         
-        with energy_service._lock:
-            # Recargar datos del archivo para asegurar consistencia
-            logger.info(f"🔋 [Energy API] Recargando datos desde {energy_service.storage_path}")
-            energy_service._data = energy_service._load()
-            state = energy_service._data.get(address_lower)
-            logger.info(f"🔋 [Energy API] Estado en archivo para {address_lower}: {state}")
-            if state:
-                consumed_bolts = state.get("consumed_bolts", [])
-                logger.info(f"🔋 [Energy API] Rayos consumidos encontrados: {len(consumed_bolts)}")
-                if consumed_bolts:
-                    logger.info(f"🔋 [Energy API] Timestamps: {consumed_bolts}")
-            
-            if not state or not state.get("consumed_bolts"):
-                # Todos los rayos están disponibles
-                for i in range(energy_service.MAX_ENERGY):
-                    bolts_info.append({
-                        "index": i,
-                        "available": True,
-                        "seconds_to_refill": 0,
-                        "refill_at": None
-                    })
-            else:
-                consumed_bolts = state.get("consumed_bolts", [])
-                # Filtrar solo los que aún no han recargado
-                active_consumed = []
-                for bolt_time in consumed_bolts:
-                    elapsed = now - bolt_time
-                    if elapsed < energy_service.RECHARGE_TIME:
-                        active_consumed.append(bolt_time)
-                
-                # Ordenar por timestamp (más antiguo primero)
-                active_consumed_sorted = sorted(active_consumed)
-                
-                # Crear array de información de cada rayo
-                for i in range(energy_service.MAX_ENERGY):
-                    if i < len(active_consumed_sorted):
-                        # Este rayo está consumido
-                        bolt_time = active_consumed_sorted[i]
-                        elapsed = now - bolt_time
-                        seconds_to_refill = max(0, int(energy_service.RECHARGE_TIME - elapsed))
-                        refill_at = bolt_time + energy_service.RECHARGE_TIME
-                        
-                        bolts_info.append({
-                            "index": i,
-                            "available": False,
-                            "seconds_to_refill": seconds_to_refill,
-                            "refill_at": refill_at
-                        })
-                    else:
-                        # Este rayo está disponible
-                        bolts_info.append({
-                            "index": i,
-                            "available": True,
-                            "seconds_to_refill": 0,
-                            "refill_at": None
-                        })
-        
-        status["bolts"] = bolts_info
         return status
     except Exception as exc:
         logger.error("Error obteniendo estado de energía para %s: %s", address, exc, exc_info=True)

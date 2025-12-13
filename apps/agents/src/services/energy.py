@@ -140,24 +140,34 @@ class EnergyService:
                 return {}
 
     def _save(self):
-        """Saves energy data to JSON file."""
-        path = Path(self.storage_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            # Usar modo 'w' con flush para asegurar que se escriba inmediatamente
-            with open(path, "w") as f:
-                json.dump(self._data, f, indent=2)
-                f.flush()
-                import os
-                os.fsync(f.fileno())  # Forzar escritura a disco
-            # Verificar que se escribió correctamente
-            if path.exists():
-                file_size = path.stat().st_size
-                logger.info(f"💾 [Save] Datos guardados en {self.storage_path}: {len(self._data)} usuarios, {file_size} bytes")
-            else:
-                logger.error(f"❌ [Save] ADVERTENCIA: Archivo no existe después de guardar: {self.storage_path}")
-        except Exception as e:
-            logger.error(f"❌ [Save] Failed to save energy store to {self.storage_path}: {e}", exc_info=True)
+        """Saves energy data to Redis or JSON file."""
+        if self._use_redis and self._redis_client:
+            try:
+                # Save to Redis
+                data_json = json.dumps(self._data)
+                self._redis_client.set("energy:store", data_json)
+                logger.info(f"💾 [Save] ✅ Datos guardados en Redis: {len(self._data)} usuarios")
+            except Exception as e:
+                logger.error(f"❌ [Save] Error guardando en Redis: {e}", exc_info=True)
+        else:
+            # Save to file
+            path = Path(self.storage_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                # Usar modo 'w' con flush para asegurar que se escriba inmediatamente
+                with open(path, "w") as f:
+                    json.dump(self._data, f, indent=2)
+                    f.flush()
+                    import os
+                    os.fsync(f.fileno())  # Forzar escritura a disco
+                # Verificar que se escribió correctamente
+                if path.exists():
+                    file_size = path.stat().st_size
+                    logger.info(f"💾 [Save] Datos guardados en {self.storage_path}: {len(self._data)} usuarios, {file_size} bytes")
+                else:
+                    logger.error(f"❌ [Save] ADVERTENCIA: Archivo no existe después de guardar: {self.storage_path}")
+            except Exception as e:
+                logger.error(f"❌ [Save] Failed to save energy store to {self.storage_path}: {e}", exc_info=True)
 
     def get_status(self, address: str) -> dict:
         """
