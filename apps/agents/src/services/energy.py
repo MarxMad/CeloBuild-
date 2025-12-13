@@ -203,6 +203,7 @@ class EnergyService:
         with self._lock:
             self._data = self._load()
             logger.info(f"📖 [GetStatus] Datos cargados para {address}: {len(self._data)} usuarios en memoria")
+            logger.info(f"📖 [GetStatus] Usando {'Redis' if self._use_redis else 'archivo'} para almacenamiento")
         
         address = address.lower()
         state = self._data.get(address)

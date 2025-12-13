@@ -89,12 +89,13 @@ export function TrendingCampaignForm() {
   const fetchEnergy = async (force: boolean = false) => {
     if (!address) return;
     
-    // Si tenemos energía de la respuesta reciente (menos de 30 segundos), no sobrescribir
+    // Si tenemos energía de la respuesta reciente (menos de 60 segundos), no sobrescribir
     // a menos que se fuerce explícitamente
-    // Aumentado a 30s para dar tiempo al backend de sincronizar en Redis
+    // Aumentado a 60s para dar tiempo al backend de sincronizar en Redis y evitar
+    // que llamadas posteriores sobrescriban el estado correcto
     if (!force && energyFromResponse !== null) {
       const timeSinceResponse = Date.now() - energyFromResponse.timestamp;
-      if (timeSinceResponse < 30000) {
+      if (timeSinceResponse < 60000) {
         console.log(`⚡ [Energy] Ignorando consulta (${Math.floor(timeSinceResponse/1000)}s desde respuesta), usando energía de respuesta: ${energyFromResponse.value}`);
         return;
       }
@@ -107,6 +108,17 @@ export function TrendingCampaignForm() {
       if (data && typeof data.current_energy === 'number') {
         const newEnergy = data.current_energy;
         const oldEnergy = energy.current;
+        
+        // CRITICAL: Si tenemos energía de la respuesta reciente y el backend devuelve un valor mayor,
+        // es probable que sea un estado incorrecto (por ejemplo, /tmp se limpió en Vercel)
+        // En este caso, NO sobrescribir el estado correcto
+        if (!force && energyFromResponse !== null) {
+          const timeSinceResponse = Date.now() - energyFromResponse.timestamp;
+          if (timeSinceResponse < 60000 && newEnergy > energyFromResponse.value) {
+            console.warn(`⚡ [Energy] ⚠️ Backend devuelve ${newEnergy} pero tenemos ${energyFromResponse.value} de respuesta reciente (${Math.floor(timeSinceResponse/1000)}s). Ignorando estado del backend.`);
+            return; // No sobrescribir el estado correcto
+          }
+        }
         
         console.log(`⚡ [Energy] Actualizando: ${oldEnergy} -> ${newEnergy}`);
         
@@ -163,9 +175,9 @@ export function TrendingCampaignForm() {
   useEffect(() => {
     if (address) {
       // Solo consultar energía inicialmente si no tenemos estado reciente
-      // Si tenemos energía de la respuesta reciente (< 30 segundos), no consultar
+      // Si tenemos energía de la respuesta reciente (< 60 segundos), no consultar
       const timeSinceResponse = energyFromResponse ? Date.now() - energyFromResponse.timestamp : Infinity;
-      if (timeSinceResponse >= 30000) {
+      if (timeSinceResponse >= 60000) {
         // Solo consultar si no tenemos estado reciente
         fetchEnergy(true); // Forzar consulta inicial
       } else {
