@@ -779,12 +779,12 @@ export function TrendingCampaignForm() {
                 </div>
                 
                 {/* Mostrar cuenta regresiva de rayos consumidos */}
-                {energy.bolts && energy.bolts.some(b => !b.available) && (
+                {energy.bolts && energy.bolts.some((b: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }) => !b.available) && (
                   <div className="mt-2 pt-2 border-t border-amber-500/20">
                     <p className="text-[10px] text-amber-400/70 mb-2">Próximas recargas:</p>
                     <div className="flex flex-wrap items-center justify-center gap-2">
                       {energy.bolts
-                        .filter(b => !b.available && b.seconds_to_refill > 0)
+                        .filter((b: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }) => !b.available && b.seconds_to_refill > 0)
                         .map((bolt, idx) => {
                           const minutes = Math.floor(bolt.seconds_to_refill / 60);
                           const seconds = bolt.seconds_to_refill % 60;
