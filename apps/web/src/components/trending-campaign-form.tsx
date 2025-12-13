@@ -86,8 +86,19 @@ export function TrendingCampaignForm() {
     bolts: [] as Array<{ index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }>
   });
 
-  const fetchEnergy = async () => {
+  const fetchEnergy = async (force: boolean = false) => {
     if (!address) return;
+    
+    // Si tenemos energía de la respuesta reciente (menos de 10 segundos), no sobrescribir
+    // a menos que se fuerce explícitamente
+    if (!force && energyFromResponse !== null) {
+      const timeSinceResponse = Date.now() - energyFromResponse.timestamp;
+      if (timeSinceResponse < 10000) {
+        console.log(`⚡ [Energy] Ignorando consulta (${Math.floor(timeSinceResponse/1000)}s desde respuesta), usando energía de respuesta: ${energyFromResponse.value}`);
+        return;
+      }
+    }
+    
     try {
       const res = await fetch(`/api/lootbox/energy?address=${address}`);
       const data = await res.json();
@@ -126,15 +137,17 @@ export function TrendingCampaignForm() {
     setIsLoading(false);
     setProgressStep('idle');
     setIsAnimationComplete(false);
-    // Actualizar energía al regresar
-    fetchEnergy();
+    // Actualizar energía al regresar (forzar para obtener estado actualizado)
+    fetchEnergy(true);
   };
 
   useEffect(() => {
     if (address) {
-      fetchEnergy();
-      // Poll every 60s to sync
-      const interval = setInterval(fetchEnergy, 60000);
+      // Solo consultar energía inicialmente, luego el polling cada 60s
+      // Pero no sobrescribir si tenemos energía reciente de la respuesta
+      fetchEnergy(true); // Forzar consulta inicial
+      // Poll every 60s to sync (pero respetará energyFromResponse)
+      const interval = setInterval(() => fetchEnergy(false), 60000);
       return () => clearInterval(interval);
     }
   }, [address]);
