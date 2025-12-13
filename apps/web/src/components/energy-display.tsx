@@ -26,13 +26,7 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
     setTimeLeft(secondsToRefill);
   }, [secondsToRefill]);
 
-  useEffect(() => {
-    if (bolts) {
-      setBoltsState(bolts);
-    }
-  }, [bolts]);
-
-  // Actualizar cuenta regresiva de cada rayo cada segundo
+  // Inicializar bolts con refill_at calculado si no está presente
   useEffect(() => {
     if (!bolts || bolts.length === 0) {
       // Si no hay información de bolts, crear estado por defecto
@@ -47,7 +41,28 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
       return;
     }
 
-    setBoltsState(bolts);
+    // Asegurar que todos los bolts tengan refill_at calculado correctamente
+    const now = Date.now() / 1000;
+    const updatedBolts = bolts.map(bolt => {
+      if (!bolt.available && bolt.seconds_to_refill > 0) {
+        // Si tiene seconds_to_refill pero no refill_at, calcularlo
+        if (!bolt.refill_at) {
+          const refill_at = now + bolt.seconds_to_refill;
+          return { ...bolt, refill_at };
+        }
+        // Si tiene refill_at, verificar que sea correcto
+        // Si el tiempo restante no coincide, recalcular refill_at
+        const expected_remaining = Math.max(0, Math.floor(bolt.refill_at - now));
+        if (Math.abs(expected_remaining - bolt.seconds_to_refill) > 5) {
+          // Hay discrepancia, recalcular refill_at basándose en seconds_to_refill
+          const refill_at = now + bolt.seconds_to_refill;
+          return { ...bolt, refill_at, seconds_to_refill: bolt.seconds_to_refill };
+        }
+      }
+      return bolt;
+    });
+    
+    setBoltsState(updatedBolts);
   }, [bolts, maxEnergy, currentEnergy]);
 
   // Actualizar cuenta regresiva cada segundo
