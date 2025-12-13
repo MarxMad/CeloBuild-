@@ -137,8 +137,14 @@ export function TrendingCampaignForm() {
     setIsLoading(false);
     setProgressStep('idle');
     setIsAnimationComplete(false);
+    setEnergyConsumed(false);
+    // Limpiar energía de respuesta para permitir consulta fresca
+    setEnergyFromResponse(null);
     // Actualizar energía al regresar (forzar para obtener estado actualizado)
+    // Esto mostrará los rayos actualizados (con los consumidos mostrando cuenta regresiva)
     fetchEnergy(true);
+    // También actualizar después de un pequeño delay para asegurar que se actualice
+    setTimeout(() => fetchEnergy(true), 500);
   };
 
   useEffect(() => {
@@ -348,10 +354,14 @@ export function TrendingCampaignForm() {
           });
           
           // Marcar que tenemos energía de la respuesta (para evitar sobrescribir con consultas)
+          // Esto asegura que el estado se mantenga correctamente
           setEnergyFromResponse({
             value: newEnergy,
             timestamp: Date.now()
           });
+          
+          // Log para debugging
+          console.log(`⚡ [Energy] Estado guardado desde respuesta: ${newEnergy}/${energyStatus.max_energy || 3}, bolts:`, energyStatus.bolts?.length || 0);
           
           // Detectar si se consumió energía
           if (oldEnergy > newEnergy && oldEnergy > 0) {
