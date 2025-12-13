@@ -530,115 +530,117 @@ export function TrendingCampaignForm() {
         <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
 
 
-            {/* Success Card - PREMIUM REDESIGN */}
-            {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
-              <div className="relative rounded-3xl overflow-hidden p-1 p-gradient-to-br from-green-500/50 via-[#FCFF52]/50 to-green-900/50 shadow-2xl shadow-green-900/40 group/card">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-[#FCFF52]/10 to-transparent blur-xl opacity-50 animate-pulse" />
-                <div className="relative bg-[#0a0a0a] rounded-[22px] p-6 sm:p-8 flex flex-col items-center text-center overflow-hidden">
+          {/* Success Card - PREMIUM REDESIGN */}
+          {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
+            <div className="relative rounded-3xl overflow-hidden p-1 p-gradient-to-br from-green-500/50 via-[#FCFF52]/50 to-green-900/50 shadow-2xl shadow-green-900/40 group/card">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-[#FCFF52]/10 to-transparent blur-xl opacity-50 animate-pulse" />
+              <div className="relative bg-[#0a0a0a] rounded-[22px] p-6 sm:p-8 flex flex-col items-center text-center overflow-hidden">
                   {/* Background Effects */}
                   <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]" />
                   <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-500/5 via-transparent to-transparent animate-spin-slow-reverse opacity-50" />
 
-                  {/* 1. HEADER & HERO XP */}
-                  <div className="relative z-10 space-y-2 mb-6 sm:mb-8">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-widest mb-2">
-                      <Sparkles className="w-3 h-3" />
-                      {getRewardDisplay(result.reward_type).title}
-                    </div>
-
-                    {result.xp_granted !== undefined && (
-                      <div className="relative">
-                        <h2 className="text-6xl sm:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FCFF52] to-yellow-600 drop-shadow-[0_2px_10px_rgba(252,255,82,0.3)] filter">
-                          +{result.xp_granted}
-                        </h2>
-                        <span className="text-xl font-bold text-yellow-500/80 tracking-widest uppercase mt-[-10px] block">
-                          XP Ganados
-                        </span>
-                      </div>
-                    )}
+                {/* 1. HEADER & HERO XP */}
+                <div className="relative z-10 space-y-2 mb-6 sm:mb-8">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-widest mb-2">
+                    <Sparkles className="w-3 h-3" />
+                    {getRewardDisplay(result.reward_type).title}
                   </div>
 
-                  {/* 2. NFT SHOWCASE (If available) */}
-                  {result.nft_images && (
-                    (() => {
-                      const userAddress = address?.toLowerCase();
-                      const imageUri = Object.entries(result.nft_images || {}).find(([addr]) => addr.toLowerCase() === userAddress)?.[1]
-                        || Object.values(result.nft_images || {})[0];
-
-                      if (imageUri) {
-                        return (
-                          <div className="relative w-full max-w-[240px] aspect-[2/3] rounded-xl overflow-hidden border border-white/10 shadow-2xl mb-8 group-hover/card:scale-[1.02] transition-transform duration-500">
-                            <img
-                              src={imageUri}
-                              alt="Legendary Artifact"
-                              className="w-full h-full object-cover"
-                            />
-                            {/* Rare Badge */}
-                            <div className="absolute top-2 right-2">
-                              <span className="bg-black/60 backdrop-blur-md text-[#FCFF52] text-[10px] font-bold px-2 py-0.5 rounded border border-[#FCFF52]/30">
-                                RARE
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()
-                  )}
-
-                  {/* 2.5 BONUS REWARD SUMMARY (NEW) */}
-                  {(result.cast_text || result.xp_granted) && (
-                    <div className="w-full max-w-sm bg-white/5 border border-white/10 rounded-xl p-4 mb-6 backdrop-blur-sm">
-
-                      {/* Cast Quote */}
-                      {result.cast_text && (
-                        <div className="mb-4 text-left">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <div className="p-1 bg-blue-500/20 rounded-lg">
-                                <MessageSquare className="w-3 h-3 text-blue-400" />
-                              </div>
-                              <span className="text-xs font-medium uppercase tracking-wider">Cast Premiado</span>
-                            </div>
-                            {result.cast_hash && result.user_analysis?.username && (
-                              <span
-                                onClick={() => {
-                                  const username = result.user_analysis?.username || 'unknown';
-                                  const hash = result.cast_hash ? result.cast_hash.substring(0, 10) : '';
-                                  const url = `https://warpcast.com/${username}/${hash}`;
-                                  import("@farcaster/miniapp-sdk").then(({ sdk }) => {
-                                    sdk.actions.openUrl(url);
-                                  }).catch(() => {
-                                    window.open(url, "_blank");
-                                  });
-                                }}
-                                className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
-                              >
-                                Ver en Farcaster <ExternalLink className="w-3 h-3" />
-                              </span>
-                            )}
-                          </div>
-                          <div className="relative pl-3 border-l-2 border-green-500/50">
-                            <p className="text-sm text-gray-300 italic line-clamp-3">
-                              "{result.cast_text}"
-                            </p>
-                          </div>
-                        </div>
-                  )}
-
-                  {/* XP Row */}
                   {result.xp_granted !== undefined && (
-                    <div className="flex items-center justify-between bg-black/40 rounded-lg p-3 border border-white/5">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-[#FCFF52]" />
-                        <span className="text-sm font-bold text-gray-200">Recompensa Extra</span>
-                      </div>
-                      <span className="text-[#FCFF52] font-mono font-bold">+{result.xp_granted} XP</span>
+                    <div className="relative">
+                      <h2 className="text-6xl sm:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-[#FCFF52] to-yellow-600 drop-shadow-[0_2px_10px_rgba(252,255,82,0.3)] filter">
+                        +{result.xp_granted}
+                      </h2>
+                      <span className="text-xl font-bold text-yellow-500/80 tracking-widest uppercase mt-[-10px] block">
+                        XP Ganados
+                      </span>
                     </div>
                   )}
                 </div>
+
+                {/* 2. NFT SHOWCASE (If available) */}
+                {result.nft_images && (
+                  (() => {
+                    const userAddress = address?.toLowerCase();
+                    const imageUri = Object.entries(result.nft_images || {}).find(([addr]) => addr.toLowerCase() === userAddress)?.[1]
+                      || Object.values(result.nft_images || {})[0];
+
+                    if (imageUri) {
+                      return (
+                        <div className="relative w-full max-w-[240px] aspect-[2/3] rounded-xl overflow-hidden border border-white/10 shadow-2xl mb-8 group-hover/card:scale-[1.02] transition-transform duration-500">
+                          <img
+                            src={imageUri}
+                            alt="Legendary Artifact"
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Rare Badge */}
+                          <div className="absolute top-2 right-2">
+                            <span className="bg-black/60 backdrop-blur-md text-[#FCFF52] text-[10px] font-bold px-2 py-0.5 rounded border border-[#FCFF52]/30">
+                              RARE
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()
+                )}
+
+                {/* 2.5 BONUS REWARD SUMMARY (NEW) */}
+                {(result.cast_text || result.xp_granted) && (
+                  <div className="w-full max-w-sm bg-white/5 border border-white/10 rounded-xl p-4 mb-6 backdrop-blur-sm">
+
+                    {/* Cast Quote */}
+                    {result.cast_text && (
+                      <div className="mb-4 text-left">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <div className="p-1 bg-blue-500/20 rounded-lg">
+                              <MessageSquare className="w-3 h-3 text-blue-400" />
+                            </div>
+                            <span className="text-xs font-medium uppercase tracking-wider">Cast Premiado</span>
+                          </div>
+                          {result.cast_hash && result.user_analysis?.username && (
+                            <span
+                              onClick={() => {
+                                const username = result.user_analysis?.username || 'unknown';
+                                const hash = result.cast_hash ? result.cast_hash.substring(0, 10) : '';
+                                const url = `https://warpcast.com/${username}/${hash}`;
+                                import("@farcaster/miniapp-sdk").then(({ sdk }) => {
+                                  sdk.actions.openUrl(url);
+                                }).catch(() => {
+                                  window.open(url, "_blank");
+                                });
+                              }}
+                              className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
+                            >
+                              Ver en Farcaster <ExternalLink className="w-3 h-3" />
+                            </span>
+                          )}
+                        </div>
+                        <div className="relative pl-3 border-l-2 border-green-500/50">
+                          <p className="text-sm text-gray-300 italic line-clamp-3">
+                            "{result.cast_text}"
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* XP Row */}
+                    {result.xp_granted !== undefined && (
+                      <div className="flex items-center justify-between bg-black/40 rounded-lg p-3 border border-white/5">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-[#FCFF52]" />
+                          <span className="text-sm font-bold text-gray-200">Recompensa Extra</span>
+                        </div>
+                        <span className="text-[#FCFF52] font-mono font-bold">+{result.xp_granted} XP</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+          )}
 
             {/* 3. PRIMARY ACTION (Share) */}
             {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
