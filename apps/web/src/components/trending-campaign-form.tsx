@@ -34,7 +34,7 @@ export function TrendingCampaignForm() {
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [energyConsumed, setEnergyConsumed] = useState(false);
   const [previousEnergy, setPreviousEnergy] = useState(3);
-  const [energyFromResponse, setEnergyFromResponse] = useState<number | null>(null); // Energía recibida de la respuesta del backend
+  const [energyFromResponse, setEnergyFromResponse] = useState<{value: number, timestamp: number} | null>(null); // Energía recibida de la respuesta del backend
 
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -139,17 +139,15 @@ export function TrendingCampaignForm() {
     }
   }, [address]);
 
-  // Refresh energy when result happens (consumption)
+  // NO refrescar energía automáticamente cuando hay resultado
+  // El estado de energía ya viene en la respuesta del backend (energy_status)
+  // Solo refrescar si hay error o si pasaron más de 10 segundos desde la respuesta
   useEffect(() => {
-    if (result || error) {
-      // Refresh immediately, then retry multiple times to ensure update
-      // La energía se consume en el backend antes de retornar el resultado
-      fetchEnergy();
-      const intervals = [500, 1000, 2000, 3000, 5000];
-      intervals.forEach(delay => {
-        setTimeout(() => fetchEnergy(), delay);
-      });
+    if (error) {
+      // Si hay error, intentar obtener energía del endpoint
+      fetchEnergy(true);
     }
+    // Si hay resultado exitoso, la energía ya viene en energy_status, no consultar
   }, [result, error]);
 
   const handleRechargeShare = async () => {
@@ -340,7 +338,7 @@ export function TrendingCampaignForm() {
           setEnergyFromResponse({
             value: newEnergy,
             timestamp: Date.now()
-          } as any);
+          });
           
           // Detectar si se consumió energía
           if (oldEnergy > newEnergy && oldEnergy > 0) {
