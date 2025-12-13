@@ -17,27 +17,42 @@ export async function generateMetadata(
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://celo-build-web-8rej.vercel.app";
 
     // Construct dynamic OG Image URL
-    // Added v=3 to bust cache for new professional design
-    const ogImageUrl = `${appUrl}/api/og?type=victory&username=${encodeURIComponent(user)}&user=${encodeURIComponent(user)}&score=${score}&reward=${encodeURIComponent(reward)}&locale=${locale}&v=3`;
+    // Added v=4 to bust cache and ensure proper image generation
+    const ogImageUrl = `${appUrl}/api/og?type=victory&username=${encodeURIComponent(user)}&user=${encodeURIComponent(user)}&score=${score}&reward=${encodeURIComponent(reward)}&locale=${locale}&v=4`;
 
     const victoryUrl = `${appUrl}/share/victory?user=${encodeURIComponent(user)}&xp=${xp}&score=${score}&reward=${encodeURIComponent(reward)}&locale=${locale}`;
     
+    // Descripción más atractiva
+    const description = locale === 'es' 
+        ? `¡${user} ganó ${reward} en Premio.xyz! 🏆 Únete y reclama tus recompensas en Celo.`
+        : `${user} won ${reward} on Premio.xyz! 🏆 Join and claim your rewards on Celo.`;
+    
     return {
         title: `Victory: ${user} won ${reward}!`,
-        description: `Join ${user} and earn rewards on Premio.xyz`,
+        description: description,
+        metadataBase: new URL(appUrl),
         openGraph: {
             title: `Victory: ${user} won ${reward}!`,
-            description: `Join ${user} and earn rewards on Premio.xyz`,
-            images: [ogImageUrl],
+            description: description,
+            images: [
+                {
+                    url: ogImageUrl,
+                    width: 1200,
+                    height: 630,
+                    alt: `Victory card for ${user}`,
+                }
+            ],
             url: victoryUrl,
             type: "website",
             siteName: "Premio.xyz",
+            locale: locale === 'es' ? 'es_ES' : 'en_US',
         },
         twitter: {
             card: "summary_large_image",
             title: `Victory: ${user} won ${reward}!`,
-            description: `Join ${user} and earn rewards on Premio.xyz`,
+            description: description,
             images: [ogImageUrl],
+            creator: "@premioxyz",
         },
         other: {
             "fc:frame": "vNext",

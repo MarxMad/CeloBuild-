@@ -79,12 +79,71 @@ export function TrendingCampaignForm() {
   const [showThankYou, setShowThankYou] = useState(false);
 
   // ENERGY SYSTEM STATE
-  const [energy, setEnergy] = useState({ 
-    current: 3, 
-    max: 3, 
-    seconds: 0,
-    bolts: [] as Array<{ index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }>
-  });
+  // Cargar estado inicial desde localStorage si existe
+  const loadEnergyFromStorage = () => {
+    if (typeof window === 'undefined' || !address) {
+      return { 
+        current: 3, 
+        max: 3, 
+        seconds: 0,
+        bolts: [] as Array<{ index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }>
+      };
+    }
+    
+    try {
+      const stored = localStorage.getItem(`energy_${address.toLowerCase()}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Verificar que el estado no sea muy antiguo (más de 1 hora)
+        const now = Date.now();
+        if (parsed.timestamp && (now - parsed.timestamp) < 3600000) {
+          // Filtrar bolts que ya recargaron
+          const currentTime = now / 1000; // Unix timestamp en segundos
+          const validBolts = parsed.bolts.filter((bolt: any) => {
+            if (bolt.available) return true;
+            if (bolt.refill_at && bolt.refill_at > currentTime) return true;
+            return false; // Bolt recargado
+          });
+          
+          // Recalcular energía disponible
+          const availableCount = validBolts.filter((b: any) => b.available || (b.refill_at && b.refill_at <= currentTime)).length;
+          const currentEnergy = Math.min(availableCount, 3);
+          
+          return {
+            current: currentEnergy,
+            max: parsed.max || 3,
+            seconds: parsed.seconds || 0,
+            bolts: validBolts
+          };
+        }
+      }
+    } catch (e) {
+      console.error("Error cargando energía desde localStorage:", e);
+    }
+    
+    return { 
+      current: 3, 
+      max: 3, 
+      seconds: 0,
+      bolts: [] as Array<{ index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }>
+    };
+  };
+
+  const [energy, setEnergy] = useState(loadEnergyFromStorage());
+  
+  // Guardar energía en localStorage cuando cambia
+  useEffect(() => {
+    if (typeof window !== 'undefined' && address) {
+      try {
+        localStorage.setItem(`energy_${address.toLowerCase()}`, JSON.stringify({
+          ...energy,
+          timestamp: Date.now()
+        }));
+      } catch (e) {
+        console.error("Error guardando energía en localStorage:", e);
+      }
+    }
+  }, [energy, address]);
 
   const fetchEnergy = async (force: boolean = false) => {
     if (!address) return;
