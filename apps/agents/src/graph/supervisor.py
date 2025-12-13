@@ -139,17 +139,17 @@ class SupervisorOrchestrator:
             else:
                 # Fallback: guardar la tendencia individual (compatibilidad)
                 author_info = trend_context.get("author", {})
-                self.trends_store.record({
-                    "frame_id": trend_context.get("frame_id"),
-                    "cast_hash": trend_context.get("cast_hash"),
-                    "trend_score": trend_context.get("trend_score"),
-                    "source_text": trend_context.get("source_text"),
-                    "ai_analysis": trend_context.get("ai_analysis"),
-                    "topic_tags": trend_context.get("topic_tags", []),
-                    "channel_id": trend_context.get("channel_id"),
+            self.trends_store.record({
+                "frame_id": trend_context.get("frame_id"),
+                "cast_hash": trend_context.get("cast_hash"),
+                "trend_score": trend_context.get("trend_score"),
+                "source_text": trend_context.get("source_text"),
+                "ai_analysis": trend_context.get("ai_analysis"),
+                "topic_tags": trend_context.get("topic_tags", []),
+                "channel_id": trend_context.get("channel_id"),
                     "author_username": author_info.get("username") if isinstance(author_info, dict) else None,
                     "author_fid": author_info.get("fid") if isinstance(author_info, dict) else None,
-                })
+            })
         
         eligible_users = await self.eligibility.handle(trend_context)
         
@@ -200,7 +200,7 @@ class SupervisorOrchestrator:
             if "alfajores" in rpc_url:
                 base_explorer = "https://alfajores.celoscan.io"
             elif "sepolia" in rpc_url:
-                base_explorer = "https://celo-sepolia.blockscout.com"
+            base_explorer = "https://celo-sepolia.blockscout.com"
             else:
                 # Default to Mainnet (celoscan.io is the standard for Celo Mainnet)
                 base_explorer = "https://celoscan.io"

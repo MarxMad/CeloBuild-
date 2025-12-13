@@ -26,7 +26,9 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
     setTimeLeft(secondsToRefill);
   }, [secondsToRefill]);
 
-  // Inicializar bolts con refill_at calculado si no está presente
+  // Inicializar y actualizar bolts cuando cambian las props
+  // IMPORTANTE: refill_at del backend es la fuente de verdad (timestamp absoluto)
+  // Solo calcular refill_at si no está presente, NUNCA recalcular si ya existe
   useEffect(() => {
     if (!bolts || bolts.length === 0) {
       // Si no hay información de bolts, crear estado por defecto
@@ -41,43 +43,50 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
       return;
     }
 
-    // Asegurar que todos los bolts tengan refill_at calculado correctamente
+    // Procesar bolts del backend
+    // El backend devuelve refill_at como timestamp absoluto (Unix timestamp en segundos)
     const now = Date.now() / 1000;
     const updatedBolts = bolts.map(bolt => {
       if (!bolt.available && bolt.seconds_to_refill > 0) {
         // Si tiene seconds_to_refill pero no refill_at, calcularlo
+        // Esto solo debería pasar si el backend no devolvió refill_at (fallback)
         if (!bolt.refill_at) {
+          // Calcular refill_at basándose en seconds_to_refill actual
+          // Esto es un fallback, idealmente el backend siempre debería devolver refill_at
           const refill_at = now + bolt.seconds_to_refill;
+          console.log(`[EnergyDisplay] ⚠️ Calculando refill_at para bolt ${bolt.index}: ${refill_at} (fallback, ahora: ${now}, seconds_to_refill: ${bolt.seconds_to_refill})`);
           return { ...bolt, refill_at };
         }
-        // Si tiene refill_at, verificar que sea correcto
-        // Si el tiempo restante no coincide, recalcular refill_at
-        const expected_remaining = Math.max(0, Math.floor(bolt.refill_at - now));
-        if (Math.abs(expected_remaining - bolt.seconds_to_refill) > 5) {
-          // Hay discrepancia, recalcular refill_at basándose en seconds_to_refill
-          const refill_at = now + bolt.seconds_to_refill;
-          return { ...bolt, refill_at, seconds_to_refill: bolt.seconds_to_refill };
-        }
+        // Si ya tiene refill_at, usarlo tal cual - es la fuente de verdad del backend
+        // El backend calcula refill_at como bolt_time + RECHARGE_TIME (timestamp absoluto)
+        // NUNCA recalcular, porque eso reiniciaría la cuenta regresiva
+        console.log(`[EnergyDisplay] ✅ Usando refill_at del backend para bolt ${bolt.index}: ${refill_at} (ahora: ${now}, tiempo restante: ${Math.floor(bolt.refill_at - now)}s)`);
+        return bolt;
       }
       return bolt;
     });
     
+    console.log(`[EnergyDisplay] 🔄 Actualizando boltsState con ${updatedBolts.length} bolts`);
     setBoltsState(updatedBolts);
   }, [bolts, maxEnergy, currentEnergy]);
 
   // Actualizar cuenta regresiva cada segundo basándose en refill_at (timestamp absoluto)
   // Esto asegura que las cuentas regresivas persistan después de refrescar la página
+  // El refill_at viene del backend como timestamp absoluto (Unix timestamp en segundos)
   useEffect(() => {
     const interval = setInterval(() => {
       setBoltsState(prev => {
-        const now = Date.now() / 1000;
+        const now = Date.now() / 1000; // Tiempo actual en segundos (Unix timestamp)
         return prev.map(bolt => {
           if (!bolt.available && bolt.refill_at) {
             // Calcular tiempo restante basándose en el timestamp absoluto refill_at
+            // refill_at es un Unix timestamp en segundos del backend
             // Esto asegura que la cuenta regresiva sea correcta incluso después de refrescar
+            // Usamos el refill_at directamente del estado, que viene del backend
             const remaining = Math.max(0, Math.floor(bolt.refill_at - now));
             if (remaining === 0) {
               // El rayo ha recargado
+              console.log(`[EnergyDisplay] ⚡ Bolt ${bolt.index} recargado`);
               return { ...bolt, available: true, seconds_to_refill: 0, refill_at: null };
             }
             return { ...bolt, seconds_to_refill: remaining };
@@ -92,7 +101,7 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timeLeft]); // No agregar boltsState como dependencia para evitar reinicios del intervalo
+  }, [timeLeft]); // No agregar boltsState como dependencia - el intervalo usa el estado más reciente con setBoltsState(prev => ...)
 
   const formatTime = (seconds: number) => {
     if (seconds <= 0) return "Listo";
@@ -186,8 +195,8 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
           ) : currentEnergy === 0 ? (
             <div className="space-y-1">
               <p className="text-sm text-amber-400 font-bold">
-                ⚠️ Sin rayos disponibles
-              </p>
+              ⚠️ Sin rayos disponibles
+            </p>
               {boltsState.some(b => !b.available && b.seconds_to_refill > 0) && (
                 <p className="text-xs text-amber-400/70">
                   Próximo rayo en: {formatTime(boltsState.find(b => !b.available && b.seconds_to_refill > 0)?.seconds_to_refill || 0)}
@@ -197,8 +206,8 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
           ) : (
             <div className="space-y-1">
               <p className="text-sm text-[#FCFF52] font-bold">
-                {currentEnergy} de {maxEnergy} rayos disponibles
-              </p>
+              {currentEnergy} de {maxEnergy} rayos disponibles
+            </p>
               {boltsState.some(b => !b.available && b.seconds_to_refill > 0) && (
                 <p className="text-xs text-amber-400/70">
                   Próximo rayo en: {formatTime(boltsState.find(b => !b.available && b.seconds_to_refill > 0)?.seconds_to_refill || 0)}
