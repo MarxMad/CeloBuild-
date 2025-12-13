@@ -526,9 +526,8 @@ export function TrendingCampaignForm() {
       </Card>
 
       {/* Result Display */}
-      {
-        result && (
-          <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      {result && (
+        <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
 
 
             {/* Success Card - PREMIUM REDESIGN */}
@@ -683,8 +682,7 @@ export function TrendingCampaignForm() {
                 </a>
               )}
             </div>
-          </div>
-        )}
+          )}
 
       {/* NOTE: Viral Score Analysis section removed as per user request to avoid confusion. */}
 
