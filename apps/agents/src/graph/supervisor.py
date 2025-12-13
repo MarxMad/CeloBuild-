@@ -265,7 +265,7 @@ class SupervisorOrchestrator:
             if "alfajores" in rpc_url:
                 base_explorer = "https://alfajores.celoscan.io"
             elif "sepolia" in rpc_url:
-            base_explorer = "https://celo-sepolia.blockscout.com"
+                base_explorer = "https://celo-sepolia.blockscout.com"
             else:
                 # Default to Mainnet (celoscan.io is the standard for Celo Mainnet)
                 base_explorer = "https://celoscan.io"
