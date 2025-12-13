@@ -460,28 +460,25 @@ class CeloToolbox:
         contract = self.web3.eth.contract(address=self.checksum(registry_address), abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         
-        # Obtener nonce y gas price con manejo de errores
+        # Obtener nonce con manejo de errores
         # Usar nonce "pending" para incluir transacciones pendientes
         nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
-        base_gas_price = self.web3.eth.gas_price
         
-        # Si hay transacciones pendientes, aumentar gas price para priorizar
+        # Si hay transacciones pendientes, aumentar multiplicador de gas
         confirmed_nonce = self.web3.eth.get_transaction_count(self.account.address)
+        gas_multiplier = 1.4 if nonce > confirmed_nonce else 1.2
         if nonce > confirmed_nonce:
-            # Hay transacciones pendientes, aumentar gas price en 20%
-            gas_price = int(base_gas_price * 1.2)
             logger.warning(
-                "Transacciones pendientes detectadas (nonce: %s -> %s), usando gas price aumentado: %s",
-                confirmed_nonce, nonce, gas_price
+                "Transacciones pendientes detectadas (nonce: %s -> %s), usando gas fees aumentados",
+                confirmed_nonce, nonce
             )
-        else:
-            gas_price = base_gas_price
         
         try:
+            gas_fees = self._get_gas_fees(multiplier=gas_multiplier)
             tx = contract.functions.configureCampaign(campaign_bytes, cooldown_seconds).build_transaction({
                 "from": self.account.address,
                 "nonce": nonce,
-                "gasPrice": gas_price,
+                **gas_fees,
             })
             
             signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
@@ -492,14 +489,14 @@ class CeloToolbox:
             return tx_hash.hex()
         except ValueError as e:
             error_msg = str(e)
-            if "replacement transaction underpriced" in error_msg.lower():
-                # Reintentar con gas price aún más alto
-                logger.warning("Transacción rechazada por gas price bajo, reintentando con precio más alto...")
-                gas_price = int(base_gas_price * 1.5)
+            if "replacement transaction underpriced" in error_msg.lower() or "max fee per gas" in error_msg.lower():
+                # Reintentar con gas fees aún más altos
+                logger.warning("Transacción rechazada por gas fees bajos, reintentando con fees más altos...")
+                gas_fees = self._get_gas_fees(multiplier=1.8)
                 tx = contract.functions.configureCampaign(campaign_bytes, cooldown_seconds).build_transaction({
                     "from": self.account.address,
                     "nonce": nonce,
-                    "gasPrice": gas_price,
+                    **gas_fees,
                 })
                 signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
                 tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
@@ -530,28 +527,25 @@ class CeloToolbox:
         contract = self.web3.eth.contract(address=self.checksum(minter_address), abi=abi)
         campaign_bytes = self._campaign_bytes(campaign_id)
         
-        # Obtener nonce y gas price con manejo de errores
+        # Obtener nonce con manejo de errores
         # Usar nonce "pending" para incluir transacciones pendientes
         nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
-        base_gas_price = self.web3.eth.gas_price
         
-        # Si hay transacciones pendientes, aumentar gas price para priorizar
+        # Si hay transacciones pendientes, aumentar multiplicador de gas
         confirmed_nonce = self.web3.eth.get_transaction_count(self.account.address)
+        gas_multiplier = 1.4 if nonce > confirmed_nonce else 1.2
         if nonce > confirmed_nonce:
-            # Hay transacciones pendientes, aumentar gas price en 20%
-            gas_price = int(base_gas_price * 1.2)
             logger.warning(
-                "Transacciones pendientes detectadas (nonce: %s -> %s), usando gas price aumentado: %s",
-                confirmed_nonce, nonce, gas_price
+                "Transacciones pendientes detectadas (nonce: %s -> %s), usando gas fees aumentados",
+                confirmed_nonce, nonce
             )
-        else:
-            gas_price = base_gas_price
         
         try:
+            gas_fees = self._get_gas_fees(multiplier=gas_multiplier)
             tx = contract.functions.configureCampaign(campaign_bytes, base_uri).build_transaction({
                 "from": self.account.address,
                 "nonce": nonce,
-                "gasPrice": gas_price,
+                **gas_fees,
             })
             
             signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
@@ -562,16 +556,16 @@ class CeloToolbox:
             return tx_hash.hex()
         except ValueError as e:
             error_msg = str(e)
-            if "replacement transaction underpriced" in error_msg.lower() or "nonce too low" in error_msg.lower():
-                # Reintentar con gas price aún más alto y actualizar nonce
-                logger.warning("Transacción rechazada (gas price bajo o nonce), reintentando...")
+            if "replacement transaction underpriced" in error_msg.lower() or "nonce too low" in error_msg.lower() or "max fee per gas" in error_msg.lower():
+                # Reintentar con gas fees aún más altos y actualizar nonce
+                logger.warning("Transacción rechazada (gas fees bajos o nonce), reintentando...")
                 # Actualizar nonce por si acaso
                 nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
-                gas_price = int(base_gas_price * 1.5)
+                gas_fees = self._get_gas_fees(multiplier=1.8)
                 tx = contract.functions.configureCampaign(campaign_bytes, base_uri).build_transaction({
                     "from": self.account.address,
                     "nonce": nonce,
-                    "gasPrice": gas_price,
+                    **gas_fees,
                 })
                 signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
                 tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
