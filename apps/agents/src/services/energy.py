@@ -228,16 +228,43 @@ class EnergyService:
         """
         with self._lock:
             address = address.lower()
-            status = self.get_status(address)  # This recalculates state and removes recharged bolts
             
-            logger.info(f"⚡ [Consume] Estado antes de consumir para {address}: {status['current_energy']}/{status['max_energy']}")
+            # CRITICAL: Recargar datos del archivo ANTES de verificar estado
+            # En serverless, cada invocación puede ser nueva
+            self._data = self._load()
+            logger.info(f"⚡ [Consume] Datos recargados: {len(self._data)} usuarios en memoria")
             
-            if status["current_energy"] <= 0:
+            # Calcular estado actual directamente sin modificar _data
+            now = time.time()
+            state = self._data.get(address)
+            
+            # Filtrar rayos que ya recargaron
+            active_consumed = []
+            if state and state.get("consumed_bolts"):
+                consumed_bolts = state.get("consumed_bolts", [])
+                for bolt_time in consumed_bolts:
+                    elapsed = now - bolt_time
+                    if elapsed < self.RECHARGE_TIME:
+                        active_consumed.append(bolt_time)
+            
+            current_energy = self.MAX_ENERGY - len(active_consumed)
+            logger.info(f"⚡ [Consume] Estado antes de consumir para {address}: {current_energy}/{self.MAX_ENERGY}")
+            
+            if current_energy <= 0:
                 logger.warning(f"User {address} has no energy to consume.")
                 return False
             
-            now = time.time()
-            state = self._data.get(address)
+            # Actualizar estado con rayos activos (ya filtrados)
+            if active_consumed:
+                self._data[address] = {"consumed_bolts": active_consumed}
+            else:
+                # Si no hay rayos activos, eliminar entrada
+                if address in self._data:
+                    del self._data[address]
+            
+            # Agregar nuevo rayo consumido
+            active_consumed.append(now)
+            self._data[address] = {"consumed_bolts": active_consumed}
             
             if not state:
                 # First time consumption - create new entry
