@@ -114,6 +114,11 @@ class EnergyService:
                 ]
             }
         """
+        # CRITICAL: En serverless (Vercel), recargar datos del archivo antes de leer
+        # porque cada invocación puede ser una nueva instancia
+        with self._lock:
+            self._data = self._load()
+        
         address = address.lower()
         state = self._data.get(address)
 
@@ -212,6 +217,8 @@ class EnergyService:
             address = address.lower()
             status = self.get_status(address)  # This recalculates state and removes recharged bolts
             
+            logger.info(f"⚡ [Consume] Estado antes de consumir para {address}: {status['current_energy']}/{status['max_energy']}")
+            
             if status["current_energy"] <= 0:
                 logger.warning(f"User {address} has no energy to consume.")
                 return False
@@ -224,6 +231,7 @@ class EnergyService:
                 self._data[address] = {
                     "consumed_bolts": [now]
                 }
+                logger.info(f"⚡ [Consume] Primera vez consumiendo para {address}, creando entrada con timestamp {now}")
             else:
                 # Add new consumed bolt timestamp
                 consumed_bolts = state.get("consumed_bolts", [])
@@ -231,10 +239,29 @@ class EnergyService:
                 self._data[address] = {
                     "consumed_bolts": consumed_bolts
                 }
+                logger.info(f"⚡ [Consume] Agregando nuevo rayo consumido para {address}. Total consumidos: {len(consumed_bolts)}")
             
+            # Guardar inmediatamente
             self._save()
+            logger.info(f"⚡ [Consume] Datos guardados en {self.storage_path}")
+            
+            # Verificar que se guardó correctamente
             remaining = self.MAX_ENERGY - len(self._data[address]["consumed_bolts"])
-            logger.info(f"Consumed 1 energy for {address}. Remaining: {remaining}")
+            logger.info(f"⚡ [Consume] Consumido 1 energía para {address}. Restantes: {remaining}. Archivo: {self.storage_path}")
+            
+            # Verificar lectura inmediata
+            try:
+                with open(self.storage_path, "r") as f:
+                    saved_data = json.load(f)
+                    saved_state = saved_data.get(address)
+                    if saved_state:
+                        saved_bolts = saved_state.get("consumed_bolts", [])
+                        logger.info(f"⚡ [Consume] Verificación: Archivo contiene {len(saved_bolts)} rayos consumidos para {address}")
+                    else:
+                        logger.warning(f"⚡ [Consume] ADVERTENCIA: No se encontró {address} en archivo después de guardar!")
+            except Exception as e:
+                logger.error(f"⚡ [Consume] Error verificando archivo: {e}")
+            
             return True
 
     def refill_energy(self, address: str, amount: int = 3) -> dict:

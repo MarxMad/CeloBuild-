@@ -324,7 +324,10 @@ async def get_energy_status(address: str = Query(...)):
         from ..services.energy import energy_service
         import time
         
+        # CRITICAL: get_status ya recarga los datos del archivo, pero asegurémonos
+        logger.info(f"🔋 [Energy API] Consultando energía para {address}")
         status = energy_service.get_status(address)
+        logger.info(f"🔋 [Energy API] Estado obtenido: {status['current_energy']}/{status['max_energy']} rayos")
         
         # Obtener información detallada de cada rayo
         # Usar el lock del servicio para acceso seguro
@@ -333,7 +336,16 @@ async def get_energy_status(address: str = Query(...)):
         bolts_info = []
         
         with energy_service._lock:
+            # Recargar datos del archivo para asegurar consistencia
+            logger.info(f"🔋 [Energy API] Recargando datos desde {energy_service.storage_path}")
+            energy_service._data = energy_service._load()
             state = energy_service._data.get(address_lower)
+            logger.info(f"🔋 [Energy API] Estado en archivo para {address_lower}: {state}")
+            if state:
+                consumed_bolts = state.get("consumed_bolts", [])
+                logger.info(f"🔋 [Energy API] Rayos consumidos encontrados: {len(consumed_bolts)}")
+                if consumed_bolts:
+                    logger.info(f"🔋 [Energy API] Timestamps: {consumed_bolts}")
             
             if not state or not state.get("consumed_bolts"):
                 # Todos los rayos están disponibles
