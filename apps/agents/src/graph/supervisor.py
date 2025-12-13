@@ -278,5 +278,6 @@ class SupervisorOrchestrator:
             cast_hash=distribution.get("cast_hash"),
             xp_granted=distribution.get("xp_granted", 0),
             trace_logs=distribution.get("trace_logs", []),
+            energy_status=energy_status_after_consume,  # Estado de energía después de consumir
         )
 
