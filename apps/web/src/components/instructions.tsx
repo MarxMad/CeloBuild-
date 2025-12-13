@@ -6,7 +6,7 @@ export function Instructions() {
         {
             icon: Zap,
             title: "1. Sistema de Energía",
-            description: "Tienes 3 rayos de energía. Cada análisis consume 1 rayo y se recarga cada 20 min. ¡Comparte tu victoria para recargar al instante!",
+            description: "Tienes 3 rayos de energía. Cada análisis consume 1 rayo y se recarga cada 60 min. ¡Comparte tu victoria para recargar al instante!",
             color: "text-[#FCFF52]",
             bg: "bg-[#FCFF52]/10",
             border: "border-[#FCFF52]/20"
