@@ -65,15 +65,19 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
     setBoltsState(updatedBolts);
   }, [bolts, maxEnergy, currentEnergy]);
 
-  // Actualizar cuenta regresiva cada segundo
+  // Actualizar cuenta regresiva cada segundo basándose en refill_at (timestamp absoluto)
+  // Esto asegura que las cuentas regresivas persistan después de refrescar la página
   useEffect(() => {
     const interval = setInterval(() => {
       setBoltsState(prev => {
         const now = Date.now() / 1000;
         return prev.map(bolt => {
           if (!bolt.available && bolt.refill_at) {
+            // Calcular tiempo restante basándose en el timestamp absoluto refill_at
+            // Esto asegura que la cuenta regresiva sea correcta incluso después de refrescar
             const remaining = Math.max(0, Math.floor(bolt.refill_at - now));
             if (remaining === 0) {
+              // El rayo ha recargado
               return { ...bolt, available: true, seconds_to_refill: 0, refill_at: null };
             }
             return { ...bolt, seconds_to_refill: remaining };
@@ -88,7 +92,7 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timeLeft]);
+  }, [timeLeft]); // No agregar boltsState como dependencia para evitar reinicios del intervalo
 
   const formatTime = (seconds: number) => {
     if (seconds <= 0) return "Listo";
