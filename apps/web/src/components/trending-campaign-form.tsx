@@ -535,7 +535,6 @@ export function TrendingCampaignForm() {
             {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
               <div className="relative rounded-3xl overflow-hidden p-1 p-gradient-to-br from-green-500/50 via-[#FCFF52]/50 to-green-900/50 shadow-2xl shadow-green-900/40 group/card">
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-[#FCFF52]/10 to-transparent blur-xl opacity-50 animate-pulse" />
-
                 <div className="relative bg-[#0a0a0a] rounded-[22px] p-6 sm:p-8 flex flex-col items-center text-center overflow-hidden">
                   {/* Background Effects */}
                   <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]" />
@@ -638,6 +637,7 @@ export function TrendingCampaignForm() {
                       <span className="text-[#FCFF52] font-mono font-bold">+{result.xp_granted} XP</span>
                     </div>
                   )}
+                </div>
                 </div>
               )}
 
