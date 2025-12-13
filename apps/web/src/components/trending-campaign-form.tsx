@@ -133,11 +133,13 @@ export function TrendingCampaignForm() {
   // Refresh energy when result happens (consumption)
   useEffect(() => {
     if (result || error) {
-      // Refresh immediately, then retry after backend processes
+      // Refresh immediately, then retry multiple times to ensure update
+      // La energía se consume en el backend antes de retornar el resultado
       fetchEnergy();
-      setTimeout(fetchEnergy, 1000);
-      setTimeout(fetchEnergy, 2000);
-      setTimeout(fetchEnergy, 3000);
+      const intervals = [500, 1000, 2000, 3000, 5000];
+      intervals.forEach(delay => {
+        setTimeout(() => fetchEnergy(), delay);
+      });
     }
   }, [result, error]);
 
@@ -273,6 +275,15 @@ export function TrendingCampaignForm() {
         }
         throw new Error(errorMessage);
       }
+
+      // Actualizar energía inmediatamente después de obtener resultado exitoso
+      // La energía ya fue consumida en el backend, así que forzamos actualización
+      await fetchEnergy();
+      // Retry múltiples veces para asegurar que se actualice
+      setTimeout(() => fetchEnergy(), 500);
+      setTimeout(() => fetchEnergy(), 1000);
+      setTimeout(() => fetchEnergy(), 2000);
+      setTimeout(() => fetchEnergy(), 3000);
 
       setPendingResult(resultData);
       setProgressStep('completed');
