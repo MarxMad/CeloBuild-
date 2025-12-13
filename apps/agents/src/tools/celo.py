@@ -43,6 +43,49 @@ class CeloToolbox:
             logger.warning(f"Timeout o error esperando receipt para {tx_hash}: {e}")
             return None
 
+    def _get_gas_fees(self, multiplier: float = 1.2) -> dict:
+        """
+        Calcula los gas fees usando EIP-1559 (maxFeePerGas y maxPriorityFeePerGas).
+        Asegura que maxFeePerGas sea mayor que el baseFee del bloque con un margen de seguridad.
+        
+        Args:
+            multiplier: Multiplicador de seguridad para el baseFee (default 1.2 = 20% más)
+        
+        Returns:
+            dict con 'maxFeePerGas' y 'maxPriorityFeePerGas', o 'gasPrice' si EIP-1559 no está disponible
+        """
+        try:
+            # Obtener el bloque más reciente
+            latest_block = self.web3.eth.get_block('latest')
+            base_fee = latest_block.get('baseFeePerGas')
+            
+            if base_fee is None:
+                # Si no hay baseFee, usar gasPrice legacy
+                gas_price = self.web3.eth.gas_price
+                logger.info(f"Usando gasPrice legacy: {gas_price}")
+                return {"gasPrice": gas_price}
+            
+            # Calcular maxPriorityFeePerGas (tip para el minero)
+            # Usar 2 gwei como tip mínimo, o 10% del baseFee, lo que sea mayor
+            priority_fee = max(2_000_000_000, int(base_fee * 0.1))  # 2 gwei o 10% del baseFee
+            
+            # Calcular maxFeePerGas con margen de seguridad
+            # maxFeePerGas debe ser >= baseFee + maxPriorityFeePerGas
+            # Agregamos un multiplicador de seguridad para evitar errores
+            max_fee_per_gas = int(base_fee * multiplier) + priority_fee
+            
+            logger.info(f"Gas fees EIP-1559: baseFee={base_fee}, priorityFee={priority_fee}, maxFee={max_fee_per_gas}")
+            
+            return {
+                "maxFeePerGas": max_fee_per_gas,
+                "maxPriorityFeePerGas": priority_fee
+            }
+        except Exception as e:
+            # Fallback a gasPrice legacy si hay error
+            logger.warning(f"Error calculando gas fees EIP-1559: {e}. Usando gasPrice legacy.")
+            gas_price = self.web3.eth.gas_price
+            return {"gasPrice": gas_price}
+
     def get_balance(self, address: str) -> float:
         """Devuelve el balance nativo en CELO."""
         wei = self.web3.eth.get_balance(address)
@@ -138,17 +181,18 @@ class CeloToolbox:
                 else:
                     nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
                 
-                # Si es un reintento, aumentar gas price
-                gas_price = self.web3.eth.gas_price
+                # Calcular gas fees con EIP-1559
+                # Aumentar multiplicador en reintentos
+                gas_multiplier = 1.2 * (1.5 ** attempt) if attempt > 0 else 1.2
+                gas_fees = self._get_gas_fees(multiplier=gas_multiplier)
                 if attempt > 0:
-                    gas_price = int(gas_price * (1.5 ** attempt))
-                    logger.info("Reintento XP %d/%d con gas price aumentado: %s", attempt + 1, max_retries, gas_price)
+                    logger.info("Reintento XP %d/%d con gas fees aumentados", attempt + 1, max_retries)
 
                 tx = contract.functions.grantXp(campaign_bytes, checksum_recipient, amount).build_transaction(
                     {
                         "from": self.account.address,
                         "nonce": nonce,
-                        "gasPrice": gas_price,
+                        **gas_fees,  # Usar maxFeePerGas/maxPriorityFeePerGas o gasPrice
                     }
                 )
                 signed_tx = self.web3.eth.account.sign_transaction(tx, self.private_key)
@@ -272,11 +316,12 @@ class CeloToolbox:
                 else:
                     nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
                 
-                # Si es un reintento, aumentar gas price
-                gas_price = self.web3.eth.gas_price
+                # Calcular gas fees con EIP-1559
+                # Aumentar multiplicador en reintentos
+                gas_multiplier = 1.2 * (1.5 ** attempt) if attempt > 0 else 1.2
+                gas_fees = self._get_gas_fees(multiplier=gas_multiplier)
                 if attempt > 0:
-                    gas_price = int(gas_price * (1.5 ** attempt))
-                    logger.info("Reintento NFT %d/%d con gas price aumentado: %s", attempt + 1, max_retries, gas_price)
+                    logger.info("Reintento NFT %d/%d con gas fees aumentados", attempt + 1, max_retries)
 
                 tx = contract.functions.mintBatch(
                     campaign_bytes,
@@ -286,7 +331,7 @@ class CeloToolbox:
                 ).build_transaction({
                     "from": self.account.address,
                     "nonce": nonce,
-                    "gasPrice": gas_price,
+                    **gas_fees,  # Usar maxFeePerGas/maxPriorityFeePerGas o gasPrice
                 })
 
                 # Firmar y enviar
@@ -380,11 +425,12 @@ class CeloToolbox:
 
         # Usar nonce "pending" para incluir transacciones pendientes
         nonce = self.web3.eth.get_transaction_count(self.account.address, "pending")
+        gas_fees = self._get_gas_fees(multiplier=1.2)
         tx = contract.functions.distributeERC20(campaign_bytes, checksum_recipients).build_transaction(
             {
                 "from": self.account.address,
                 "nonce": nonce,
-                "gasPrice": self.web3.eth.gas_price,
+                **gas_fees,  # Usar maxFeePerGas/maxPriorityFeePerGas o gasPrice
             }
         )
 
