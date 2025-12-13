@@ -327,49 +327,58 @@ async def get_energy_status(address: str = Query(...)):
         status = energy_service.get_status(address)
         
         # Obtener información detallada de cada rayo
+        # Usar el lock del servicio para acceso seguro
         address_lower = address.lower()
-        state = energy_service._data.get(address_lower)
-        
         now = time.time()
         bolts_info = []
         
-        if not state or not state.get("consumed_bolts"):
-            # Todos los rayos están disponibles
-            for i in range(energy_service.MAX_ENERGY):
-                bolts_info.append({
-                    "index": i,
-                    "available": True,
-                    "seconds_to_refill": 0,
-                    "refill_at": None
-                })
-        else:
-            consumed_bolts = state.get("consumed_bolts", [])
-            # Ordenar por timestamp (más antiguo primero)
-            consumed_bolts_sorted = sorted(consumed_bolts)
+        with energy_service._lock:
+            state = energy_service._data.get(address_lower)
             
-            # Crear array de información de cada rayo
-            for i in range(energy_service.MAX_ENERGY):
-                if i < len(consumed_bolts_sorted):
-                    # Este rayo está consumido
-                    bolt_time = consumed_bolts_sorted[i]
-                    elapsed = now - bolt_time
-                    seconds_to_refill = max(0, int(energy_service.RECHARGE_TIME - elapsed))
-                    refill_at = bolt_time + energy_service.RECHARGE_TIME
-                    
-                    bolts_info.append({
-                        "index": i,
-                        "available": False,
-                        "seconds_to_refill": seconds_to_refill,
-                        "refill_at": refill_at
-                    })
-                else:
-                    # Este rayo está disponible
+            if not state or not state.get("consumed_bolts"):
+                # Todos los rayos están disponibles
+                for i in range(energy_service.MAX_ENERGY):
                     bolts_info.append({
                         "index": i,
                         "available": True,
                         "seconds_to_refill": 0,
                         "refill_at": None
                     })
+            else:
+                consumed_bolts = state.get("consumed_bolts", [])
+                # Filtrar solo los que aún no han recargado
+                active_consumed = []
+                for bolt_time in consumed_bolts:
+                    elapsed = now - bolt_time
+                    if elapsed < energy_service.RECHARGE_TIME:
+                        active_consumed.append(bolt_time)
+                
+                # Ordenar por timestamp (más antiguo primero)
+                active_consumed_sorted = sorted(active_consumed)
+                
+                # Crear array de información de cada rayo
+                for i in range(energy_service.MAX_ENERGY):
+                    if i < len(active_consumed_sorted):
+                        # Este rayo está consumido
+                        bolt_time = active_consumed_sorted[i]
+                        elapsed = now - bolt_time
+                        seconds_to_refill = max(0, int(energy_service.RECHARGE_TIME - elapsed))
+                        refill_at = bolt_time + energy_service.RECHARGE_TIME
+                        
+                        bolts_info.append({
+                            "index": i,
+                            "available": False,
+                            "seconds_to_refill": seconds_to_refill,
+                            "refill_at": refill_at
+                        })
+                    else:
+                        # Este rayo está disponible
+                        bolts_info.append({
+                            "index": i,
+                            "available": True,
+                            "seconds_to_refill": 0,
+                            "refill_at": None
+                        })
         
         status["bolts"] = bolts_info
         return status
