@@ -514,8 +514,8 @@ async def verify_recharge(req: VerifyRechargeRequest):
                 content={"verified": False, "message": "No se pudo encontrar tu FID de Farcaster."}
             )
 
-        # 1. Fetch recent casts (last 10)
-        casts = await farcaster_toolbox.fetch_user_recent_casts(req.fid, limit=10)
+        # 1. Fetch recent casts (last 5) - OPTIMIZATION: Reducir para ahorrar créditos API
+        casts = await farcaster_toolbox.fetch_user_recent_casts(req.fid, limit=5)
         
         # 2. Check for campaign keywords/links
         verified = False

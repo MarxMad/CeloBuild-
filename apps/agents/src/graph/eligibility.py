@@ -195,7 +195,12 @@ class EligibilityAgent:
                     reasons = []
                     
                     # Buscar el MEJOR cast del usuario sobre el tema
-                    best_cast = await self.farcaster.fetch_user_best_cast(user_fid, topic_tags)
+                    # OPTIMIZATION: Solo buscar best_cast si realmente lo necesitamos
+                    # Esto evita llamadas API innecesarias cuando el usuario ya tiene suficiente score
+                    best_cast = None
+                    # Solo buscar si el score del usuario es bajo y necesitamos boost
+                    if user_info.get("follower_count", 0) < 1000:
+                        best_cast = await self.farcaster.fetch_user_best_cast(user_fid, topic_tags)
                     if best_cast:
                         logger.info("🌟 Mejor cast encontrado: %s (Score: %.2f)", best_cast["hash"], best_cast["engagement_score"])
                         participation_data["best_cast"] = best_cast

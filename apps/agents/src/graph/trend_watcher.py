@@ -85,7 +85,8 @@ class TrendWatcherAgent:
         logger.info("Consultando casts recientes (Fresh/Low score)...")
         recent_casts = []
         try:
-            recent_casts = await self.farcaster.fetch_recent_casts(channel_id=channel_id, limit=20)
+            # OPTIMIZATION: Reducir límite de 20 a 10 para ahorrar créditos API
+            recent_casts = await self.farcaster.fetch_recent_casts(channel_id=channel_id, limit=10)
         except Exception as exc:
              logger.warning("⚠️ Error obteniendo recent casts: %s", exc)
         

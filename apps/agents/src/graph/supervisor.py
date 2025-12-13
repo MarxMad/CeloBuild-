@@ -189,11 +189,10 @@ class SupervisorOrchestrator:
                 
                 if top_5_10:
                     from ..stores.notifications import get_notification_store
-                    from ..tools.farcaster import FarcasterToolbox
-                    from ..config import Settings
                     
                     store = get_notification_store()
-                    farcaster = FarcasterToolbox(neynar_key=self.settings.neynar_api_key if self.settings else None)
+                    # OPTIMIZATION: Reutilizar instancia de FarcasterToolbox del trend_watcher en lugar de crear una nueva
+                    farcaster = self.trend_watcher.farcaster
                     
                     topic = trend_context.get("topic_tags", ["General"])[0] if trend_context.get("topic_tags") else "General"
                     trend_text = trend_context.get("source_text", "tendencia")[:50]
