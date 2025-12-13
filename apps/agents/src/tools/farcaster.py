@@ -727,33 +727,28 @@ class FarcasterToolbox:
             
         url = "https://api.neynar.com/v2/farcaster/frame/notifications"
         
-        # Probar formato plano primero (más común según documentación)
+        # Formato correcto según error de Neynar: debe estar anidado bajo "notification"
         headers = {
             "accept": "application/json", 
             "content-type": "application/json",
             "api_key": self.neynar_key
         }
         
-        payload_flat = {
-            "title": title,
-            "body": body,
-            "target_url": target_url,
-            "target_fids": target_fids
+        # El payload debe estar anidado bajo "notification" según la API de Neynar
+        payload = {
+            "notification": {
+                "title": title,
+                "body": body,
+                "target_url": target_url,
+                "target_fids": target_fids
+            }
         }
         
         async with httpx.AsyncClient(timeout=10) as client:
             try:
-                resp = await client.post(url, headers=headers, json=payload_flat)
+                resp = await client.post(url, headers=headers, json=payload)
                 
-                # Si falla con 400, intentar formato anidado
-                if resp.status_code == 400:
-                    logger.warning("Formato plano falló, probando formato anidado...")
-                    payload_nested = {
-                        "notification": payload_flat
-                    }
-                    resp = await client.post(url, headers=headers, json=payload_nested)
-                
-                # Si aún falla, probar con x-api-key
+                # Si falla con 400, probar con x-api-key como fallback
                 if resp.status_code == 400:
                     logger.warning("Probando con header x-api-key...")
                     headers_alt = {
@@ -761,7 +756,7 @@ class FarcasterToolbox:
                         "content-type": "application/json",
                         "x-api-key": self.neynar_key
                     }
-                    resp = await client.post(url, headers=headers_alt, json=payload_flat)
+                    resp = await client.post(url, headers=headers_alt, json=payload)
                 
                 if resp.status_code == 402:
                     logger.error("Neynar API: Sin créditos para notificaciones (402)")
@@ -774,11 +769,13 @@ class FarcasterToolbox:
                         error_detail = str(error_json)
                     except:
                         pass
-                    logger.error("Neynar API: Bad Request (400). Payload: %s, Response: %s", payload_flat, error_detail)
+                    logger.error("Neynar API: Bad Request (400). Payload: %s, Response: %s", payload, error_detail)
                     return {"status": "error", "code": 400, "message": f"Bad Request: {error_detail}"}
                 
                 resp.raise_for_status()
-                return resp.json()
+                result = resp.json()
+                logger.info("✅ Notificación enviada exitosamente a %d FIDs", len(target_fids))
+                return result
                 
             except Exception as exc:
                 logger.error("Error enviando notificación: %s", exc)

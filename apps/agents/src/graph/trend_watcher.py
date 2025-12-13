@@ -60,9 +60,10 @@ class TrendWatcherAgent:
         logger.info("Consultando tendencias virales de Neynar (canal=%s)...", channel_id)
         viral_casts = []
         try:
+            # Reducir límite a 15 para evitar errores 400 y ahorrar créditos
             viral_casts = await self.farcaster.fetch_trending_feed(
                 channel_id=channel_id, 
-                limit=25, 
+                limit=15, 
                 time_window="24h"
             )
         except Exception as exc:
