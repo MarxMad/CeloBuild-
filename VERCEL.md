@@ -23,8 +23,29 @@
    LOOTBOX_VAULT_ADDRESS=0x...
    REGISTRY_ADDRESS=0x...
    MINTER_ADDRESS=0x...
+   
+   # ⚠️ CRÍTICO: Upstash Redis (para persistencia de energía en serverless)
+   # Sin esto, el estado de energía se perderá entre invocaciones
+   # Obtén credenciales gratis en: https://console.upstash.com/
+   UPSTASH_REDIS_REST_URL=https://xxxxx.upstash.io
+   UPSTASH_REDIS_REST_TOKEN=tu_token_aqui
    ```
    Ver todas las variables en `apps/agents/env.sample`
+   
+   **🔴 IMPORTANTE - Configurar Upstash Redis:**
+   
+   El sistema de energía requiere Redis para persistir el estado en Vercel (serverless).
+   Sin Redis, el estado se pierde entre invocaciones y los usuarios verán energía incorrecta.
+   
+   **Pasos para configurar:**
+   1. Ve a https://console.upstash.com/ y crea una cuenta gratuita
+   2. Crea un nuevo database (gratis hasta 10K comandos/día)
+   3. Copia el `REST_URL` y `REST_TOKEN` desde la consola
+   4. Agrega estas variables en Vercel:
+      - `UPSTASH_REDIS_REST_URL`: La URL REST de tu database
+      - `UPSTASH_REDIS_REST_TOKEN`: El token de autenticación
+   5. Haz un redeploy del backend
+   6. Verifica en los logs que aparezca: `✅ [Energy] Usando Upstash Redis para persistencia`
 
 3. **Verificar deployment:**
    ```bash
