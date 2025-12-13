@@ -612,33 +612,6 @@ export function TrendingCampaignForm() {
               />
             </div>
           )}
-                  <p className="text-[10px] text-amber-400/70 mb-2">⏱️ Tiempo de recarga por rayo:</p>
-                  <div className="flex items-center justify-center gap-4 flex-wrap text-[10px]">
-                    {energy.bolts.map((bolt, idx) => {
-                      if (bolt.available) return null;
-                      const formatTime = (s: number) => {
-                        const m = Math.floor(s / 60);
-                        const sec = s % 60;
-                        if (m > 0) {
-                          return `${m}m ${sec.toString().padStart(2, '0')}s`;
-                        }
-                        return `${sec}s`;
-                      };
-                      return (
-                        <div key={idx} className="flex items-center gap-1.5 bg-black/30 px-2 py-1 rounded border border-amber-500/20">
-                          <Zap className="w-3 h-3 text-gray-500" />
-                          <span className="text-amber-300 font-mono">{formatTime(bolt.seconds_to_refill)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              <p className="text-[10px] text-amber-400/70 mt-2">
-                💡 Cada rayo se recarga automáticamente 60 minutos después de ser consumido
-              </p>
-            </div>
-          )}
 
           {/* Success Card - PREMIUM REDESIGN */}
           {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
