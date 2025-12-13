@@ -299,7 +299,34 @@ class FarcasterToolbox:
                 resp.raise_for_status()
                 data = resp.json()
 
-            return data.get("casts", [])
+            casts = data.get("casts", [])
+            
+            # Normalizar estructura para asegurar que reactions sean números, no listas
+            normalized_casts = []
+            for cast in casts:
+                reactions_raw = cast.get("reactions", {})
+                # Neynar puede devolver likes/recasts/replies como listas o como objetos con count
+                # Normalizar a números
+                likes = reactions_raw.get("likes_count", 0) if isinstance(reactions_raw.get("likes_count"), (int, float)) else (
+                    len(reactions_raw.get("likes", [])) if isinstance(reactions_raw.get("likes"), list) else 0
+                )
+                recasts = reactions_raw.get("recasts_count", 0) if isinstance(reactions_raw.get("recasts_count"), (int, float)) else (
+                    len(reactions_raw.get("recasts", [])) if isinstance(reactions_raw.get("recasts"), list) else 0
+                )
+                replies = reactions_raw.get("replies_count", 0) if isinstance(reactions_raw.get("replies_count"), (int, float)) else (
+                    len(reactions_raw.get("replies", [])) if isinstance(reactions_raw.get("replies"), list) else 0
+                )
+                
+                normalized_casts.append({
+                    **cast,  # Mantener todos los campos originales
+                    "reactions": {
+                        "likes": int(likes) if likes else 0,
+                        "recasts": int(recasts) if recasts else 0,
+                        "replies": int(replies) if replies else 0,
+                    }
+                })
+            
+            return normalized_casts
         except Exception as exc:
             logger.error("Error obteniendo casts recientes del fid %s: %s", user_fid, exc)
             return []
@@ -628,8 +655,10 @@ class FarcasterToolbox:
         params = {
             "limit": limit,
             "time_window": time_window,
-            "provider": "neynar" # Usar algoritmo de Neynar por defecto
         }
+        
+        # Solo agregar provider si es necesario (puede causar 400 si no es válido)
+        # params["provider"] = "neynar"  # Comentado: puede causar 400 Bad Request
         
         if channel_id and channel_id != "global":
             params["channel_id"] = channel_id
@@ -696,17 +725,16 @@ class FarcasterToolbox:
         if len(body) > 128:
             body = body[:128]
             
+        url = "https://api.neynar.com/v2/farcaster/frame/notifications"
+        
+        # Probar formato plano primero (más común según documentación)
         headers = {
             "accept": "application/json", 
             "content-type": "application/json",
-            "x-api-key": self.neynar_key # Endpoint de notificaciones suele requerir x-api-key
+            "api_key": self.neynar_key
         }
         
-        url = "https://api.neynar.com/v2/farcaster/frame/notifications"
-        
-        # Formato correcto según documentación de Neynar v2
-        # El payload debe ser plano, no anidado
-        payload = {
+        payload_flat = {
             "title": title,
             "body": body,
             "target_url": target_url,
@@ -715,11 +743,39 @@ class FarcasterToolbox:
         
         async with httpx.AsyncClient(timeout=10) as client:
             try:
-                resp = await client.post(url, headers=headers, json=payload)
+                resp = await client.post(url, headers=headers, json=payload_flat)
+                
+                # Si falla con 400, intentar formato anidado
+                if resp.status_code == 400:
+                    logger.warning("Formato plano falló, probando formato anidado...")
+                    payload_nested = {
+                        "notification": payload_flat
+                    }
+                    resp = await client.post(url, headers=headers, json=payload_nested)
+                
+                # Si aún falla, probar con x-api-key
+                if resp.status_code == 400:
+                    logger.warning("Probando con header x-api-key...")
+                    headers_alt = {
+                        "accept": "application/json", 
+                        "content-type": "application/json",
+                        "x-api-key": self.neynar_key
+                    }
+                    resp = await client.post(url, headers=headers_alt, json=payload_flat)
                 
                 if resp.status_code == 402:
                     logger.error("Neynar API: Sin créditos para notificaciones (402)")
                     return {"status": "error", "code": 402, "message": "Payment Required"}
+                
+                if resp.status_code == 400:
+                    error_detail = resp.text
+                    try:
+                        error_json = resp.json()
+                        error_detail = str(error_json)
+                    except:
+                        pass
+                    logger.error("Neynar API: Bad Request (400). Payload: %s, Response: %s", payload_flat, error_detail)
+                    return {"status": "error", "code": 400, "message": f"Bad Request: {error_detail}"}
                 
                 resp.raise_for_status()
                 return resp.json()
