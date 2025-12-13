@@ -637,8 +637,8 @@ export function TrendingCampaignForm() {
                     </div>
                   )}
                 </div>
-                </div>
-              )}
+              </div>
+            )}
 
             {/* 3. PRIMARY ACTION (Share) */}
             {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
