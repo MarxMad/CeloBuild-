@@ -180,6 +180,72 @@ class SupervisorOrchestrator:
         mode = distribution.get('mode', 'unknown')
         tx_hash = distribution.get('tx_hash')
         reward_type = distribution.get('reward_type')
+        # Enviar notificaciones a usuarios en el top 5-10 de la tendencia
+        if eligible_users.get("rankings") and len(eligible_users["rankings"]) > 0:
+            try:
+                rankings = eligible_users["rankings"]
+                # Notificar a usuarios en el top 5-10 (índices 4-9, ya que el top 1-5 reciben recompensas)
+                top_5_10 = rankings[5:10] if len(rankings) > 5 else []
+                
+                if top_5_10:
+                    from ..stores.notifications import get_notification_store
+                    from ..tools.farcaster import FarcasterToolbox
+                    from ..config import Settings
+                    
+                    store = get_notification_store()
+                    farcaster = FarcasterToolbox(neynar_key=self.settings.neynar_api_key if self.settings else None)
+                    
+                    topic = trend_context.get("topic_tags", ["General"])[0] if trend_context.get("topic_tags") else "General"
+                    trend_text = trend_context.get("source_text", "tendencia")[:50]
+                    
+                    for user in top_5_10:
+                        try:
+                            address = user.get("address")
+                            fid = user.get("fid")
+                            username = user.get("username", "Usuario")
+                            score = user.get("score", 0)
+                            position = rankings.index(user) + 1
+                            
+                            # Verificar que tenemos el FID
+                            if not fid:
+                                # Intentar obtener FID del mapeo
+                                fid = store.get_fid_by_address(address)
+                            
+                            if fid:
+                                logger.info(f"🔔 Enviando notificación de top tendencia a FID {fid} (posición {position})")
+                                
+                                # Intentar obtener token del store (Self-hosted)
+                                token_data = store.get_token(fid)
+                                
+                                if token_data:
+                                    # Enviar usando token directo
+                                    import uuid
+                                    notif_id = str(uuid.uuid4())
+                                    await farcaster.send_notification_custom(
+                                        token=token_data["token"],
+                                        url=token_data["url"],
+                                        title="🔥 ¡Estás en el Top!",
+                                        body=f"Estás en el top {position} de la tendencia #{topic}. ¡Sigue participando!",
+                                        target_url=f"https://celo-build-web-8rej.vercel.app/",
+                                        notification_id=notif_id
+                                    )
+                                else:
+                                    # Fallback a Neynar Managed
+                                    await farcaster.publish_frame_notification(
+                                        target_fids=[fid],
+                                        title="🔥 ¡Estás en el Top!",
+                                        body=f"Estás en el top {position} de la tendencia #{topic}. ¡Sigue participando!",
+                                        target_url="https://celo-build-web-8rej.vercel.app/"
+                                    )
+                                
+                                logger.info(f"✅ Notificación enviada a FID {fid} (posición {position})")
+                            else:
+                                logger.warning(f"⚠️ No se encontró FID para usuario {username} ({address})")
+                        except Exception as exc:
+                            logger.warning(f"Error enviando notificación a usuario en top: {exc}")
+            except Exception as exc:
+                logger.warning(f"Error procesando notificaciones de top tendencia: {exc}")
+        
         top_user = None
         if eligible_users.get("rankings"):
             winner = eligible_users["rankings"][0]
