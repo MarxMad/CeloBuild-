@@ -73,7 +73,7 @@ else:
 # Inicializar supervisor con manejo de errores
 _supervisor_error = None
 try:
-supervisor = SupervisorOrchestrator.from_settings(settings)
+    supervisor = SupervisorOrchestrator.from_settings(settings)
 except Exception as exc:
     import logging
     logger = logging.getLogger(__name__)
@@ -461,13 +461,13 @@ async def leaderboard(background_tasks: BackgroundTasks, limit: int = Query(50, 
     Si el leaderboard está vacío (cold start), dispara una sincronización en background.
     """
     try:
-    # Usar supervisor del scheduler si está disponible, sino el global
-    active_supervisor = scheduler_supervisor or supervisor
+        # Usar supervisor del scheduler si está disponible, sino el global
+        active_supervisor = scheduler_supervisor or supervisor
         if not active_supervisor:
             logger.warning("Supervisor no inicializado, retornando leaderboard vacío")
             return {"items": []}
             
-    items = active_supervisor.leaderboard.top(limit)
+        items = active_supervisor.leaderboard.top(limit)
         
         # COLD START HANDLER: Si no hay items, disparar sync en background
         if len(items) == 0:
@@ -484,7 +484,7 @@ async def leaderboard(background_tasks: BackgroundTasks, limit: int = Query(50, 
             
             background_tasks.add_task(_bg_sync)
             
-    return {"items": items}
+        return {"items": items}
     except Exception as exc:
         logger.error("Error obteniendo leaderboard: %s", exc, exc_info=True)
         return {"items": []}
@@ -514,13 +514,13 @@ async def sync_leaderboard():
 async def get_trends(limit: int = Query(10, ge=1, le=50)) -> dict[str, list[dict[str, object]]]:
     """Devuelve las tendencias detectadas recientemente por TrendWatcherAgent."""
     try:
-    # Usar supervisor del scheduler si está disponible, sino el global
-    active_supervisor = scheduler_supervisor or supervisor
+        # Usar supervisor del scheduler si está disponible, sino el global
+        active_supervisor = scheduler_supervisor or supervisor
         if not active_supervisor:
             logger.warning("Supervisor no inicializado, retornando trends vacío")
             return {"items": []}
-    trends = active_supervisor.trends_store.recent(limit)
-    return {"items": trends}
+        trends = active_supervisor.trends_store.recent(limit)
+        return {"items": trends}
     except Exception as exc:
         logger.error("Error obteniendo trends: %s", exc, exc_info=True)
         return {"items": []}
