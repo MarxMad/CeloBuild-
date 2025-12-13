@@ -73,7 +73,7 @@ else:
 # Inicializar supervisor con manejo de errores
 _supervisor_error = None
 try:
-    supervisor = SupervisorOrchestrator.from_settings(settings)
+supervisor = SupervisorOrchestrator.from_settings(settings)
 except Exception as exc:
     import logging
     logger = logging.getLogger(__name__)
@@ -299,7 +299,7 @@ async def healthcheck() -> dict[str, object]:
 @app.get("/api/lootbox/energy")
 async def get_energy_status(address: str = Query(...)):
     """
-    Obtiene el estado de energía de un usuario.
+    Obtiene el estado de energía de un usuario con información detallada de cada rayo.
     
     Args:
         address: Dirección de la wallet del usuario
@@ -309,13 +309,69 @@ async def get_energy_status(address: str = Query(...)):
             "current_energy": int,      # 0-3
             "max_energy": int,          # 3
             "next_refill_at": float,    # Timestamp o None
-            "seconds_to_refill": int    # Segundos hasta la próxima recarga
+            "seconds_to_refill": int,   # Segundos hasta la próxima recarga
+            "bolts": [                  # Array con estado de cada rayo
+                {
+                    "index": int,       # 0, 1, 2
+                    "available": bool,  # Si está disponible
+                    "seconds_to_refill": int,  # Segundos hasta recargar (0 si está disponible)
+                    "refill_at": float  # Timestamp de recarga (None si está disponible)
+                }
+            ]
         }
     """
     try:
         from ..services.energy import energy_service
+        import time
         
         status = energy_service.get_status(address)
+        
+        # Obtener información detallada de cada rayo
+        address_lower = address.lower()
+        state = energy_service._data.get(address_lower)
+        
+        now = time.time()
+        bolts_info = []
+        
+        if not state or not state.get("consumed_bolts"):
+            # Todos los rayos están disponibles
+            for i in range(energy_service.MAX_ENERGY):
+                bolts_info.append({
+                    "index": i,
+                    "available": True,
+                    "seconds_to_refill": 0,
+                    "refill_at": None
+                })
+        else:
+            consumed_bolts = state.get("consumed_bolts", [])
+            # Ordenar por timestamp (más antiguo primero)
+            consumed_bolts_sorted = sorted(consumed_bolts)
+            
+            # Crear array de información de cada rayo
+            for i in range(energy_service.MAX_ENERGY):
+                if i < len(consumed_bolts_sorted):
+                    # Este rayo está consumido
+                    bolt_time = consumed_bolts_sorted[i]
+                    elapsed = now - bolt_time
+                    seconds_to_refill = max(0, int(energy_service.RECHARGE_TIME - elapsed))
+                    refill_at = bolt_time + energy_service.RECHARGE_TIME
+                    
+                    bolts_info.append({
+                        "index": i,
+                        "available": False,
+                        "seconds_to_refill": seconds_to_refill,
+                        "refill_at": refill_at
+                    })
+                else:
+                    # Este rayo está disponible
+                    bolts_info.append({
+                        "index": i,
+                        "available": True,
+                        "seconds_to_refill": 0,
+                        "refill_at": None
+                    })
+        
+        status["bolts"] = bolts_info
         return status
     except Exception as exc:
         logger.error("Error obteniendo estado de energía para %s: %s", address, exc, exc_info=True)
@@ -396,13 +452,13 @@ async def leaderboard(background_tasks: BackgroundTasks, limit: int = Query(50, 
     Si el leaderboard está vacío (cold start), dispara una sincronización en background.
     """
     try:
-        # Usar supervisor del scheduler si está disponible, sino el global
-        active_supervisor = scheduler_supervisor or supervisor
+    # Usar supervisor del scheduler si está disponible, sino el global
+    active_supervisor = scheduler_supervisor or supervisor
         if not active_supervisor:
             logger.warning("Supervisor no inicializado, retornando leaderboard vacío")
             return {"items": []}
             
-        items = active_supervisor.leaderboard.top(limit)
+    items = active_supervisor.leaderboard.top(limit)
         
         # COLD START HANDLER: Si no hay items, disparar sync en background
         if len(items) == 0:
@@ -419,7 +475,7 @@ async def leaderboard(background_tasks: BackgroundTasks, limit: int = Query(50, 
             
             background_tasks.add_task(_bg_sync)
             
-        return {"items": items}
+    return {"items": items}
     except Exception as exc:
         logger.error("Error obteniendo leaderboard: %s", exc, exc_info=True)
         return {"items": []}
@@ -449,13 +505,13 @@ async def sync_leaderboard():
 async def get_trends(limit: int = Query(10, ge=1, le=50)) -> dict[str, list[dict[str, object]]]:
     """Devuelve las tendencias detectadas recientemente por TrendWatcherAgent."""
     try:
-        # Usar supervisor del scheduler si está disponible, sino el global
-        active_supervisor = scheduler_supervisor or supervisor
+    # Usar supervisor del scheduler si está disponible, sino el global
+    active_supervisor = scheduler_supervisor or supervisor
         if not active_supervisor:
             logger.warning("Supervisor no inicializado, retornando trends vacío")
             return {"items": []}
-        trends = active_supervisor.trends_store.recent(limit)
-        return {"items": trends}
+    trends = active_supervisor.trends_store.recent(limit)
+    return {"items": trends}
     except Exception as exc:
         logger.error("Error obteniendo trends: %s", exc, exc_info=True)
         return {"items": []}

@@ -52,6 +52,22 @@ export async function GET(req: NextRequest) {
 
         const data = await response.json();
         console.log(`[Energy Proxy] Energy status:`, data);
+        
+        // Asegurar que bolts esté presente
+        if (!data.bolts) {
+          // Si el backend no devuelve bolts, crear array básico
+          const bolts = [];
+          for (let i = 0; i < (data.max_energy || 3); i++) {
+            bolts.push({
+              index: i,
+              available: i < (data.current_energy || 0),
+              seconds_to_refill: i === data.current_energy ? (data.seconds_to_refill || 0) : 0,
+              refill_at: i === data.current_energy && data.next_refill_at ? data.next_refill_at : null
+            });
+          }
+          data.bolts = bolts;
+        }
+        
         return NextResponse.json(data);
     } catch (error) {
         console.error("[Energy Proxy] Error proxying energy request:", error);

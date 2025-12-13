@@ -75,7 +75,12 @@ export function TrendingCampaignForm() {
   const [showThankYou, setShowThankYou] = useState(false);
 
   // ENERGY SYSTEM STATE
-  const [energy, setEnergy] = useState({ current: 3, max: 3, seconds: 0 });
+  const [energy, setEnergy] = useState({ 
+    current: 3, 
+    max: 3, 
+    seconds: 0,
+    bolts: [] as Array<{ index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }>
+  });
 
   const fetchEnergy = async () => {
     if (!address) return;
@@ -90,14 +95,15 @@ export function TrendingCampaignForm() {
         if (oldEnergy > newEnergy && oldEnergy > 0) {
           setEnergyConsumed(true);
           setPreviousEnergy(oldEnergy);
-          // Ocultar el mensaje después de 5 segundos
-          setTimeout(() => setEnergyConsumed(false), 5000);
+          // Ocultar el mensaje después de 8 segundos
+          setTimeout(() => setEnergyConsumed(false), 8000);
         }
         
         setEnergy({
           current: newEnergy,
-          max: data.max_energy,
-          seconds: data.seconds_to_refill
+          max: data.max_energy || 3,
+          seconds: data.seconds_to_refill || 0,
+          bolts: data.bolts || []
         });
       }
     } catch (e) {
@@ -431,27 +437,8 @@ export function TrendingCampaignForm() {
                       currentEnergy={energy.current}
                       maxEnergy={energy.max}
                       secondsToRefill={energy.seconds}
+                      bolts={energy.bolts}
                     />
-                    
-                    {/* Mensaje de energía consumida */}
-                    {energyConsumed && (
-                      <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2 text-center">
-                        <div className="flex items-center justify-center gap-2 text-amber-400">
-                          <Zap className="w-4 h-4" />
-                          <span className="text-sm font-medium">
-                            ⚡ Se consumió 1 rayo de energía
-                          </span>
-                        </div>
-                        <p className="text-xs text-amber-400/80 mt-1">
-                          Tienes {energy.current} de {energy.max} rayos disponibles
-                        </p>
-                        {energy.seconds > 0 && (
-                          <p className="text-xs text-amber-400/60 mt-1">
-                            Próximo rayo en {Math.floor(energy.seconds / 60)}m {energy.seconds % 60}s
-                          </p>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   <Button
@@ -565,7 +552,7 @@ export function TrendingCampaignForm() {
       {result && (
         <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
           {/* Mensaje de energía consumida después de obtener recompensa */}
-          {energyConsumed && (
+          {energyConsumed && result.eligible !== false && result.mode !== "failed" && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-center mb-4">
               <div className="flex items-center justify-center gap-2 text-amber-400 mb-2">
                 <Zap className="w-5 h-5" />
@@ -574,20 +561,38 @@ export function TrendingCampaignForm() {
                 </span>
               </div>
               <p className="text-xs text-amber-400/90 mb-2">
-                Has usado 1 de tus {energy.max} rayos para obtener esta recompensa
+                Has usado <strong>1 rayo</strong> de tus {energy.max} rayos para obtener esta recompensa
               </p>
-              <div className="flex items-center justify-center gap-4 text-xs">
+              <div className="flex items-center justify-center gap-4 text-xs mb-2">
                 <div className="flex items-center gap-1 text-amber-300">
                   <span>Rayos restantes:</span>
-                  <span className="font-bold">{energy.current}/{energy.max}</span>
+                  <span className="font-bold text-[#FCFF52]">{energy.current}/{energy.max}</span>
                 </div>
-                {energy.seconds > 0 && (
-                  <div className="flex items-center gap-1 text-amber-300">
-                    <span>Próximo rayo en:</span>
-                    <span className="font-bold">{Math.floor(energy.seconds / 60)}m {energy.seconds % 60}s</span>
-                  </div>
-                )}
               </div>
+              {energy.bolts && energy.bolts.some(b => !b.available) && (
+                <div className="mt-2 pt-2 border-t border-amber-500/20">
+                  <p className="text-[10px] text-amber-400/70 mb-2">⏱️ Tiempo de recarga por rayo:</p>
+                  <div className="flex items-center justify-center gap-4 flex-wrap text-[10px]">
+                    {energy.bolts.map((bolt, idx) => {
+                      if (bolt.available) return null;
+                      const formatTime = (s: number) => {
+                        const m = Math.floor(s / 60);
+                        const sec = s % 60;
+                        if (m > 0) {
+                          return `${m}m ${sec.toString().padStart(2, '0')}s`;
+                        }
+                        return `${sec}s`;
+                      };
+                      return (
+                        <div key={idx} className="flex items-center gap-1.5 bg-black/30 px-2 py-1 rounded border border-amber-500/20">
+                          <Zap className="w-3 h-3 text-gray-500" />
+                          <span className="text-amber-300 font-mono">{formatTime(bolt.seconds_to_refill)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <p className="text-[10px] text-amber-400/70 mt-2">
                 💡 Cada rayo se recarga automáticamente 60 minutos después de ser consumido
               </p>
