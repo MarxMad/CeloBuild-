@@ -152,9 +152,15 @@ export function TrendingCampaignForm() {
 
   useEffect(() => {
     if (address) {
-      // Solo consultar energía inicialmente, luego el polling cada 60s
-      // Pero no sobrescribir si tenemos energía reciente de la respuesta
-      fetchEnergy(true); // Forzar consulta inicial
+      // Solo consultar energía inicialmente si no tenemos estado reciente
+      // Si tenemos energía de la respuesta reciente (< 10 segundos), no consultar
+      const timeSinceResponse = energyFromResponse ? Date.now() - energyFromResponse.timestamp : Infinity;
+      if (timeSinceResponse >= 10000) {
+        // Solo consultar si no tenemos estado reciente
+        fetchEnergy(true); // Forzar consulta inicial
+      } else {
+        console.log(`⚡ [Energy] Omitiendo consulta inicial - usando estado reciente (${Math.floor(timeSinceResponse/1000)}s)`);
+      }
       // Poll every 60s to sync (pero respetará energyFromResponse)
       const interval = setInterval(() => fetchEnergy(false), 60000);
       return () => clearInterval(interval);
@@ -429,7 +435,7 @@ export function TrendingCampaignForm() {
           </div>
         );
       case 'verifying':
-        return (
+  return (
           <div className="flex flex-col items-center justify-center py-10 space-y-6 animate-in fade-in zoom-in duration-500">
             <div className="relative">
               <div className="absolute inset-0 bg-purple-500/20 rounded-full animate-pulse" />
@@ -437,7 +443,7 @@ export function TrendingCampaignForm() {
                 <Box className="h-10 w-10 text-purple-400 animate-bounce" />
               </div>
             </div>
-            <div className="text-center space-y-2">
+             <div className="text-center space-y-2">
               <h3 className="text-xl font-bold text-white">{t("form_status_verify")}</h3>
               <p className="text-sm text-gray-400">{t("overlay_step3")}</p>
             </div>
@@ -451,14 +457,14 @@ export function TrendingCampaignForm() {
               <div className="relative h-20 w-20 bg-black/50 rounded-full border border-green-500/30 flex items-center justify-center backdrop-blur-md">
                 <Gift className="h-10 w-10 text-green-400 animate-pulse" />
               </div>
-            </div>
+                </div>
             <div className="text-center space-y-2">
               <h3 className="text-xl font-bold text-white">{t("form_status_send")}</h3>
               <p className="text-sm text-gray-400">{t("overlay_step4")}</p>
               <p className="text-[10px] text-gray-500 pt-2 animate-pulse">
                 {t("form_status_verify")}...
-              </p>
-            </div>
+                </p>
+             </div>
           </div>
         );
       default:
@@ -822,7 +828,7 @@ export function TrendingCampaignForm() {
                             "{result.cast_text}"
                           </p>
                         </div>
-                      </div>
+                    </div>
                     )}
 
                     {/* XP Row */}
@@ -893,7 +899,7 @@ export function TrendingCampaignForm() {
               >
                 <Gift className="w-5 h-5 mr-2" />
                 Volver a Obtener Recompensa
-              </Button>
+             </Button>
             )}
           </div>
         )}
@@ -903,7 +909,7 @@ export function TrendingCampaignForm() {
       {/* BOTÓN REINICIAR ELIMINADO para evitar spam y forzar cooldown en la UI principal */}
 
       {/* Error Display */}
-      {error && (
+        {error && (
         <div className="mt-6 rounded-xl bg-red-500/10 border border-red-500/30 p-5 text-red-400 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -951,7 +957,7 @@ export function TrendingCampaignForm() {
             </p>
           </div>
         )
-      )}
+        )}
     </div>
   );
 }
