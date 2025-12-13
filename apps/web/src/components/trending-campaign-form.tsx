@@ -87,12 +87,16 @@ export function TrendingCampaignForm() {
     try {
       const res = await fetch(`/api/lootbox/energy?address=${address}`);
       const data = await res.json();
+      console.log("⚡ [Energy] Estado recibido del backend:", data);
       if (data && typeof data.current_energy === 'number') {
         const newEnergy = data.current_energy;
         const oldEnergy = energy.current;
         
+        console.log(`⚡ [Energy] Actualizando: ${oldEnergy} -> ${newEnergy}`);
+        
         // Detectar si se consumió energía
         if (oldEnergy > newEnergy && oldEnergy > 0) {
+          console.log(`⚡ [Energy] Energía consumida detectada: ${oldEnergy} -> ${newEnergy}`);
           setEnergyConsumed(true);
           setPreviousEnergy(oldEnergy);
         }
@@ -103,6 +107,7 @@ export function TrendingCampaignForm() {
           seconds: data.seconds_to_refill || 0,
           bolts: data.bolts || []
         });
+        console.log(`⚡ [Energy] Estado actualizado: ${newEnergy}/${data.max_energy || 3} rayos`);
       }
     } catch (e) {
       console.error("Failed to fetch energy", e);
