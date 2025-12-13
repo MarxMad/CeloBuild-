@@ -7,9 +7,17 @@ import time
 import logging
 from pathlib import Path
 from threading import Lock
-from typing import TypedDict, Dict
+from typing import TypedDict, Dict, Optional
 
 logger = logging.getLogger(__name__)
+
+# Try to import Upstash Redis, fallback to file storage if not available
+try:
+    from upstash_redis import Redis
+    UPSTASH_AVAILABLE = True
+except ImportError:
+    UPSTASH_AVAILABLE = False
+    Redis = None
 
 
 class EnergyState(TypedDict):
@@ -42,53 +50,73 @@ class EnergyService:
         self._data: Dict[str, EnergyState] = self._load()
 
     def _load(self) -> Dict[str, EnergyState]:
-        """Loads energy data from JSON file and migrates old format if needed."""
-        path = Path(self.storage_path)
-        if not path.exists():
-            logger.info(f"📂 [Load] ⚠️ Archivo no existe: {self.storage_path}, retornando datos vacíos")
-            logger.info(f"📂 [Load] Directorio padre existe: {path.parent.exists() if path.parent else 'N/A'}")
-            logger.info(f"📂 [Load] Ruta completa: {path.absolute()}")
-            return {}
-        try:
-            with open(path, "r") as f:
-                data = json.load(f)
-            logger.info(f"📂 [Load] ✅ Datos cargados desde {self.storage_path}: {len(data)} usuarios")
-            if data:
-                logger.info(f"📂 [Load] Direcciones encontradas: {list(data.keys())[:5]}...")  # Primeras 5
-            
-            # Migrate old format to new format
-            migrated = False
-            for address, state in data.items():
-                if "last_consume_time" in state and "energy_consumed" in state:
-                    # Old format detected - migrate to new format
-                    logger.info(f"Migrating energy data for {address} from old format to new format")
-                    last_consume = state["last_consume_time"]
-                    consumed_count = state["energy_consumed"]
-                    
-                    # Convert to new format: create array of timestamps
-                    # For old data, we approximate by creating timestamps spaced by RECHARGE_TIME
-                    consumed_bolts = []
-                    for i in range(consumed_count):
-                        # Approximate: each bolt was consumed RECHARGE_TIME apart
-                        bolt_time = last_consume - (i * self.RECHARGE_TIME)
-                        consumed_bolts.append(bolt_time)
-                    
-                    data[address] = {"consumed_bolts": consumed_bolts}
-                    migrated = True
-            
-            if migrated:
-                # Save migrated data
-                try:
-                    with open(path, "w") as f:
-                        json.dump(data, f, indent=2)
-                    logger.info("Energy data migration completed successfully")
-                except Exception as e:
-                    logger.error(f"Failed to save migrated energy data: {e}")
-            
-            return data
-        except Exception as e:
-            logger.error(f"Failed to load energy store: {e}")
-            return {}
+        """Loads energy data from Redis or JSON file and migrates old format if needed."""
+        if self._use_redis and self._redis_client:
+            try:
+                # Load from Redis
+                redis_data = self._redis_client.get("energy:store")
+                if redis_data is None:
+                    logger.info("📂 [Load] ⚠️ No hay datos en Redis, retornando datos vacíos")
+                    return {}
+                
+                # Parse JSON string
+                if isinstance(redis_data, bytes):
+                    redis_data = redis_data.decode('utf-8')
+                data = json.loads(redis_data)
+                logger.info(f"📂 [Load] ✅ Datos cargados desde Redis: {len(data)} usuarios")
+                if data:
+                    logger.info(f"📂 [Load] Direcciones encontradas: {list(data.keys())[:5]}...")
+            except Exception as e:
+                logger.error(f"❌ [Load] Error cargando desde Redis: {e}", exc_info=True)
+                return {}
+        else:
+            # Load from file
+            path = Path(self.storage_path)
+            if not path.exists():
+                logger.info(f"📂 [Load] ⚠️ Archivo no existe: {self.storage_path}, retornando datos vacíos")
+                logger.info(f"📂 [Load] Directorio padre existe: {path.parent.exists() if path.parent else 'N/A'}")
+                logger.info(f"📂 [Load] Ruta completa: {path.absolute()}")
+                return {}
+            try:
+                with open(path, "r") as f:
+                    data = json.load(f)
+                logger.info(f"📂 [Load] ✅ Datos cargados desde {self.storage_path}: {len(data)} usuarios")
+                if data:
+                    logger.info(f"📂 [Load] Direcciones encontradas: {list(data.keys())[:5]}...")  # Primeras 5
+                
+                # Migrate old format to new format
+                migrated = False
+                for address, state in data.items():
+                    if "last_consume_time" in state and "energy_consumed" in state:
+                        # Old format detected - migrate to new format
+                        logger.info(f"Migrating energy data for {address} from old format to new format")
+                        last_consume = state["last_consume_time"]
+                        consumed_count = state["energy_consumed"]
+                        
+                        # Convert to new format: create array of timestamps
+                        # For old data, we approximate by creating timestamps spaced by RECHARGE_TIME
+                        consumed_bolts = []
+                        for i in range(consumed_count):
+                            # Approximate: each bolt was consumed RECHARGE_TIME apart
+                            bolt_time = last_consume - (i * self.RECHARGE_TIME)
+                            consumed_bolts.append(bolt_time)
+                        
+                        data[address] = {"consumed_bolts": consumed_bolts}
+                        migrated = True
+                
+                if migrated:
+                    # Save migrated data
+                    try:
+                        with open(path, "w") as f:
+                            json.dump(data, f, indent=2)
+                        logger.info("Energy data migration completed successfully")
+                    except Exception as e:
+                        logger.error(f"Failed to save migrated energy data: {e}")
+                
+                return data
+            except Exception as e:
+                logger.error(f"❌ [Load] Failed to load energy store from {self.storage_path}: {e}", exc_info=True)
+                return {}
 
     def _save(self):
         """Saves energy data to JSON file."""
