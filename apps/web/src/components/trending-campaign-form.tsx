@@ -144,6 +144,15 @@ export function TrendingCampaignForm() {
     // y se muestra correctamente en la pantalla principal usando el mismo estado
     console.log("🔄 [Reset] Regresando a pantalla principal - usando estado de energía existente");
     console.log(`🔄 [Reset] Estado actual de energía: ${energy.current}/${energy.max} rayos`);
+    console.log(`🔄 [Reset] Bolts:`, energy.bolts);
+    
+    // Actualizar el timestamp de energyFromResponse para proteger el estado
+    // Esto evita que otros useEffects lo sobrescriban consultando el endpoint
+    setEnergyFromResponse({
+      value: energy.current,
+      timestamp: Date.now()
+    });
+    console.log(`🔄 [Reset] ✅ Timestamp actualizado para proteger el estado (${energy.current}/${energy.max} rayos)`);
     
     // El estado de energía (energy.current, energy.max, energy.bolts) ya está correcto
     // porque se actualizó desde energy_status en la respuesta del backend
