@@ -99,52 +99,75 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
       </div>
 
       {/* Display de rayos con cuenta regresiva */}
-      <div className="w-full space-y-2">
-        <div className="flex items-center justify-center gap-2 bg-black/40 px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm">
+      <div className="w-full space-y-3">
+        <div className="flex items-center justify-center gap-3 bg-gradient-to-r from-black/60 via-black/40 to-black/60 px-4 py-3 rounded-xl border border-white/10 backdrop-blur-sm shadow-lg">
           {Array.from({ length: maxEnergy }).map((_, i) => {
-            const boltInfo = boltsState[i] || { available: i < currentEnergy, seconds_to_refill: 0, refill_at: null };
+            const boltInfo = boltsState.find(b => b.index === i) || { 
+              index: i,
+              available: i < currentEnergy, 
+              seconds_to_refill: 0, 
+              refill_at: null 
+            };
             const isActive = boltInfo.available;
 
             return (
-              <div key={i} className="flex flex-col items-center gap-1">
+              <div key={i} className="flex flex-col items-center gap-2 min-w-[60px]">
                 <div className="relative">
                   <Zap
-                    className={`w-6 h-6 transition-all duration-300 ${
+                    className={`w-8 h-8 transition-all duration-300 ${
                       isActive
-                        ? "text-[#FCFF52] fill-[#FCFF52] drop-shadow-[0_0_8px_rgba(252,255,82,0.6)]"
-                        : "text-gray-600 fill-gray-900/50"
+                        ? "text-[#FCFF52] fill-[#FCFF52] drop-shadow-[0_0_12px_rgba(252,255,82,0.8)] animate-pulse"
+                        : "text-gray-600 fill-gray-900/50 opacity-50"
                     }`}
                   />
                   {!isActive && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-4 h-4 border-2 border-gray-600 rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-amber-500/50 rounded-full animate-spin" style={{ borderTopColor: 'transparent' }} />
                     </div>
                   )}
                 </div>
-                {!isActive && boltInfo.seconds_to_refill > 0 && (
-                  <div className="text-[9px] font-mono text-amber-400/80 bg-black/40 px-1.5 py-0.5 rounded">
+                {!isActive && boltInfo.seconds_to_refill > 0 ? (
+                  <div className="text-[10px] font-mono text-amber-400 bg-black/60 px-2 py-1 rounded-lg border border-amber-500/30 font-bold">
                     {formatTime(boltInfo.seconds_to_refill)}
                   </div>
-                )}
+                ) : isActive ? (
+                  <div className="text-[9px] text-green-400 font-medium">
+                    Listo
+                  </div>
+                ) : null}
               </div>
             );
           })}
         </div>
 
         {/* Resumen de estado */}
-        <div className="text-center">
+        <div className="text-center space-y-1">
           {currentEnergy === maxEnergy ? (
-            <p className="text-xs text-green-400 font-medium">
+            <p className="text-sm text-green-400 font-bold">
               ✅ Todos los rayos disponibles
             </p>
           ) : currentEnergy === 0 ? (
-            <p className="text-xs text-amber-400 font-medium">
-              ⚠️ Sin rayos disponibles
-            </p>
+            <div className="space-y-1">
+              <p className="text-sm text-amber-400 font-bold">
+                ⚠️ Sin rayos disponibles
+              </p>
+              {boltsState.some(b => !b.available && b.seconds_to_refill > 0) && (
+                <p className="text-xs text-amber-400/70">
+                  Próximo rayo en: {formatTime(boltsState.find(b => !b.available && b.seconds_to_refill > 0)?.seconds_to_refill || 0)}
+                </p>
+              )}
+            </div>
           ) : (
-            <p className="text-xs text-[#FCFF52]/80 font-medium">
-              {currentEnergy} de {maxEnergy} rayos disponibles
-            </p>
+            <div className="space-y-1">
+              <p className="text-sm text-[#FCFF52] font-bold">
+                {currentEnergy} de {maxEnergy} rayos disponibles
+              </p>
+              {boltsState.some(b => !b.available && b.seconds_to_refill > 0) && (
+                <p className="text-xs text-amber-400/70">
+                  Próximo rayo en: {formatTime(boltsState.find(b => !b.available && b.seconds_to_refill > 0)?.seconds_to_refill || 0)}
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>

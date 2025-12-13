@@ -102,18 +102,33 @@ class EnergyService:
                 "current_energy": int,      # 0-3
                 "max_energy": int,          # 3
                 "next_refill_at": float,    # Timestamp of next bolt recharge or None if full
-                "seconds_to_refill": int    # Seconds remaining until next bolt recharges or 0 if full
+                "seconds_to_refill": int,   # Seconds remaining until next bolt recharges or 0 if full
+                "bolts": [                  # Información detallada de cada rayo
+                    {
+                        "index": int,           # 0, 1, 2
+                        "available": bool,      # Si está disponible
+                        "seconds_to_refill": int,  # Segundos hasta recarga (0 si está disponible)
+                        "refill_at": float      # Timestamp de recarga (None si está disponible)
+                    },
+                    ...
+                ]
             }
         """
         address = address.lower()
         state = self._data.get(address)
 
         if not state or not state.get("consumed_bolts"):
+            # Todos los rayos disponibles
+            bolts_info = [
+                {"index": i, "available": True, "seconds_to_refill": 0, "refill_at": None}
+                for i in range(self.MAX_ENERGY)
+            ]
             return {
                 "current_energy": self.MAX_ENERGY,
                 "max_energy": self.MAX_ENERGY,
                 "next_refill_at": None,
-                "seconds_to_refill": 0
+                "seconds_to_refill": 0,
+                "bolts": bolts_info
             }
 
         now = time.time()
@@ -152,11 +167,39 @@ class EnergyService:
             if seconds_remaining < 0:
                 seconds_remaining = 0
 
+        # Crear información detallada de cada rayo
+        # Ordenar los rayos consumidos por tiempo (más antiguo primero)
+        sorted_consumed = sorted(active_consumed)
+        bolts_info = []
+        
+        for i in range(self.MAX_ENERGY):
+            if i < len(sorted_consumed):
+                # Este rayo está consumido
+                bolt_time = sorted_consumed[i]
+                elapsed = now - bolt_time
+                seconds_to_refill = max(0, int(self.RECHARGE_TIME - elapsed))
+                refill_at = bolt_time + self.RECHARGE_TIME
+                bolts_info.append({
+                    "index": i,
+                    "available": False,
+                    "seconds_to_refill": seconds_to_refill,
+                    "refill_at": refill_at
+                })
+            else:
+                # Este rayo está disponible
+                bolts_info.append({
+                    "index": i,
+                    "available": True,
+                    "seconds_to_refill": 0,
+                    "refill_at": None
+                })
+
         return {
             "current_energy": current_energy,
             "max_energy": self.MAX_ENERGY,
             "next_refill_at": next_refill_at,
-            "seconds_to_refill": max(0, seconds_remaining)
+            "seconds_to_refill": max(0, seconds_remaining),
+            "bolts": bolts_info
         }
 
     def consume_energy(self, address: str) -> bool:

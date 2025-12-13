@@ -553,24 +553,65 @@ export function TrendingCampaignForm() {
         <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
           {/* Mensaje de energía consumida después de obtener recompensa */}
           {energyConsumed && result.eligible !== false && result.mode !== "failed" && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-center mb-4">
-              <div className="flex items-center justify-center gap-2 text-amber-400 mb-2">
-                <Zap className="w-5 h-5" />
-                <span className="text-sm font-bold">
-                  ⚡ Se consumió 1 rayo de energía
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-gradient-to-br from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/40 rounded-xl px-4 py-4 text-center mb-4 shadow-lg shadow-amber-500/20">
+              <div className="flex items-center justify-center gap-2 text-amber-400 mb-3">
+                <Zap className="w-6 h-6 animate-pulse" />
+                <span className="text-base font-bold">
+                  ⚡ Rayo de Energía Consumido
                 </span>
               </div>
-              <p className="text-xs text-amber-400/90 mb-2">
-                Has usado <strong>1 rayo</strong> de tus {energy.max} rayos para obtener esta recompensa
+              <p className="text-sm text-amber-300/90 mb-3 font-medium">
+                Has usado <strong className="text-[#FCFF52]">1 rayo</strong> de tus {energy.max} rayos para obtener esta recompensa
               </p>
-              <div className="flex items-center justify-center gap-4 text-xs mb-2">
-                <div className="flex items-center gap-1 text-amber-300">
-                  <span>Rayos restantes:</span>
-                  <span className="font-bold text-[#FCFF52]">{energy.current}/{energy.max}</span>
+              
+              {/* Estado actual de rayos */}
+              <div className="bg-black/40 rounded-lg p-3 mb-3 border border-amber-500/20">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <span className="text-xs text-amber-400/80">Rayos disponibles:</span>
+                  <span className="text-lg font-bold text-[#FCFF52]">{energy.current}/{energy.max}</span>
                 </div>
+                
+                {/* Mostrar cuenta regresiva de rayos consumidos */}
+                {energy.bolts && energy.bolts.some(b => !b.available) && (
+                  <div className="mt-2 pt-2 border-t border-amber-500/20">
+                    <p className="text-[10px] text-amber-400/70 mb-2">Próximas recargas:</p>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {energy.bolts
+                        .filter(b => !b.available && b.seconds_to_refill > 0)
+                        .map((bolt, idx) => {
+                          const minutes = Math.floor(bolt.seconds_to_refill / 60);
+                          const seconds = bolt.seconds_to_refill % 60;
+                          return (
+                            <div key={idx} className="flex items-center gap-1 text-[10px] bg-black/60 px-2 py-1 rounded border border-amber-500/30">
+                              <Zap className="w-3 h-3 text-gray-500" />
+                              <span className="text-amber-300 font-mono">
+                                {minutes}m {seconds.toString().padStart(2, '0')}s
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
               </div>
-              {energy.bolts && energy.bolts.some(b => !b.available) && (
-                <div className="mt-2 pt-2 border-t border-amber-500/20">
+              
+              <p className="text-[10px] text-amber-400/60 italic">
+                💡 Cada rayo se recarga automáticamente 60 minutos después de ser consumido
+              </p>
+            </div>
+          )}
+          
+          {/* Mostrar display de energía actualizado después de consumir */}
+          {energyConsumed && result.eligible !== false && result.mode !== "failed" && (
+            <div className="mb-4">
+              <EnergyDisplay
+                currentEnergy={energy.current}
+                maxEnergy={energy.max}
+                secondsToRefill={energy.seconds}
+                bolts={energy.bolts}
+              />
+            </div>
+          )}
                   <p className="text-[10px] text-amber-400/70 mb-2">⏱️ Tiempo de recarga por rayo:</p>
                   <div className="flex items-center justify-center gap-4 flex-wrap text-[10px]">
                     {energy.bolts.map((bolt, idx) => {
