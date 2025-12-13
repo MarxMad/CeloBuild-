@@ -603,6 +603,7 @@ export function TrendingCampaignForm() {
                               <span className="text-xs font-medium uppercase tracking-wider">Cast Premiado</span>
                             </div>
                             {result.cast_hash && result.user_analysis?.username && (
+                              <span
                                 onClick={() => {
                                   const username = result.user_analysis?.username || 'unknown';
                                   const hash = result.cast_hash ? result.cast_hash.substring(0, 10) : '';
@@ -633,10 +634,10 @@ export function TrendingCampaignForm() {
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-[#FCFF52]" />
                         <span className="text-sm font-bold text-gray-200">Recompensa Extra</span>
-                        </div>
+                      </div>
                       <span className="text-[#FCFF52] font-mono font-bold">+{result.xp_granted} XP</span>
                     </div>
-                    )}
+                  )}
                 </div>
              )}
 
