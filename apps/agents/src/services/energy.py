@@ -92,14 +92,14 @@ class EnergyService:
                 return {}
         else:
             # Load from file
-        path = Path(self.storage_path)
-        if not path.exists():
+            path = Path(self.storage_path)
+            if not path.exists():
                 logger.info(f"📂 [Load] ⚠️ Archivo no existe: {self.storage_path}, retornando datos vacíos")
                 logger.info(f"📂 [Load] Directorio padre existe: {path.parent.exists() if path.parent else 'N/A'}")
                 logger.info(f"📂 [Load] Ruta completa: {path.absolute()}")
-            return {}
-        try:
-            with open(path, "r") as f:
+                return {}
+            try:
+                with open(path, "r") as f:
                     data = json.load(f)
                 logger.info(f"📂 [Load] ✅ Datos cargados desde {self.storage_path}: {len(data)} usuarios")
                 if data:
@@ -135,9 +135,9 @@ class EnergyService:
                         logger.error(f"Failed to save migrated energy data: {e}")
                 
                 return data
-        except Exception as e:
+            except Exception as e:
                 logger.error(f"❌ [Load] Failed to load energy store from {self.storage_path}: {e}", exc_info=True)
-            return {}
+                return {}
 
     def _save(self):
         """Saves energy data to Redis or JSON file."""
@@ -151,12 +151,12 @@ class EnergyService:
                 logger.error(f"❌ [Save] Error guardando en Redis: {e}", exc_info=True)
         else:
             # Save to file
-        path = Path(self.storage_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        try:
+            path = Path(self.storage_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            try:
                 # Usar modo 'w' con flush para asegurar que se escriba inmediatamente
-            with open(path, "w") as f:
-                json.dump(self._data, f, indent=2)
+                with open(path, "w") as f:
+                    json.dump(self._data, f, indent=2)
                     f.flush()
                     import os
                     os.fsync(f.fileno())  # Forzar escritura a disco
@@ -166,7 +166,7 @@ class EnergyService:
                     logger.info(f"💾 [Save] Datos guardados en {self.storage_path}: {len(self._data)} usuarios, {file_size} bytes")
                 else:
                     logger.error(f"❌ [Save] ADVERTENCIA: Archivo no existe después de guardar: {self.storage_path}")
-        except Exception as e:
+            except Exception as e:
                 logger.error(f"❌ [Save] Failed to save energy store to {self.storage_path}: {e}", exc_info=True)
 
     def get_all_addresses(self) -> list[str]:
