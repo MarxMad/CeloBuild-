@@ -5,6 +5,20 @@ export const dynamic = 'force-dynamic';
 
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL ?? process.env.NEXT_PUBLIC_AGENT_SERVICE_URL;
 
+// GET endpoint para verificar que la ruta funciona
+export async function GET() {
+  return NextResponse.json({
+    service: "Lootbox API",
+    status: "ok",
+    endpoints: {
+      POST: "/api/lootbox",
+      description: "Analiza y otorga recompensas"
+    },
+    backend_configured: !!AGENT_SERVICE_URL,
+    backend_url: AGENT_SERVICE_URL || "No configurado"
+  });
+}
+
 export async function POST(request: Request) {
   // Log para debugging
   console.log("AGENT_SERVICE_URL:", AGENT_SERVICE_URL ? "✅ Configurado" : "❌ No configurado");
