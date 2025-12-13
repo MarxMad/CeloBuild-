@@ -334,7 +334,7 @@ class EnergyService:
             
             # Guardar inmediatamente
             self._save()
-            logger.info(f"⚡ [Consume] Datos guardados en {self.storage_path}")
+            logger.info(f"⚡ [Consume] Datos guardados en {'Upstash Redis' if self._use_redis else self.storage_path}")
             
             # CRITICAL: En serverless, forzar escritura sincrónica y verificar
             try:
