@@ -95,8 +95,6 @@ export function TrendingCampaignForm() {
         if (oldEnergy > newEnergy && oldEnergy > 0) {
           setEnergyConsumed(true);
           setPreviousEnergy(oldEnergy);
-          // Ocultar el mensaje después de 8 segundos
-          setTimeout(() => setEnergyConsumed(false), 8000);
         }
         
         setEnergy({
@@ -109,6 +107,18 @@ export function TrendingCampaignForm() {
     } catch (e) {
       console.error("Failed to fetch energy", e);
     }
+  };
+
+  // Función para volver a la pantalla principal
+  const handleReset = () => {
+    setResult(null);
+    setPendingResult(null);
+    setError(null);
+    setIsLoading(false);
+    setProgressStep('idle');
+    setIsAnimationComplete(false);
+    // Actualizar energía al regresar
+    fetchEnergy();
   };
 
   useEffect(() => {
@@ -601,8 +611,8 @@ export function TrendingCampaignForm() {
             </div>
           )}
           
-          {/* Mostrar display de energía actualizado después de consumir */}
-          {energyConsumed && result.eligible !== false && result.mode !== "failed" && (
+          {/* Mostrar display de energía actualizado después de consumir - SIEMPRE visible cuando hay resultado exitoso */}
+          {result.eligible !== false && result.mode !== "failed" && (
             <div className="mb-4">
               <EnergyDisplay
                 currentEnergy={energy.current}
