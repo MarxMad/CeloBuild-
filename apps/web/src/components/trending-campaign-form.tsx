@@ -561,8 +561,8 @@ export function TrendingCampaignForm() {
       {/* Result Display */}
       {result && (
         <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          {/* Mensaje de energía consumida después de obtener recompensa */}
-          {energyConsumed && result.eligible !== false && result.mode !== "failed" && (
+          {/* Mensaje de energía consumida después de obtener recompensa - SIEMPRE visible cuando hay resultado exitoso */}
+          {result.eligible !== false && result.mode !== "failed" && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-gradient-to-br from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/40 rounded-xl px-4 py-4 text-center mb-4 shadow-lg shadow-amber-500/20">
               <div className="flex items-center justify-center gap-2 text-amber-400 mb-3">
                 <Zap className="w-6 h-6 animate-pulse" />
@@ -777,6 +777,17 @@ export function TrendingCampaignForm() {
                 Ver Transacción en Bloque
                 <ExternalLink className="w-3 h-3 opacity-50 group-hover/link:opacity-100" />
               </a>
+            )}
+
+            {/* 5. BOTÓN VOLVER A OBTENER RECOMPENSA */}
+            {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
+              <Button
+                onClick={handleReset}
+                className="w-full mt-4 bg-gray-700 hover:bg-gray-600 text-white font-bold h-12 text-base rounded-xl shadow-lg transition-all duration-300"
+              >
+                <Gift className="w-5 h-5 mr-2" />
+                Volver a Obtener Recompensa
+              </Button>
             )}
           </div>
         )}
