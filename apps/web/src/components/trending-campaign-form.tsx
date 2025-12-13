@@ -34,6 +34,7 @@ export function TrendingCampaignForm() {
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [energyConsumed, setEnergyConsumed] = useState(false);
   const [previousEnergy, setPreviousEnergy] = useState(3);
+  const [energyFromResponse, setEnergyFromResponse] = useState<number | null>(null); // Energía recibida de la respuesta del backend
 
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -45,11 +46,9 @@ export function TrendingCampaignForm() {
     if (isAnimationComplete && pendingResult) {
       setResult(pendingResult);
       setIsLoading(false);
-      // Forzar actualización de energía cuando se muestra el resultado
-      console.log("🎁 [Result] Mostrando resultado, actualizando energía...");
-      fetchEnergy();
-      setTimeout(() => fetchEnergy(), 1000);
-      setTimeout(() => fetchEnergy(), 2000);
+      // NO consultar energía aquí si ya la tenemos de la respuesta
+      // El estado de energía ya se actualizó desde energy_status en la respuesta
+      console.log("🎁 [Result] Mostrando resultado (energía ya actualizada desde respuesta)");
     } else if (isAnimationComplete && error) {
       setIsLoading(false);
     }
@@ -336,6 +335,12 @@ export function TrendingCampaignForm() {
             seconds: energyStatus.seconds_to_refill || 0,
             bolts: energyStatus.bolts || []
           });
+          
+          // Marcar que tenemos energía de la respuesta (para evitar sobrescribir con consultas)
+          setEnergyFromResponse({
+            value: newEnergy,
+            timestamp: Date.now()
+          } as any);
           
           // Detectar si se consumió energía
           if (oldEnergy > newEnergy && oldEnergy > 0) {
