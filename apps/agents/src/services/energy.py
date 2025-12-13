@@ -36,17 +36,38 @@ class EnergyService:
     RECHARGE_TIME = 60 * 60  # 60 minutes in seconds
 
     def __init__(self, storage_path: str = None):
-        if storage_path is None:
-            import os
-            if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
-                # Serverless environment (read-only filesystem except /tmp)
-                self.storage_path = "/tmp/energy_store.json"
-            else:
-                self.storage_path = "data/energy_store.json"
-        else:
-            self.storage_path = storage_path
-            
         self._lock = Lock()
+        self._use_redis = False
+        self._redis_client: Optional[Redis] = None
+        
+        # Try to initialize Upstash Redis if available
+        if UPSTASH_AVAILABLE:
+            upstash_url = os.getenv("UPSTASH_REDIS_REST_URL")
+            upstash_token = os.getenv("UPSTASH_REDIS_REST_TOKEN")
+            
+            if upstash_url and upstash_token:
+                try:
+                    self._redis_client = Redis(url=upstash_url, token=upstash_token)
+                    self._use_redis = True
+                    logger.info("✅ [Energy] Usando Upstash Redis para persistencia")
+                except Exception as e:
+                    logger.warning(f"⚠️ [Energy] Error inicializando Upstash Redis: {e}. Usando almacenamiento en archivo.")
+                    self._use_redis = False
+            else:
+                logger.info("ℹ️ [Energy] Upstash Redis no configurado. Usando almacenamiento en archivo.")
+        
+        # Fallback to file storage
+        if not self._use_redis:
+            if storage_path is None:
+                if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+                    # Serverless environment (read-only filesystem except /tmp)
+                    self.storage_path = "/tmp/energy_store.json"
+                else:
+                    self.storage_path = "data/energy_store.json"
+            else:
+                self.storage_path = storage_path
+            logger.info(f"📁 [Energy] Usando almacenamiento en archivo: {self.storage_path}")
+        
         self._data: Dict[str, EnergyState] = self._load()
 
     def _load(self) -> Dict[str, EnergyState]:
