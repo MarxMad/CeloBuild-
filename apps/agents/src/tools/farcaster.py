@@ -367,7 +367,8 @@ class FarcasterToolbox:
         }
 
         # 1. Verificar participación directa
-        participants = await self.fetch_cast_engagement(cast_hash, limit=100)
+        # OPTIMIZATION: Reducir límite de 100 a 50 para ahorrar créditos API
+        participants = await self.fetch_cast_engagement(cast_hash, limit=50)
         user_address = None
         for p in participants:
             if p.get("fid") == user_fid:

@@ -226,7 +226,8 @@ class EligibilityAgent:
                         participation_data.update(trend_participation)
                         
                         # Verificar si participó directamente en el cast
-                        participants = await self.farcaster.fetch_cast_engagement(cast_hash, limit=100)
+                        # OPTIMIZATION: Reducir límite de 100 a 50 para ahorrar créditos API
+                        participants = await self.farcaster.fetch_cast_engagement(cast_hash, limit=50)
                         for p in participants:
                             if p.get("fid") == user_fid:
                                 engagement_weight = p.get("engagement_weight", 0.0)
@@ -377,7 +378,8 @@ class EligibilityAgent:
         # PRIORIDAD 2: Si no hay target_address o no se encontró, analizar participantes del cast
         if not rankings and cast_hash:
             logger.info("Analizando participantes del cast: %s", cast_hash)
-            participants = await self.farcaster.fetch_cast_engagement(cast_hash, limit=100)
+            # OPTIMIZATION: Reducir límite de 100 a 50 para ahorrar créditos API
+            participants = await self.farcaster.fetch_cast_engagement(cast_hash, limit=50)
             
             for participant in participants:
                 try:
