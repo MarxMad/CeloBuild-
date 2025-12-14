@@ -649,7 +649,6 @@ class FarcasterToolbox:
         if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
             raise ValueError("NEYNAR_API_KEY requerida para obtener tendencias.")
         
-        headers = {"accept": "application/json", "api_key": self.neynar_key}
         url = "https://api.neynar.com/v2/farcaster/feed/trending"
         
         params = {
@@ -664,12 +663,25 @@ class FarcasterToolbox:
             params["channel_id"] = channel_id
 
         async with httpx.AsyncClient(timeout=10) as client:
+            # Intentar primero con api_key en header
+            headers = {"accept": "application/json", "api_key": self.neynar_key}
             resp = await client.get(url, headers=headers, params=params)
+            
+            # Si falla con 400, probar con x-api-key
+            if resp.status_code == 400:
+                logger.warning("⚠️ Error 400 con api_key, probando con x-api-key...")
+                headers_alt = {"accept": "application/json", "x-api-key": self.neynar_key}
+                resp = await client.get(url, headers=headers_alt, params=params)
             
             if resp.status_code == 402:
                 raise ValueError("Neynar API: Payment Required (402). Verifica tu plan.")
             
-            resp.raise_for_status()
+            if resp.status_code != 200:
+                error_text = resp.text[:500] if resp.text else "sin respuesta"
+                logger.error(f"❌ Error obteniendo trending feed: {resp.status_code} - {error_text}")
+                # Retornar lista vacía en lugar de fallar completamente
+                return []
+            
             data = resp.json()
             
         casts = data.get("casts", [])
@@ -727,20 +739,19 @@ class FarcasterToolbox:
             
         url = "https://api.neynar.com/v2/farcaster/frame/notifications"
         
-        # Formato correcto según error de Neynar: debe estar anidado bajo "notification"
         headers = {
             "accept": "application/json", 
             "content-type": "application/json",
             "api_key": self.neynar_key
         }
         
-        # El payload debe estar anidado bajo "notification" según la API de Neynar
+        # Formato correcto según documentación de Neynar: target_fids en nivel superior
         payload = {
+            "target_fids": target_fids,
             "notification": {
                 "title": title,
                 "body": body,
-                "target_url": target_url,
-                "target_fids": target_fids
+                "target_url": target_url
             }
         }
         
