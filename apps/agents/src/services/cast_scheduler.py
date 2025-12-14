@@ -185,19 +185,27 @@ class CastSchedulerService:
             logger.error(f"❌ Error publicando cast {cast_id}: {e}", exc_info=True)
     
     async def _publish_cast_to_farcaster(self, user_fid: int, cast_text: str) -> str | None:
-        """Publica un cast en Farcaster.
+        """Publica un cast en Farcaster usando Neynar API.
         
-        TODO: Implementar cuando tengamos acceso a la API de publicación.
-        Por ahora retorna None (simulado).
+        Returns:
+            cast_hash: Hash del cast publicado, o None si falla
         """
-        # TODO: Implementar publicación real
-        # Necesitamos:
-        # 1. Neynar API con signer del usuario, O
-        # 2. Warpcast API, O
-        # 3. Farcaster Hub directo
-        
-        logger.warning("⚠️ Publicación de casts no implementada aún (requiere API de Farcaster)")
-        return None
+        try:
+            result = await self.farcaster_toolbox.publish_cast(
+                user_fid=user_fid,
+                cast_text=cast_text,
+                parent_hash=None,
+                signer_uuid=None  # Usará NEYNAR_SIGNER_UUID del backend si está configurado
+            )
+            
+            if result.get("status") == "success":
+                return result.get("cast_hash")
+            else:
+                logger.error(f"Error publicando cast: {result.get('message')}")
+                return None
+        except Exception as e:
+            logger.error(f"Excepción publicando cast: {e}", exc_info=True)
+            return None
     
     def publish_now(
         self,

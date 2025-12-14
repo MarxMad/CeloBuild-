@@ -953,7 +953,7 @@ class FarcasterToolbox:
         parent_hash: str | None = None,
         signer_uuid: str | None = None
     ) -> dict[str, Any]:
-        """Publica un cast en Farcaster usando Neynar API.
+        """Publica un cast en Farcaster usando Neynar API v2.
         
         Args:
             user_fid: FID del usuario que publica
@@ -968,8 +968,8 @@ class FarcasterToolbox:
                 "message": str
             }
         
-        NOTA: Esta función requiere que el usuario tenga un signer configurado en Neynar.
-        Por ahora, retorna un error indicando que necesita implementación.
+        NOTA: Requiere signer_uuid del usuario. Si no se proporciona, intenta usar
+        un signer compartido del backend (si está configurado en NEYNAR_SIGNER_UUID).
         """
         if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
             logger.warning("NEYNAR_API_KEY no configurada, no se pueden publicar casts")
@@ -987,15 +987,102 @@ class FarcasterToolbox:
                 "message": "Cast demasiado largo (máximo 320 caracteres)"
             }
         
-        # TODO: Implementar publicación real cuando tengamos signer_uuid
-        # Por ahora, retornamos un error indicando que necesita configuración
-        logger.warning(
-            "⚠️ Publicación de casts requiere signer_uuid del usuario. "
-            "Necesitamos implementar autenticación con Neynar Signers o usar Warpcast API."
-        )
+        # Si no hay signer_uuid, intentar usar uno compartido del backend
+        if not signer_uuid:
+            import os
+            signer_uuid = os.getenv("NEYNAR_SIGNER_UUID")
+            if signer_uuid:
+                logger.info(f"Usando signer compartido del backend para FID {user_fid}")
+            else:
+                logger.warning(
+                    "⚠️ No se proporcionó signer_uuid y no hay NEYNAR_SIGNER_UUID configurado. "
+                    "El usuario necesita configurar un signer en Neynar."
+                )
+                return {
+                    "status": "error",
+                    "cast_hash": None,
+                    "message": "Se requiere signer_uuid para publicar casts. Configura NEYNAR_SIGNER_UUID en variables de entorno o proporciona el signer_uuid del usuario."
+                }
         
-        return {
-            "status": "error",
-            "cast_hash": None,
-            "message": "Publicación de casts requiere signer_uuid. Por favor, configura un signer en Neynar o usa Warpcast API."
+        # Publicar usando Neynar API v2
+        # Documentación: https://docs.neynar.com/reference/post-cast
+        url = "https://api.neynar.com/v2/farcaster/cast"
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "x-api-key": self.neynar_key  # Neynar usa x-api-key en el header (no api_key)
         }
+        
+        payload: dict[str, Any] = {
+            "signer_uuid": signer_uuid,
+            "text": cast_text
+        }
+        
+        # Si es una reply, agregar parent (puede ser hash del cast o parent_url del canal)
+        if parent_hash:
+            payload["parent"] = parent_hash  # Neynar acepta string directamente (hash o parent_url)
+        
+        async with httpx.AsyncClient(timeout=30) as client:
+            try:
+                logger.info(f"📤 Publicando cast para FID {user_fid} usando signer {signer_uuid[:8]}...")
+                resp = await client.post(url, headers=headers, json=payload)
+                
+                if resp.status_code == 402:
+                    logger.error("Neynar API: Sin créditos para publicar casts (402)")
+                    return {
+                        "status": "error",
+                        "cast_hash": None,
+                        "message": "Sin créditos en Neynar API. Se requieren 150 créditos por cast."
+                    }
+                
+                if resp.status_code == 400:
+                    error_detail = resp.text
+                    try:
+                        error_json = resp.json()
+                        error_detail = str(error_json)
+                    except:
+                        pass
+                    logger.error(f"Neynar API: Bad Request (400). Response: {error_detail}")
+                    return {
+                        "status": "error",
+                        "cast_hash": None,
+                        "message": f"Error de Neynar API: {error_detail}"
+                    }
+                
+                resp.raise_for_status()
+                result = resp.json()
+                
+                # Extraer el hash del cast publicado
+                cast_hash = None
+                if isinstance(result, dict):
+                    cast_hash = result.get("cast", {}).get("hash") or result.get("hash")
+                
+                if cast_hash:
+                    logger.info(f"✅ Cast publicado exitosamente: {cast_hash}")
+                    return {
+                        "status": "success",
+                        "cast_hash": cast_hash,
+                        "message": "Cast publicado exitosamente"
+                    }
+                else:
+                    logger.warning(f"⚠️ Respuesta de Neynar no contiene cast_hash: {result}")
+                    return {
+                        "status": "success",
+                        "cast_hash": None,
+                        "message": "Cast publicado pero no se pudo obtener el hash"
+                    }
+                
+            except httpx.HTTPStatusError as e:
+                logger.error(f"Error HTTP publicando cast: {e.response.status_code} - {e.response.text}")
+                return {
+                    "status": "error",
+                    "cast_hash": None,
+                    "message": f"Error HTTP {e.response.status_code}: {e.response.text[:200]}"
+                }
+            except Exception as exc:
+                logger.error(f"Error publicando cast: {exc}", exc_info=True)
+                return {
+                    "status": "error",
+                    "cast_hash": None,
+                    "message": f"Error publicando cast: {str(exc)}"
+                }
