@@ -72,6 +72,20 @@ else:
         logger.warning("No se pudo inicializar con lifespan, usando app básica: %s", exc)
         app = FastAPI(title="Lootbox Multi-Agent Service")
 
+# Configurar CORS para permitir solicitudes desde el frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://celo-build-web-8rej.vercel.app",
+        "https://celo-build-web.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:3001",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Inicializar supervisor con manejo de errores
 _supervisor_error = None
 try:
