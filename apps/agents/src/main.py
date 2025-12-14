@@ -843,6 +843,13 @@ async def notify_energy_reminder():
                     logger.debug(f"⚠️ No se encontró FID para dirección {address}, saltando...")
                     continue
                 
+                # Verificar cooldown de 48 horas
+                can_send, seconds_remaining = store.can_send_notification(fid)
+                if not can_send:
+                    hours_remaining = seconds_remaining / 3600
+                    logger.debug(f"⏳ FID {fid} en cooldown. Restan {hours_remaining:.1f} horas. Saltando...")
+                    continue
+                
                 logger.info(f"📨 Enviando notificación a FID {fid} (dirección: {address}, energía: {current_energy}/{max_energy})")
                 
                 # Preparar mensaje según estado de energía
@@ -866,6 +873,8 @@ async def notify_energy_reminder():
                 
                 if result.get("status") == "success" or "status" not in result:
                     notifications_sent += 1
+                    # Registrar que se envió la notificación
+                    store.record_notification_sent(fid)
                     logger.info(f"✅ Notificación enviada a FID {fid}")
                 else:
                     notifications_failed += 1
@@ -1014,6 +1023,159 @@ async def publish_cast(request: PublishCastRequest):
         
         logger.info(f"✅ Pago validado para usuario {request.user_address}: {payment_validation['amount']} wei")
         
+        # Verificar si el usuario tiene un signer aprobado ANTES de intentar publicar
+        from .stores.signers import get_signer_store
+        signer_store = get_signer_store()
+        signer_data = signer_store.get_signer(str(request.user_fid))
+        
+        # Si no hay signer o no está aprobado, crear uno automáticamente
+        if not signer_data or signer_data.get("status") != "approved":
+            # Si ya existe un signer pendiente, usar ese en lugar de crear uno nuevo
+            if signer_data and signer_data.get("status") == "pending_approval":
+                approval_url = signer_data.get("approval_url")
+                if approval_url:
+                    logger.info(f"🔑 Usuario {request.user_fid} tiene signer pendiente de aprobación. Usando existente...")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Se requiere aprobar un signer para publicar casts. Por favor, aprueba el signer en Warpcast usando este enlace: {approval_url}",
+                        headers={"X-Approval-URL": approval_url}
+                    )
+            
+            logger.info(f"🔑 Usuario {request.user_fid} no tiene signer aprobado. Creando uno automáticamente...")
+            
+            # Crear signer
+            create_result = await farcaster_toolbox.create_signer()
+            if create_result.get("status") != "success":
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error creando signer: {create_result.get('message', 'Error desconocido')}"
+                )
+            
+            signer_uuid = create_result.get("signer_uuid")
+            public_key = create_result.get("public_key")
+            
+            # Guardar en store
+            signer_store.add_signer(
+                user_id=str(request.user_fid),
+                signer_uuid=signer_uuid,
+                status="generated",
+                public_key=public_key
+            )
+            signer_store.add_signer(
+                user_id=request.user_address.lower(),
+                signer_uuid=signer_uuid,
+                status="generated",
+                public_key=public_key
+            )
+            
+            # Registrar signed key (requiere app mnemonic)
+            if not settings.neynar_app_fid or not settings.neynar_app_mnemonic:
+                raise HTTPException(
+                    status_code=500,
+                    detail="NEYNAR_APP_FID y NEYNAR_APP_MNEMONIC deben estar configurados para registrar signers"
+                )
+            
+            # Obtener app_fid
+            app_fid = settings.neynar_app_fid
+            if not app_fid and settings.neynar_app_mnemonic:
+                # Intentar obtener desde mnemonic
+                try:
+                    from eth_account import Account
+                    Account.enable_unaudited_hdwallet_features()
+                    account = Account.from_mnemonic(settings.neynar_app_mnemonic)
+                    custody_address = account.address
+                    
+                    lookup_url = f"https://api.neynar.com/v2/farcaster/user/by_custody_address?custody_address={custody_address}"
+                    lookup_headers = {
+                        "accept": "application/json",
+                        "x-api-key": farcaster_toolbox.neynar_key
+                    }
+                    async with httpx.AsyncClient(timeout=30) as client:
+                        lookup_resp = await client.get(lookup_url, headers=lookup_headers)
+                        if lookup_resp.status_code == 200:
+                            lookup_data = lookup_resp.json()
+                            app_fid = lookup_data.get("result", {}).get("fid")
+                            if app_fid:
+                                logger.info(f"✅ FID encontrado desde custody address: {app_fid}")
+                except Exception as e:
+                    logger.warning(f"⚠️ No se pudo obtener FID desde mnemonic: {e}")
+            
+            if not app_fid:
+                raise HTTPException(
+                    status_code=500,
+                    detail="NEYNAR_APP_FID debe estar configurado o NEYNAR_APP_MNEMONIC debe corresponder a una cuenta Farcaster válida"
+                )
+            
+            # Crear deadline (24 horas desde ahora)
+            deadline = int(time.time()) + (24 * 60 * 60)
+            
+            # Firmar usando el método correcto
+            try:
+                from eth_account import Account
+                from eth_account.messages import encode_defunct
+                from web3 import Web3
+                
+                Account.enable_unaudited_hdwallet_features()
+                account = Account.from_mnemonic(settings.neynar_app_mnemonic)
+                
+                # Crear mensaje según formato EIP-712 de Farcaster
+                public_key_bytes = bytes.fromhex(public_key.replace("0x", ""))
+                
+                import hashlib
+                message_data = (
+                    app_fid.to_bytes(32, 'big') +
+                    public_key_bytes +
+                    deadline.to_bytes(32, 'big')
+                )
+                message_hash = hashlib.sha256(message_data).digest()
+                
+                # Firmar el hash
+                signed_message = account.signHash(message_hash)
+                signature = signed_message.signature.hex()
+                
+            except Exception as e:
+                logger.error(f"Error generando firma: {e}", exc_info=True)
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error generando firma: {str(e)}. Asegúrate de que NEYNAR_APP_MNEMONIC sea válido."
+                )
+            
+            # Registrar signed key
+            register_result = await farcaster_toolbox.register_signed_key(
+                signer_uuid=signer_uuid,
+                app_fid=app_fid,
+                deadline=deadline,
+                signature=signature
+            )
+            
+            if register_result.get("status") != "success":
+                raise HTTPException(
+                    status_code=500,
+                    detail=register_result.get("message", "Error registrando signed key")
+                )
+            
+            approval_url = register_result.get("approval_url")
+            
+            # Actualizar store
+            signer_store.update_signer_status(
+                user_id=str(request.user_fid),
+                status="pending_approval"
+            )
+            signer_store.add_signer(
+                user_id=str(request.user_fid),
+                signer_uuid=signer_uuid,
+                status="pending_approval",
+                public_key=public_key,
+                approval_url=approval_url
+            )
+            
+            # Devolver error con approval URL para que el frontend lo muestre
+            raise HTTPException(
+                status_code=400,
+                detail=f"Se requiere aprobar un signer para publicar casts. Por favor, aprueba el signer en Warpcast usando este enlace: {approval_url}",
+                headers={"X-Approval-URL": approval_url}
+            )
+        
         # Parsear scheduled_time si existe
         scheduled_time = None
         if request.scheduled_time:
@@ -1032,6 +1194,24 @@ async def publish_cast(request: PublishCastRequest):
                 cast_text=request.cast_text,
                 payment_tx_hash=request.payment_tx_hash
             )
+            
+            # Si falló la publicación, lanzar error
+            if result.get("status") != "published":
+                error_msg = result.get("error_message", "Error desconocido al publicar cast")
+                logger.error(f"❌ Error publicando cast: {error_msg}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=error_msg
+                )
+            
+            # Publicación exitosa
+            xp_granted = result.get("xp_granted", 0)
+            return {
+                "status": "published",
+                **result,
+                "xp_granted": xp_granted,
+                "message": f"Cast publicado exitosamente. Ganaste {xp_granted} XP" if xp_granted > 0 else "Cast publicado exitosamente"
+            }
         else:
             # Programar
             cast_id = cast_scheduler.schedule_cast(
@@ -1042,21 +1222,13 @@ async def publish_cast(request: PublishCastRequest):
                 scheduled_time=scheduled_time,
                 payment_tx_hash=request.payment_tx_hash
             )
-            result = {
+            return {
                 "cast_id": cast_id,
                 "status": "scheduled",
-                "scheduled_time": scheduled_time.isoformat()
+                "scheduled_time": scheduled_time.isoformat(),
+                "xp_granted": 0,
+                "message": "Cast programado exitosamente. Recibirás XP cuando se publique."
             }
-        
-        # El XP ya fue otorgado en publish_now o se otorgará en _publish_scheduled_cast
-        xp_granted = result.get("xp_granted", 0)
-        
-        return {
-            "status": "success",
-            **result,
-            "xp_granted": xp_granted,
-            "message": "Cast publicado/programado exitosamente" if xp_granted > 0 else "Cast programado exitosamente"
-        }
         
     except HTTPException:
         raise
