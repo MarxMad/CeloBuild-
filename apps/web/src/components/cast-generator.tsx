@@ -155,13 +155,80 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     }
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!generatedCast || !agentAddress) {
       console.warn("⚠️ [CastGenerator] No se puede publicar: cast o dirección del agente faltante");
       return;
     }
-    // Mostrar diálogo de confirmación antes de proceder
-    setShowConfirmDialog(true);
+    
+    // Verificar/crear signer ANTES de mostrar el diálogo de confirmación
+    console.log("🔑 [CastGenerator] Verificando signer antes del pago...");
+    setIsPublishing(true);
+    setPublishError(null);
+    
+    try {
+      const backendUrl = getBackendUrl();
+      if (!backendUrl) {
+        throw new Error(t("cast_error_backend"));
+      }
+
+      // Llamar al endpoint de verificación de signer
+      const response = await fetch(
+        `${backendUrl}/api/casts/signer/check?user_fid=${userFid}&user_address=${userAddress}`
+      );
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: response.statusText }));
+        throw new Error(error.detail || "Error verificando signer");
+      }
+
+      const signerData = await response.json();
+      console.log("✅ [CastGenerator] Estado del signer:", signerData);
+
+      // Si el signer está pendiente de aprobación, mostrar approval_url
+      if (signerData.status === "pending_approval" && signerData.approval_url) {
+        const approvalUrl = signerData.approval_url;
+        console.log("🔑 [CastGenerator] Signer pendiente de aprobación. Approval URL:", approvalUrl);
+        
+        setPublishError(
+          `${t("cast_error_signer_required")}\n\n${t("cast_approval_note")}`
+        );
+        
+        // Abrir approval URL
+        import("@farcaster/miniapp-sdk")
+          .then(({ sdk }) => {
+            sdk.actions.openUrl(approvalUrl);
+          })
+          .catch(() => {
+            if (approvalUrl.startsWith("farcaster://")) {
+              window.location.href = approvalUrl;
+            } else {
+              window.open(approvalUrl, "_blank");
+            }
+          });
+        
+        setIsPublishing(false);
+        return; // No continuar con el pago
+      }
+
+      // Si el signer está aprobado, continuar con el flujo normal
+      if (signerData.status === "approved") {
+        console.log("✅ [CastGenerator] Signer aprobado. Continuando con el pago...");
+        setIsPublishing(false);
+        setPublishError(null);
+        // Mostrar diálogo de confirmación
+        setShowConfirmDialog(true);
+        return;
+      }
+
+      // Si hay algún otro estado, mostrar error
+      throw new Error(signerData.message || "Estado de signer desconocido");
+      
+    } catch (error: any) {
+      console.error("❌ [CastGenerator] Error verificando signer:", error);
+      setPublishError(error.message || "Error verificando signer");
+      setIsPublishing(false);
+    }
   };
 
   const handleConfirmPayment = async () => {
@@ -414,7 +481,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {generatedCast.length}/100 {t("cast_characters")}
+                  {generatedCast.length}/150 {t("cast_characters")}
                 </div>
               </div>
 
