@@ -6,10 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther, formatEther } from "viem";
-import { STABLE_TOKEN_ADDRESSES } from "@/lib/minipay";
-import { stableTokenABI } from "@celo/abis";
 import { cn } from "@/lib/utils";
 import { getBackendUrl } from "@/lib/backend";
 
@@ -39,8 +37,8 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
 
-  // Wagmi hooks para transacciones
-  const { writeContract, data: hash, isPending: isPendingTx } = useWriteContract();
+  // Wagmi hooks para transacciones de CELO nativo
+  const { sendTransaction, data: hash, isPending: isPendingTx } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
@@ -127,15 +125,13 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     setPublishSuccess(false);
 
     try {
-      // Precio: 0.5 cUSD = 500000000000000000 wei
-      const amount = parseEther("0.5");
+      // Precio: 1 CELO nativo
+      const amount = parseEther("1");
 
-      // Transferir cUSD al agente
-      writeContract({
-        address: STABLE_TOKEN_ADDRESSES.cUSD as `0x${string}`,
-        abi: stableTokenABI,
-        functionName: "transfer",
-        args: [agentAddress as `0x${string}`, amount],
+      // Transferir CELO nativo al agente
+      sendTransaction({
+        to: agentAddress as `0x${string}`,
+        value: amount,
       });
     } catch (error: any) {
       setPublishError(error.message || "Error iniciando pago");
@@ -322,7 +318,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                 ) : (
                   <>
                     <Send className="mr-2 h-4 w-4" />
-                    Publicar por 0.5 cUSD
+                    Publicar por 1 CELO
                   </>
                 )}
               </Button>
@@ -356,7 +352,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
               </div>
             </div>
             <div className="space-y-1 flex-1">
-              <div className="font-semibold text-base">Precio: 0.5 cUSD</div>
+              <div className="font-semibold text-base">Precio: 1 CELO</div>
               <div className="text-sm text-muted-foreground">
                 Por cada cast publicado recibirás <span className="font-semibold text-primary">100 XP</span> como recompensa
               </div>

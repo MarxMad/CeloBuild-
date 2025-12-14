@@ -798,6 +798,108 @@ class CeloToolbox:
             }
             
         except Exception as e:
+            logger.error(f"Error validando pago: {e}", exc_info=True)
+            return {
+                "valid": False,
+                "amount": None,
+                "recipient": None,
+                "sender": None,
+                "message": f"Error validando pago: {str(e)}"
+            }
+    
+    def validate_native_payment(
+        self,
+        tx_hash: str,
+        expected_recipient: str,
+        expected_amount: int
+    ) -> dict[str, Any]:
+        """Valida que una transacción de pago en CELO nativo es válida.
+        
+        Args:
+            tx_hash: Hash de la transacción a validar
+            expected_recipient: Dirección que debe recibir el pago (wallet del agente)
+            expected_amount: Cantidad esperada en wei
+        
+        Returns:
+            {
+                "valid": bool,
+                "amount": int | None,
+                "recipient": str | None,
+                "sender": str | None,
+                "message": str
+            }
+        """
+        try:
+            # Obtener transacción
+            tx = self.web3.eth.get_transaction(tx_hash)
+            if not tx:
+                return {
+                    "valid": False,
+                    "amount": None,
+                    "recipient": None,
+                    "sender": None,
+                    "message": "Transacción no encontrada"
+                }
+            
+            # Verificar que es una transferencia nativa (no un contrato)
+            if not tx.get("to"):
+                return {
+                    "valid": False,
+                    "amount": None,
+                    "recipient": None,
+                    "sender": tx["from"],
+                    "message": "Transacción no es una transferencia (no tiene destinatario)"
+                }
+            
+            # Verificar que el destinatario es correcto
+            if tx["to"].lower() != self.checksum(expected_recipient).lower():
+                return {
+                    "valid": False,
+                    "amount": None,
+                    "recipient": tx["to"],
+                    "sender": tx["from"],
+                    "message": f"Destinatario incorrecto. Esperado: {expected_recipient}, Recibido: {tx['to']}"
+                }
+            
+            # Obtener receipt para verificar que fue exitosa
+            receipt = self.web3.eth.get_transaction_receipt(tx_hash)
+            if receipt["status"] != 1:
+                return {
+                    "valid": False,
+                    "amount": None,
+                    "recipient": tx["to"],
+                    "sender": tx["from"],
+                    "message": "Transacción falló"
+                }
+            
+            # Obtener el valor de la transacción (en wei)
+            tx_value = tx.get("value", 0)
+            if isinstance(tx_value, int):
+                amount = tx_value
+            else:
+                # Si es un objeto HexBytes, convertirlo
+                amount = int(tx_value.hex(), 16) if hasattr(tx_value, 'hex') else int(tx_value)
+            
+            # Verificar que la cantidad es correcta (con margen de error del 1% por gas)
+            if amount < expected_amount * 99 // 100:  # Permite 1% de diferencia
+                return {
+                    "valid": False,
+                    "amount": amount,
+                    "recipient": tx["to"],
+                    "sender": tx["from"],
+                    "message": f"Cantidad insuficiente. Esperado: {expected_amount}, Recibido: {amount}"
+                }
+            
+            logger.info(f"✅ Pago nativo validado: {amount} wei de {tx['from']} a {tx['to']}")
+            return {
+                "valid": True,
+                "amount": amount,
+                "recipient": tx["to"],
+                "sender": tx["from"],
+                "message": "Pago válido"
+            }
+            
+        except Exception as e:
             logger.error(f"Error validando pago {tx_hash}: {e}")
             return {
                 "valid": False,

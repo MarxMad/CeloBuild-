@@ -989,15 +989,14 @@ async def publish_cast(request: PublishCastRequest):
         # Obtener dirección del agente
         agent_address = celo_toolbox.get_agent_address()
         
-        # Precio: 0.5 cUSD = 500000000000000000 wei (18 decimales)
-        PRICE_WEI = int(0.5 * 10**18)
+        # Precio: 1 CELO nativo = 1000000000000000000 wei (18 decimales)
+        PRICE_WEI = int(1.0 * 10**18)
         
-        # Validar pago
-        payment_validation = celo_toolbox.validate_payment(
+        # Validar pago en CELO nativo
+        payment_validation = celo_toolbox.validate_native_payment(
             tx_hash=request.payment_tx_hash,
             expected_recipient=agent_address,
-            expected_amount=PRICE_WEI,
-            token_address=settings.cusd_address
+            expected_amount=PRICE_WEI
         )
         
         if not payment_validation["valid"]:
