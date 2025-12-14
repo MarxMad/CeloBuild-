@@ -1048,11 +1048,14 @@ async def publish_cast(request: PublishCastRequest):
                 "scheduled_time": scheduled_time.isoformat()
             }
         
+        # El XP ya fue otorgado en publish_now o se otorgará en _publish_scheduled_cast
+        xp_granted = result.get("xp_granted", 0)
+        
         return {
             "status": "success",
             **result,
-            "xp_granted": 100,  # XP se otorgará cuando se publique
-            "message": "Cast publicado/programado exitosamente"
+            "xp_granted": xp_granted,
+            "message": "Cast publicado/programado exitosamente" if xp_granted > 0 else "Cast programado exitosamente"
         }
         
     except HTTPException:

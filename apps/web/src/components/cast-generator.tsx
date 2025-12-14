@@ -192,8 +192,23 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
           }
 
           const data = await response.json();
-          setPublishSuccess(true);
-          setPublishError(null);
+          
+          // Mostrar mensaje de éxito con XP otorgado
+          const xpGranted = data.xp_granted || 0;
+          if (xpGranted > 0) {
+            setPublishSuccess(true);
+            setPublishError(null);
+          } else {
+            // Si no se otorgó XP, puede ser que esté programado o haya un error
+            if (data.status === "scheduled") {
+              setPublishSuccess(true);
+              setPublishError(null);
+            } else {
+              setPublishError(data.message || t("cast_error_publishing"));
+              setPublishSuccess(false);
+            }
+          }
+          
           // Limpiar después de 5 segundos para permitir ver el mensaje de éxito
           setTimeout(() => {
             setGeneratedCast("");
@@ -344,6 +359,9 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                   <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                     <CheckCircle2 className="h-5 w-5" />
                     <span>{t("cast_published_success")}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {t("cast_success_note")}
                   </div>
                   {txHash && (
                     <div className="text-sm">

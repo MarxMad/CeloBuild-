@@ -235,29 +235,69 @@ class CastSchedulerService:
             cast_text=cast_text,
             scheduled_time=datetime.now(timezone.utc),
             payment_tx_hash=payment_tx_hash,
-            status="publishing"
+            status="publishing"  # Estado inicial
         )
         
         self.scheduled_casts[cast_id] = scheduled_cast
         
-        # Publicar inmediatamente (await para esperar resultado)
-        await self._publish_scheduled_cast(cast_id)
-        
-        # Obtener el estado actualizado del cast
-        cast = self.scheduled_casts.get(cast_id)
-        if cast:
-            return {
-                "cast_id": cast_id,
-                "published_cast_hash": cast.published_cast_hash,
-                "xp_granted": cast.xp_granted,
-                "status": cast.status
-            }
-        else:
+        try:
+            # Publicar cast en Farcaster directamente (sin usar scheduler)
+            logger.info(f"📤 Publicando cast {cast_id} inmediatamente para FID {user_fid}")
+            
+            published_hash = await self._publish_cast_to_farcaster(
+                user_fid=user_fid,
+                cast_text=cast_text
+            )
+            
+            if published_hash:
+                scheduled_cast.published_cast_hash = published_hash
+                scheduled_cast.status = "published"
+                
+                # Otorgar XP después de publicar exitosamente
+                try:
+                    tx_hash = self.celo_toolbox.grant_xp(
+                        registry_address=self.registry_address,
+                        campaign_id=self.campaign_id,
+                        participant=user_address,
+                        amount=100  # XP por publicar
+                    )
+                    scheduled_cast.xp_granted = 100
+                    logger.info(f"✅ XP otorgado a {user_address} (tx: {tx_hash})")
+                except Exception as e:
+                    logger.error(f"❌ Error otorgando XP: {e}", exc_info=True)
+                    # No fallar la publicación si el XP falla, pero registrar el error
+                
+                logger.info(f"✅ Cast {cast_id} publicado exitosamente: {published_hash}")
+                
+                return {
+                    "cast_id": cast_id,
+                    "published_cast_hash": published_hash,
+                    "xp_granted": scheduled_cast.xp_granted,
+                    "status": "published"
+                }
+            else:
+                scheduled_cast.status = "failed"
+                scheduled_cast.error_message = "No se pudo publicar el cast en Farcaster"
+                logger.error(f"❌ Error publicando cast {cast_id}: No se obtuvo hash del cast")
+                
+                return {
+                    "cast_id": cast_id,
+                    "published_cast_hash": None,
+                    "xp_granted": 0,
+                    "status": "failed"
+                }
+                
+        except Exception as e:
+            scheduled_cast.status = "failed"
+            scheduled_cast.error_message = str(e)
+            logger.error(f"❌ Error publicando cast {cast_id}: {e}", exc_info=True)
+            
             return {
                 "cast_id": cast_id,
                 "published_cast_hash": None,
                 "xp_granted": 0,
-                "status": "failed"
+                "status": "failed",
+                "error": str(e)
             }
     
     def cancel_cast(self, cast_id: str, user_address: str) -> bool:
