@@ -946,6 +946,153 @@ class FarcasterToolbox:
             return casts[0]
         return None
 
+    async def create_signer(self) -> dict[str, Any]:
+        """Crea un nuevo signer usando Neynar API v2.
+        
+        Returns:
+            {
+                "signer_uuid": str,
+                "public_key": str,
+                "status": "generated"
+            }
+        """
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            return {
+                "status": "error",
+                "message": "NEYNAR_API_KEY no configurada"
+            }
+        
+        url = "https://api.neynar.com/v2/farcaster/signer"
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "x-api-key": self.neynar_key
+        }
+        
+        async with httpx.AsyncClient(timeout=30) as client:
+            try:
+                resp = await client.post(url, headers=headers)
+                resp.raise_for_status()
+                result = resp.json()
+                
+                return {
+                    "status": "success",
+                    "signer_uuid": result.get("signer_uuid"),
+                    "public_key": result.get("public_key"),
+                    "status": result.get("status", "generated")
+                }
+            except Exception as exc:
+                logger.error(f"Error creando signer: {exc}", exc_info=True)
+                return {
+                    "status": "error",
+                    "message": f"Error creando signer: {str(exc)}"
+                }
+    
+    async def register_signed_key(
+        self,
+        signer_uuid: str,
+        app_fid: int,
+        deadline: int,
+        signature: str
+    ) -> dict[str, Any]:
+        """Registra una signed key con Neynar API.
+        
+        Args:
+            signer_uuid: UUID del signer creado
+            app_fid: FID de la app (debe tener una cuenta Farcaster)
+            deadline: UNIX timestamp en segundos
+            signature: Firma creada con el mnemonic de la app
+        
+        Returns:
+            {
+                "status": "success" | "error",
+                "approval_url": str | None,
+                "message": str
+            }
+        """
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            return {
+                "status": "error",
+                "message": "NEYNAR_API_KEY no configurada"
+            }
+        
+        url = "https://api.neynar.com/v2/farcaster/signer/signed_key"
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "x-api-key": self.neynar_key
+        }
+        
+        payload = {
+            "signer_uuid": signer_uuid,
+            "app_fid": app_fid,
+            "deadline": deadline,
+            "signature": signature
+        }
+        
+        async with httpx.AsyncClient(timeout=30) as client:
+            try:
+                resp = await client.post(url, headers=headers, json=payload)
+                resp.raise_for_status()
+                result = resp.json()
+                
+                return {
+                    "status": "success",
+                    "approval_url": result.get("approval_url"),
+                    "status": result.get("status", "pending_approval")
+                }
+            except Exception as exc:
+                logger.error(f"Error registrando signed key: {exc}", exc_info=True)
+                return {
+                    "status": "error",
+                    "message": f"Error registrando signed key: {str(exc)}"
+                }
+    
+    async def get_signer_status(self, signer_uuid: str) -> dict[str, Any]:
+        """Obtiene el estado actual de un signer.
+        
+        Returns:
+            {
+                "signer_uuid": str,
+                "status": "generated" | "pending_approval" | "approved" | "revoked",
+                "public_key": str,
+                "fid": int | None,
+                "approval_url": str | None
+            }
+        """
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            return {
+                "status": "error",
+                "message": "NEYNAR_API_KEY no configurada"
+            }
+        
+        url = f"https://api.neynar.com/v2/farcaster/signer?signer_uuid={signer_uuid}"
+        headers = {
+            "accept": "application/json",
+            "x-api-key": self.neynar_key
+        }
+        
+        async with httpx.AsyncClient(timeout=30) as client:
+            try:
+                resp = await client.get(url, headers=headers)
+                resp.raise_for_status()
+                result = resp.json()
+                
+                return {
+                    "status": "success",
+                    "signer_uuid": result.get("signer_uuid"),
+                    "status": result.get("status"),
+                    "public_key": result.get("public_key"),
+                    "fid": result.get("fid"),
+                    "approval_url": result.get("approval_url")
+                }
+            except Exception as exc:
+                logger.error(f"Error obteniendo estado del signer: {exc}", exc_info=True)
+                return {
+                    "status": "error",
+                    "message": f"Error obteniendo estado del signer: {str(exc)}"
+                }
+
     async def publish_cast(
         self,
         user_fid: int,
@@ -987,22 +1134,31 @@ class FarcasterToolbox:
                 "message": "Cast demasiado largo (máximo 320 caracteres)"
             }
         
-        # Si no hay signer_uuid, intentar usar uno compartido del backend
+        # Si no hay signer_uuid, buscar en el store de signers
         if not signer_uuid:
-            import os
-            signer_uuid = os.getenv("NEYNAR_SIGNER_UUID")
-            if signer_uuid:
-                logger.info(f"Usando signer compartido del backend para FID {user_fid}")
+            from .stores.signers import get_signer_store
+            signer_store = get_signer_store()
+            # Intentar buscar por FID primero
+            signer_data = signer_store.get_signer(str(user_fid))
+            if signer_data and signer_data.get("status") == "approved":
+                signer_uuid = signer_data.get("signer_uuid")
+                logger.info(f"Usando signer aprobado del store para FID {user_fid}")
             else:
-                logger.warning(
-                    "⚠️ No se proporcionó signer_uuid y no hay NEYNAR_SIGNER_UUID configurado. "
-                    "El usuario necesita configurar un signer en Neynar."
-                )
-                return {
-                    "status": "error",
-                    "cast_hash": None,
-                    "message": "Se requiere signer_uuid para publicar casts. Configura NEYNAR_SIGNER_UUID en variables de entorno o proporciona el signer_uuid del usuario."
-                }
+                # Fallback: intentar usar signer compartido del backend (para desarrollo)
+                import os
+                signer_uuid = os.getenv("NEYNAR_SIGNER_UUID")
+                if signer_uuid:
+                    logger.info(f"Usando signer compartido del backend para FID {user_fid}")
+                else:
+                    logger.warning(
+                        f"⚠️ No se encontró signer aprobado para FID {user_fid}. "
+                        "El usuario necesita crear y aprobar un signer primero."
+                    )
+                    return {
+                        "status": "error",
+                        "cast_hash": None,
+                        "message": "Se requiere un signer aprobado para publicar casts. Por favor, crea y aprueba un signer primero."
+                    }
         
         # Publicar usando Neynar API v2
         # Documentación: https://docs.neynar.com/reference/post-cast

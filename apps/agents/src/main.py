@@ -1072,3 +1072,229 @@ async def cancel_cast(request: CancelCastRequest):
         logger.error("Error cancelando cast: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
 
+
+# ============================================================================
+# ENDPOINTS PARA GESTIÓN DE SIGNERS (Neynar)
+# ============================================================================
+
+from .stores.signers import get_signer_store
+from datetime import datetime, timezone
+import time
+
+class CreateSignerRequest(BaseModel):
+    user_fid: int = Field(..., description="FID del usuario")
+    user_address: str | None = Field(None, description="Dirección del usuario (opcional)")
+
+class RegisterSignedKeyRequest(BaseModel):
+    signer_uuid: str = Field(..., description="UUID del signer creado")
+    user_fid: int = Field(..., description="FID del usuario")
+
+@app.post("/api/casts/signer/create")
+async def create_signer_endpoint(request: CreateSignerRequest):
+    """Crea un nuevo signer para un usuario."""
+    try:
+        # Crear signer usando Neynar API
+        result = await farcaster_toolbox.create_signer()
+        
+        if result.get("status") != "success":
+            raise HTTPException(status_code=500, detail=result.get("message", "Error creando signer"))
+        
+        signer_uuid = result.get("signer_uuid")
+        public_key = result.get("public_key")
+        
+        # Guardar en store
+        signer_store = get_signer_store()
+        user_id = str(request.user_fid)
+        signer_store.add_signer(
+            user_id=user_id,
+            signer_uuid=signer_uuid,
+            status="generated",
+            public_key=public_key
+        )
+        
+        # Si hay address, también guardar mapeo
+        if request.user_address:
+            signer_store.add_signer(
+                user_id=request.user_address.lower(),
+                signer_uuid=signer_uuid,
+                status="generated",
+                public_key=public_key
+            )
+        
+        return {
+            "status": "success",
+            "signer_uuid": signer_uuid,
+            "public_key": public_key,
+            "message": "Signer creado exitosamente. Ahora necesitas registrar la signed key."
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error creando signer: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error creando signer: {exc}")
+
+
+@app.post("/api/casts/signer/register")
+async def register_signed_key_endpoint(request: RegisterSignedKeyRequest):
+    """Registra una signed key (requiere que la app firme con su mnemonic)."""
+    try:
+        if not settings.neynar_app_fid or not settings.neynar_app_mnemonic:
+            raise HTTPException(
+                status_code=500,
+                detail="NEYNAR_APP_FID y NEYNAR_APP_MNEMONIC deben estar configurados para registrar signed keys"
+            )
+        
+        # Obtener signer del store
+        signer_store = get_signer_store()
+        signer_data = signer_store.get_signer(str(request.user_fid))
+        if not signer_data or signer_data.get("signer_uuid") != request.signer_uuid:
+            raise HTTPException(status_code=404, detail="Signer no encontrado")
+        
+        public_key = signer_data.get("public_key")
+        if not public_key:
+            raise HTTPException(status_code=400, detail="Public key no encontrada para este signer")
+        
+        # Obtener FID de la app desde el mnemonic si no está configurado
+        app_fid = settings.neynar_app_fid
+        if not app_fid and settings.neynar_app_mnemonic:
+            # Buscar FID usando el custody address del mnemonic
+            try:
+                from mnemonic import Mnemonic
+                from eth_account import Account
+                account = Account.from_mnemonic(settings.neynar_app_mnemonic)
+                custody_address = account.address
+                
+                # Buscar usuario por custody address usando Neynar API
+                lookup_url = f"https://api.neynar.com/v2/farcaster/user/by_custody_address?custody_address={custody_address}"
+                lookup_headers = {
+                    "accept": "application/json",
+                    "x-api-key": farcaster_toolbox.neynar_key
+                }
+                async with httpx.AsyncClient(timeout=30) as client:
+                    lookup_resp = await client.get(lookup_url, headers=lookup_headers)
+                    if lookup_resp.status_code == 200:
+                        lookup_data = lookup_resp.json()
+                        app_fid = lookup_data.get("result", {}).get("fid")
+                        if app_fid:
+                            logger.info(f"✅ FID encontrado desde custody address: {app_fid}")
+            except Exception as e:
+                logger.warning(f"⚠️ No se pudo obtener FID desde mnemonic: {e}")
+        
+        if not app_fid:
+            raise HTTPException(
+                status_code=500,
+                detail="NEYNAR_APP_FID debe estar configurado o NEYNAR_APP_MNEMONIC debe corresponder a una cuenta Farcaster válida"
+            )
+        
+        # Crear deadline (24 horas desde ahora)
+        deadline = int(time.time()) + (24 * 60 * 60)
+        
+        # Firmar usando el método correcto según documentación de Neynar
+        # Necesitamos usar @farcaster/hub-nodejs equivalente en Python
+        # Por ahora, usamos una implementación simplificada
+        try:
+            from eth_account import Account
+            from eth_account.messages import encode_defunct
+            from web3 import Web3
+            
+            account = Account.from_mnemonic(settings.neynar_app_mnemonic)
+            
+            # Crear mensaje según formato EIP-712 de Farcaster
+            # El formato es: requestFid (uint256) + key (bytes) + deadline (uint256)
+            # Convertir public_key de hex string a bytes
+            public_key_bytes = bytes.fromhex(public_key.replace("0x", ""))
+            
+            # Crear mensaje estructurado (simplificado - en producción usar @farcaster/hub-nodejs)
+            # Por ahora, usamos un hash simple
+            import hashlib
+            message_data = (
+                app_fid.to_bytes(32, 'big') +
+                public_key_bytes +
+                deadline.to_bytes(32, 'big')
+            )
+            message_hash = hashlib.sha256(message_data).digest()
+            
+            # Firmar el hash
+            signed_message = account.signHash(message_hash)
+            signature = signed_message.signature.hex()
+            
+        except Exception as e:
+            logger.error(f"Error generando firma: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error generando firma: {str(e)}. Asegúrate de que NEYNAR_APP_MNEMONIC sea válido."
+            )
+        
+        # Registrar signed key
+        result = await farcaster_toolbox.register_signed_key(
+            signer_uuid=request.signer_uuid,
+            app_fid=settings.neynar_app_fid,
+            deadline=deadline,
+            signature=signature
+        )
+        
+        if result.get("status") != "success":
+            raise HTTPException(status_code=500, detail=result.get("message", "Error registrando signed key"))
+        
+        approval_url = result.get("approval_url")
+        
+        # Actualizar store
+        signer_store.update_signer_status(
+            user_id=str(request.user_fid),
+            status="pending_approval"
+        )
+        signer_store.add_signer(
+            user_id=str(request.user_fid),
+            signer_uuid=request.signer_uuid,
+            status="pending_approval",
+            public_key=public_key,
+            approval_url=approval_url
+        )
+        
+        return {
+            "status": "success",
+            "approval_url": approval_url,
+            "message": "Signed key registrada. Usa el approval_url para que el usuario apruebe en Warpcast."
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error registrando signed key: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error registrando signed key: {exc}")
+
+
+@app.get("/api/casts/signer/status")
+async def get_signer_status_endpoint(signer_uuid: str = Query(..., description="UUID del signer")):
+    """Obtiene el estado actual de un signer (para polling)."""
+    try:
+        result = await farcaster_toolbox.get_signer_status(signer_uuid)
+        
+        if result.get("status") != "success":
+            raise HTTPException(status_code=500, detail=result.get("message", "Error obteniendo estado del signer"))
+        
+        # Actualizar store si el signer fue aprobado
+        if result.get("status") == "approved" and result.get("fid"):
+            signer_store = get_signer_store()
+            # Buscar usuario por signer_uuid
+            for user_id, signer_data in signer_store._data.items():
+                if signer_data.get("signer_uuid") == signer_uuid:
+                    signer_store.update_signer_status(
+                        user_id=user_id,
+                        status="approved",
+                        fid=result.get("fid")
+                    )
+                    break
+        
+        return {
+            "status": "success",
+            "signer_uuid": result.get("signer_uuid"),
+            "status": result.get("status"),
+            "fid": result.get("fid"),
+            "approval_url": result.get("approval_url")
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error obteniendo estado del signer: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error obteniendo estado del signer: {exc}")
+

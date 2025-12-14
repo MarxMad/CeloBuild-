@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     farcaster_hub_api: str = "https://api.warpcast.com"
     farcaster_api_token: str | None = None
     neynar_api_key: str | None = None
+    neynar_app_fid: int | None = None  # FID de la app en Farcaster (requerido para crear signers)
+    neynar_app_mnemonic: str | None = None  # Mnemonic de la app para firmar (requerido para crear signers)
     minipay_tool_url: str = "https://api.minipay.celo.org"
     minipay_project_id: str | None = None
     minipay_project_secret: str | None = None
