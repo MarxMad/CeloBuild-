@@ -57,12 +57,12 @@ graph TD
     
     subgraph "🔗 On-Chain Infrastructure (Celo Mainnet)"
         Registry[LootAccessRegistry]
-        Vault[LootBoxVault (Funds)]
-        NFT[LootBoxMinter (NFTs)]
+        Vault["LootBoxVault (Funds)"]
+        NFT["LootBoxMinter (NFTs)"]
     end
 
     subgraph "🌐 Data Sources"
-        Neynar[Neynar API (Farcaster)]
+        Neynar["Neynar API (Farcaster)"]
         Gemini[Google Gemini AI]
     end
 
@@ -97,6 +97,32 @@ graph TD
     *   **Score < 60**: Awards **XP** (On-chain reputation) ⭐.
 4.  **Viral Loop**: Winners share their "Victory Frame" on Farcaster, which allows others to launch the MiniApp directly.
 5.  **Recharge**: Users can share their status to recharge their energy and play again.
+
+### 📊 Simple Flow Diagram
+
+```mermaid
+flowchart LR
+    A[👤 Usuario<br/>Postea en Farcaster] --> B[🤖 Sistema Detecta<br/>Contenido Viral]
+    B --> C[📊 Analiza Engagement<br/>Likes, Recasts, Replies]
+    C --> D{🎯 Calcula<br/>Viral Score}
+    D -->|Score > 85| E[🎨 NFT<br/>Rare Loot]
+    D -->|Score > 60| F[💵 cUSD<br/>Micropayment]
+    D -->|Score < 60| G[⭐ XP<br/>On-chain Rep]
+    E --> H[✅ Recompensa<br/>Automática]
+    F --> H
+    G --> H
+    H --> I[📱 Wallet Celo<br/>MiniPay]
+    
+    style A fill:#855DCD,stroke:#FCFF52,stroke-width:2px,color:#fff
+    style B fill:#FCFF52,stroke:#855DCD,stroke-width:2px,color:#000
+    style C fill:#855DCD,stroke:#FCFF52,stroke-width:2px,color:#fff
+    style D fill:#FCFF52,stroke:#855DCD,stroke-width:2px,color:#000
+    style E fill:#00ff00,stroke:#fff,stroke-width:2px,color:#000
+    style F fill:#00ff00,stroke:#fff,stroke-width:2px,color:#000
+    style G fill:#00ff00,stroke:#fff,stroke-width:2px,color:#000
+    style H fill:#855DCD,stroke:#FCFF52,stroke-width:3px,color:#fff
+    style I fill:#FCFF52,stroke:#855DCD,stroke-width:2px,color:#000
+```
 
 ---
 
