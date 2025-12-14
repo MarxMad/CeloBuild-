@@ -214,7 +214,7 @@ class EligibilityAgent:
                         reasons.append(f"Avalado por {count} OGs")
                         logger.info("🌟 Seguidores relevantes encontrados: %d", count)
 
-        if cast_hash:
+                    if cast_hash:
                         logger.info("📊 Analizando participación de @%s en cast: %s", username, cast_hash[:16])
                         
                         # Analizar participación detallada
