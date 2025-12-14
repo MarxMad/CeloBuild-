@@ -41,6 +41,8 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [xpGranted, setXpGranted] = useState<number>(0);
+  const [publishedCastHash, setPublishedCastHash] = useState<string | null>(null);
 
   // Wagmi hooks para transacciones de CELO nativo
   const { sendTransaction, data: hash, isPending: isPendingTx } = useSendTransaction();
@@ -286,14 +288,23 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
           const data = await response.json();
           console.log("✅ [CastGenerator] Respuesta del backend:", data);
           
-          // Mostrar mensaje de éxito con XP otorgado
-          const xpGranted = data.xp_granted || 0;
-          console.log(`🎉 [CastGenerator] XP otorgado: ${xpGranted}, Estado: ${data.status}`);
+          // Guardar datos del comprobante
+          const xpGrantedValue = data.xp_granted || 0;
+          const castHash = data.published_cast_hash || null;
           
-          if (xpGranted > 0) {
-            console.log("✅ [CastGenerator] Cast publicado exitosamente con XP");
+          console.log(`🎉 [CastGenerator] XP otorgado: ${xpGrantedValue}, Estado: ${data.status}, Cast Hash: ${castHash}`);
+          
+          // Guardar datos para el comprobante
+          setXpGranted(xpGrantedValue);
+          setPublishedCastHash(castHash);
+          
+          if (xpGrantedValue > 0 || data.status === "published") {
+            console.log("✅ [CastGenerator] Cast publicado exitosamente");
             setPublishSuccess(true);
             setPublishError(null);
+            
+            // Disparar evento para refrescar XP en el dashboard
+            window.dispatchEvent(new Event('refresh-xp'));
           } else {
             // Si no se otorgó XP, puede ser que esté programado o haya un error
             if (data.status === "scheduled") {
@@ -306,15 +317,6 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
               setPublishSuccess(false);
             }
           }
-          
-          // Limpiar después de 5 segundos para permitir ver el mensaje de éxito
-          setTimeout(() => {
-            console.log("🧹 [CastGenerator] Limpiando estado...");
-            setGeneratedCast("");
-            setScheduledTime("");
-            setPublishSuccess(false);
-            setTxHash(null);
-          }, 5000);
         } catch (error: any) {
           console.error("❌ [CastGenerator] Error publicando cast:", error);
           setPublishError(error.message || t("cast_error_publishing"));
@@ -453,30 +455,76 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                 )}
               </Button>
 
+              {/* Comprobante de Publicación Exitosa */}
               {publishSuccess && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                    <CheckCircle2 className="h-5 w-5" />
-                    <span>{t("cast_published_success")}</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {t("cast_success_note")}
-                  </div>
-                  {txHash && (
-                    <div className="text-sm">
-                      <a
-                        href={`https://celoscan.io/tx/${txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1"
-                      >
-                        {t("cast_view_tx")}
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
+                <div className="mt-6 rounded-2xl bg-gradient-to-br from-green-500/20 via-green-500/10 to-transparent border-2 border-green-500/40 p-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 relative overflow-hidden">
+                  {/* Background Effects */}
+                  <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-500/5 via-transparent to-transparent opacity-50" />
+                  
+                  <div className="relative z-10 space-y-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/30">
+                          <CheckCircle2 className="h-6 w-6 text-green-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-green-400">¡Cast Publicado!</h3>
+                          <p className="text-xs text-muted-foreground">{t("cast_success_note")}</p>
+                        </div>
+                      </div>
                     </div>
-                  )}
+
+                    {/* XP Otorgado */}
+                    {xpGranted > 0 && (
+                      <div className="bg-black/40 rounded-xl p-4 border border-green-500/20">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-[#FCFF52]" />
+                            <span className="text-sm font-semibold text-foreground">XP Otorgado</span>
+                          </div>
+                          <span className="text-2xl font-black text-[#FCFF52]">+{xpGranted}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Detalles de Transacciones */}
+                    <div className="space-y-2">
+                      {/* Pago de 1 CELO */}
+                      {txHash && (
+                        <div className="flex items-center justify-between bg-black/40 rounded-lg p-3 border border-white/10">
+                          <div className="flex items-center gap-2">
+                            <Wallet className="w-4 h-4 text-primary" />
+                            <span className="text-xs font-medium text-muted-foreground">Pago de 1 CELO</span>
+                          </div>
+                          <a
+                            href={`https://celoscan.io/tx/${txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                          >
+                            Ver en CeloScan
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Hash del Cast Publicado */}
+                      {publishedCastHash && (
+                        <div className="flex items-center justify-between bg-black/40 rounded-lg p-3 border border-white/10">
+                          <div className="flex items-center gap-2">
+                            <Send className="w-4 h-4 text-blue-400" />
+                            <span className="text-xs font-medium text-muted-foreground">Cast Hash</span>
+                          </div>
+                          <span className="text-xs font-mono text-blue-400 truncate max-w-[120px]">
+                            {publishedCastHash.slice(0, 10)}...
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
