@@ -196,18 +196,26 @@ class TrendWatcherAgent:
                 target_fid = int(payload["target_fid"])
                 topic = top_trend.get("topic_tags", ["General"])[0] if top_trend.get("topic_tags") else "General"
                 
+                # Verificar cooldown de 48 horas
+                from ..stores.notifications import get_notification_store
+                store = get_notification_store()
+                can_send, seconds_remaining = store.can_send_notification(target_fid)
+                
+                if not can_send:
+                    hours_remaining = seconds_remaining / 3600
+                    logger.debug(f"⏳ FID {target_fid} en cooldown. Restan {hours_remaining:.1f} horas. Saltando notificación de tendencia...")
+                    return
+                
                 logger.info("🔔 Enviando notificación de tendencia a FID %d...", target_fid)
                 
                 # Intentar obtener token del store (Self-hosted)
-                from ..stores.notifications import get_notification_store
-                store = get_notification_store()
                 token_data = store.get_token(target_fid)
                 
                 if token_data:
                     # Enviar usando token directo (bypass Neynar managed)
                     import uuid
                     notif_id = str(uuid.uuid4())
-                    await self.farcaster.send_notification_custom(
+                    result = await self.farcaster.send_notification_custom(
                         token=token_data["token"],
                         url=token_data["url"],
                         title="🔥 Tendencia Detectada",
@@ -215,14 +223,18 @@ class TrendWatcherAgent:
                         target_url=f"https://celo-build-web-8rej.vercel.app/?trend={top_trend['frame_id']}",
                         notification_id=notif_id
                     )
+                    if result.get("status") == "success":
+                        store.record_notification_sent(target_fid)
                 else:
                     # Fallback a Neynar Managed (si el usuario configuró el webhook en Neynar)
-                    await self.farcaster.publish_frame_notification(
+                    result = await self.farcaster.publish_frame_notification(
                         target_fids=[target_fid],
                         title="🔥 Tendencia Detectada",
                         body=f"Nuevo tema viral: #{topic}. ¡Crea tu Lootbox ahora!",
                         target_url=f"https://celo-build-web-8rej.vercel.app/?trend={top_trend['frame_id']}"
                     )
+                    if result.get("status") == "success":
+                        store.record_notification_sent(target_fid)
             except Exception as exc:
                 logger.warning("Error enviando notificación: %s", exc)
         

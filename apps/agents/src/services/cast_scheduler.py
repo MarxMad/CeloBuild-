@@ -227,19 +227,6 @@ class CastSchedulerService:
         """
         cast_id = str(uuid.uuid4())
         
-        scheduled_cast = ScheduledCast(
-            cast_id=cast_id,
-            user_address=user_address,
-            user_fid=user_fid,
-            topic=topic,
-            cast_text=cast_text,
-            scheduled_time=datetime.now(timezone.utc),
-            payment_tx_hash=payment_tx_hash,
-            status="publishing"  # Estado inicial
-        )
-        
-        self.scheduled_casts[cast_id] = scheduled_cast
-        
         try:
             # Publicar cast en Farcaster directamente (sin usar scheduler)
             logger.info(f"📤 Publicando cast {cast_id} inmediatamente para FID {user_fid}")
@@ -250,8 +237,20 @@ class CastSchedulerService:
             )
             
             if published_hash:
+                # Solo guardar el cast si se publicó exitosamente
+                scheduled_cast = ScheduledCast(
+                    cast_id=cast_id,
+                    user_address=user_address,
+                    user_fid=user_fid,
+                    topic=topic,
+                    cast_text=cast_text,
+                    scheduled_time=datetime.now(timezone.utc),
+                    payment_tx_hash=payment_tx_hash,
+                    status="published"
+                )
                 scheduled_cast.published_cast_hash = published_hash
-                scheduled_cast.status = "published"
+                
+                self.scheduled_casts[cast_id] = scheduled_cast
                 
                 # Otorgar XP después de publicar exitosamente
                 try:
@@ -276,20 +275,21 @@ class CastSchedulerService:
                     "status": "published"
                 }
             else:
-                scheduled_cast.status = "failed"
-                scheduled_cast.error_message = "No se pudo publicar el cast en Farcaster"
-                logger.error(f"❌ Error publicando cast {cast_id}: No se obtuvo hash del cast")
+                # No guardar el cast si falló la publicación
+                error_message = "No se pudo publicar el cast en Farcaster"
+                logger.error(f"❌ Error publicando cast {cast_id}: {error_message}")
                 
                 return {
                     "cast_id": cast_id,
                     "published_cast_hash": None,
                     "xp_granted": 0,
-                    "status": "failed"
+                    "status": "failed",
+                    "error_message": error_message
                 }
                 
         except Exception as e:
-            scheduled_cast.status = "failed"
-            scheduled_cast.error_message = str(e)
+            # No guardar el cast si falló la publicación
+            error_message = str(e)
             logger.error(f"❌ Error publicando cast {cast_id}: {e}", exc_info=True)
             
             return {
@@ -297,7 +297,7 @@ class CastSchedulerService:
                 "published_cast_hash": None,
                 "xp_granted": 0,
                 "status": "failed",
-                "error": str(e)
+                "error_message": error_message
             }
     
     def cancel_cast(self, cast_id: str, user_address: str) -> bool:

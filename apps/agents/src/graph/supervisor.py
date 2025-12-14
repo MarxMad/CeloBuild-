@@ -211,6 +211,14 @@ class SupervisorOrchestrator:
                                 fid = store.get_fid_by_address(address)
                             
                             if fid:
+                                # Verificar cooldown de 48 horas
+                                can_send, seconds_remaining = store.can_send_notification(fid)
+                                
+                                if not can_send:
+                                    hours_remaining = seconds_remaining / 3600
+                                    logger.debug(f"⏳ FID {fid} en cooldown. Restan {hours_remaining:.1f} horas. Saltando notificación de top...")
+                                    continue
+                                
                                 logger.info(f"🔔 Enviando notificación de top tendencia a FID {fid} (posición {position})")
                                 
                                 # Intentar obtener token del store (Self-hosted)
@@ -220,7 +228,7 @@ class SupervisorOrchestrator:
                                     # Enviar usando token directo
                                     import uuid
                                     notif_id = str(uuid.uuid4())
-                                    await farcaster.send_notification_custom(
+                                    result = await farcaster.send_notification_custom(
                                         token=token_data["token"],
                                         url=token_data["url"],
                                         title="🔥 ¡Estás en el Top!",
@@ -228,14 +236,18 @@ class SupervisorOrchestrator:
                                         target_url=f"https://celo-build-web-8rej.vercel.app/",
                                         notification_id=notif_id
                                     )
+                                    if result.get("status") == "success":
+                                        store.record_notification_sent(fid)
                                 else:
                                     # Fallback a Neynar Managed
-                                    await farcaster.publish_frame_notification(
+                                    result = await farcaster.publish_frame_notification(
                                         target_fids=[fid],
                                         title="🔥 ¡Estás en el Top!",
                                         body=f"Estás en el top {position} de la tendencia #{topic}. ¡Sigue participando!",
                                         target_url="https://celo-build-web-8rej.vercel.app/"
                                     )
+                                    if result.get("status") == "success":
+                                        store.record_notification_sent(fid)
                                 
                                 logger.info(f"✅ Notificación enviada a FID {fid} (posición {position})")
                             else:
