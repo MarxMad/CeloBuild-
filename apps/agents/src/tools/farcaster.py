@@ -1034,11 +1034,16 @@ class FarcasterToolbox:
             "x-api-key": self.neynar_key
         }
         
+        # Patrocinar el signer para que el usuario no pague
+        # Neynar pagará el costo y nos cobrará créditos de la API
         payload = {
             "signer_uuid": signer_uuid,
             "app_fid": app_fid,
             "deadline": deadline,
-            "signature": signature
+            "signature": signature,
+            "sponsor": {
+                "sponsored_by_neynar": True
+            }
         }
         
         async with httpx.AsyncClient(timeout=30) as client:
