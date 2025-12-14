@@ -58,14 +58,14 @@ class EnergyService:
         
         # Fallback to file storage
         if not self._use_redis:
-        if storage_path is None:
-            if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
-                # Serverless environment (read-only filesystem except /tmp)
-                self.storage_path = "/tmp/energy_store.json"
+            if storage_path is None:
+                if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+                    # Serverless environment (read-only filesystem except /tmp)
+                    self.storage_path = "/tmp/energy_store.json"
+                else:
+                    self.storage_path = "data/energy_store.json"
             else:
-                self.storage_path = "data/energy_store.json"
-        else:
-            self.storage_path = storage_path
+                self.storage_path = storage_path
             logger.info(f"📁 [Energy] Usando almacenamiento en archivo: {self.storage_path}")
             
         self._data: Dict[str, EnergyState] = self._load()
