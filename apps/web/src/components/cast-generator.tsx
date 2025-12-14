@@ -214,7 +214,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     }
   }, [isConfirmed, hash, generatedCast, publishSuccess]); // Solo ejecutar cuando se confirma la transacción
 
-  const TOPICS = getTopics(t);
+  const TOPICS = getTopics(t as (key: string) => string);
 
   return (
     <div className="space-y-6">
