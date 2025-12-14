@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Loader2, Calendar, X, CheckCircle2, Clock, XCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getBackendUrl } from "@/lib/backend";
 
 interface ScheduledCast {
   cast_id: string;
@@ -31,22 +32,30 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
     setError(null);
 
     try {
-      const AGENT_SERVICE_URL = process.env.NEXT_PUBLIC_AGENT_SERVICE_URL;
-      if (!AGENT_SERVICE_URL) {
-        throw new Error("Backend no configurado");
+      const backendUrl = getBackendUrl();
+      if (!backendUrl) {
+        throw new Error("Backend no configurado. Verifica NEXT_PUBLIC_AGENT_SERVICE_URL");
       }
 
       const response = await fetch(
-        `${AGENT_SERVICE_URL}/api/casts/scheduled?user_address=${encodeURIComponent(userAddress)}`
+        `${backendUrl}/api/casts/scheduled?user_address=${encodeURIComponent(userAddress)}`
       );
 
       if (!response.ok) {
-        throw new Error("Error obteniendo casts programados");
+        let errorMessage = "Error obteniendo casts programados";
+        try {
+          const error = await response.json();
+          errorMessage = error.detail || error.message || errorMessage;
+        } catch {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
       setCasts(data.casts || []);
     } catch (err: any) {
+      console.error("Error cargando casts programados:", err);
       setError(err.message || "Error cargando casts programados");
     } finally {
       setIsLoading(false);
@@ -62,12 +71,12 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
 
   const handleCancel = async (castId: string) => {
     try {
-      const AGENT_SERVICE_URL = process.env.NEXT_PUBLIC_AGENT_SERVICE_URL;
-      if (!AGENT_SERVICE_URL) {
-        throw new Error("Backend no configurado");
+      const backendUrl = getBackendUrl();
+      if (!backendUrl) {
+        throw new Error("Backend no configurado. Verifica NEXT_PUBLIC_AGENT_SERVICE_URL");
       }
 
-      const response = await fetch(`${AGENT_SERVICE_URL}/api/casts/cancel`, {
+      const response = await fetch(`${backendUrl}/api/casts/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -77,13 +86,20 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Error cancelando cast");
+        let errorMessage = "Error cancelando cast";
+        try {
+          const error = await response.json();
+          errorMessage = error.detail || error.message || errorMessage;
+        } catch {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       // Refrescar lista
       fetchCasts();
     } catch (err: any) {
+      console.error("Error cancelando cast:", err);
       alert(err.message || "Error cancelando cast");
     }
   };

@@ -11,6 +11,7 @@ import { parseEther, formatEther } from "viem";
 import { STABLE_TOKEN_ADDRESSES } from "@/lib/minipay";
 import { stableTokenABI } from "@celo/abis";
 import { cn } from "@/lib/utils";
+import { getBackendUrl } from "@/lib/backend";
 
 const TOPICS = {
   tech: { name: "Tech", emoji: "💻", description: "Tecnología, blockchain, Web3" },
@@ -48,28 +49,32 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   useEffect(() => {
     const fetchAgentAddress = async () => {
       try {
-        const AGENT_SERVICE_URL = process.env.NEXT_PUBLIC_AGENT_SERVICE_URL;
-        if (!AGENT_SERVICE_URL) {
-          setPublishError("Backend no configurado");
+        const backendUrl = getBackendUrl();
+        if (!backendUrl) {
+          setPublishError("Backend no configurado. Verifica NEXT_PUBLIC_AGENT_SERVICE_URL");
           setIsLoadingAddress(false);
           return;
         }
 
-        const response = await fetch(`${AGENT_SERVICE_URL}/api/casts/agent-address`);
-        if (!response.ok) throw new Error("Error obteniendo dirección del agente");
+        const response = await fetch(`${backendUrl}/api/casts/agent-address`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Error obteniendo dirección del agente: ${response.status} ${errorText}`);
+        }
         
         const data = await response.json();
         setAgentAddress(data.agent_address);
-      } catch (error) {
+        setPublishError(null); // Limpiar error si se carga correctamente
+      } catch (error: any) {
         console.error("Error obteniendo dirección del agente:", error);
-        setPublishError("Error conectando con el backend");
+        setPublishError(error.message || "Error conectando con el backend");
       } finally {
         setIsLoadingAddress(false);
       }
     };
 
     fetchAgentAddress();
-  });
+  }, []); // Solo ejecutar una vez al montar
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -78,12 +83,12 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     setPublishSuccess(false);
 
     try {
-      const AGENT_SERVICE_URL = process.env.NEXT_PUBLIC_AGENT_SERVICE_URL;
-      if (!AGENT_SERVICE_URL) {
-        throw new Error("Backend no configurado");
+      const backendUrl = getBackendUrl();
+      if (!backendUrl) {
+        throw new Error("Backend no configurado. Verifica NEXT_PUBLIC_AGENT_SERVICE_URL");
       }
 
-      const response = await fetch(`${AGENT_SERVICE_URL}/api/casts/generate`, {
+      const response = await fetch(`${backendUrl}/api/casts/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -94,13 +99,20 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Error generando cast");
+        let errorMessage = "Error generando cast";
+        try {
+          const error = await response.json();
+          errorMessage = error.detail || error.message || errorMessage;
+        } catch {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      setGeneratedCast(data.cast_text);
+      setGeneratedCast(data.cast_text || "");
     } catch (error: any) {
+      console.error("Error generando cast:", error);
       setPublishError(error.message || "Error generando cast");
     } finally {
       setIsGenerating(false);
@@ -133,19 +145,20 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
 
   // Cuando la transacción se confirma, publicar el cast
   useEffect(() => {
-    if (isConfirmed && hash && generatedCast) {
+    if (isConfirmed && hash && generatedCast && !publishSuccess) {
       const publishCast = async () => {
+        setIsPublishing(true);
         try {
-          const AGENT_SERVICE_URL = process.env.NEXT_PUBLIC_AGENT_SERVICE_URL;
-          if (!AGENT_SERVICE_URL) {
-            throw new Error("Backend no configurado");
+          const backendUrl = getBackendUrl();
+          if (!backendUrl) {
+            throw new Error("Backend no configurado. Verifica NEXT_PUBLIC_AGENT_SERVICE_URL");
           }
 
           const scheduledDateTime = scheduledTime 
             ? new Date(scheduledTime).toISOString()
             : null;
 
-          const response = await fetch(`${AGENT_SERVICE_URL}/api/casts/publish`, {
+          const response = await fetch(`${backendUrl}/api/casts/publish`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -159,16 +172,29 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
           });
 
           if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || "Error publicando cast");
+            let errorMessage = "Error publicando cast";
+            try {
+              const error = await response.json();
+              errorMessage = error.detail || error.message || errorMessage;
+            } catch {
+              errorMessage = `Error ${response.status}: ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
           }
 
           const data = await response.json();
           setPublishSuccess(true);
-          setGeneratedCast(""); // Limpiar para generar otro
-          setScheduledTime(""); // Limpiar fecha
+          setPublishError(null);
+          // Limpiar después de 3 segundos para permitir ver el mensaje de éxito
+          setTimeout(() => {
+            setGeneratedCast("");
+            setScheduledTime("");
+            setPublishSuccess(false);
+          }, 3000);
         } catch (error: any) {
+          console.error("Error publicando cast:", error);
           setPublishError(error.message || "Error publicando cast");
+          setPublishSuccess(false);
         } finally {
           setIsPublishing(false);
         }
@@ -176,7 +202,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
 
       publishCast();
     }
-  }, [isConfirmed, hash, generatedCast, selectedTopic, userAddress, userFid, scheduledTime]);
+  }, [isConfirmed, hash]); // Solo ejecutar cuando se confirma la transacción
 
   return (
     <div className="space-y-6">
@@ -272,8 +298,13 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                   value={scheduledTime}
                   onChange={(e) => setScheduledTime(e.target.value)}
                   min={new Date().toISOString().slice(0, 16)}
-                  className="mt-2 w-full px-3 py-2 border rounded-md"
+                  className="mt-2 w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 />
+                {scheduledTime && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Se publicará el {new Date(scheduledTime).toLocaleString()}
+                  </div>
+                )}
               </div>
 
               {/* Publicar */}
