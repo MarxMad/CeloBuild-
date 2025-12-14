@@ -108,6 +108,9 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     setGeneratedCast("");
     setPublishError(null);
     setPublishSuccess(false);
+    setXpGranted(0);
+    setPublishedCastHash(null);
+    setTxHash(null);
 
     try {
       const backendUrl = getBackendUrl();
