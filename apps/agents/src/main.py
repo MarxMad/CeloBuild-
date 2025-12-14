@@ -1,5 +1,6 @@
 import logging
 import re
+import httpx
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -1159,8 +1160,8 @@ async def register_signed_key_endpoint(request: RegisterSignedKeyRequest):
         if not app_fid and settings.neynar_app_mnemonic:
             # Buscar FID usando el custody address del mnemonic
             try:
-                from mnemonic import Mnemonic
                 from eth_account import Account
+                Account.enable_unaudited_hdwallet_features()
                 account = Account.from_mnemonic(settings.neynar_app_mnemonic)
                 custody_address = account.address
                 
@@ -1197,6 +1198,7 @@ async def register_signed_key_endpoint(request: RegisterSignedKeyRequest):
             from eth_account.messages import encode_defunct
             from web3 import Web3
             
+            Account.enable_unaudited_hdwallet_features()
             account = Account.from_mnemonic(settings.neynar_app_mnemonic)
             
             # Crear mensaje según formato EIP-712 de Farcaster
@@ -1228,7 +1230,7 @@ async def register_signed_key_endpoint(request: RegisterSignedKeyRequest):
         # Registrar signed key
         result = await farcaster_toolbox.register_signed_key(
             signer_uuid=request.signer_uuid,
-            app_fid=settings.neynar_app_fid,
+            app_fid=app_fid,  # Usar app_fid calculado (puede ser el configurado o el obtenido desde mnemonic)
             deadline=deadline,
             signature=signature
         )
@@ -1297,4 +1299,75 @@ async def get_signer_status_endpoint(signer_uuid: str = Query(..., description="
     except Exception as exc:
         logger.error("Error obteniendo estado del signer: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error obteniendo estado del signer: {exc}")
+
+
+@app.get("/api/casts/app-fid")
+async def get_app_fid_endpoint():
+    """Obtiene el FID de la app desde el mnemonic configurado."""
+    try:
+        if not settings.neynar_app_mnemonic:
+            raise HTTPException(
+                status_code=400,
+                detail="NEYNAR_APP_MNEMONIC no está configurado"
+            )
+        
+        if not farcaster_toolbox.neynar_key or farcaster_toolbox.neynar_key == "NEYNAR_API_DOCS":
+            raise HTTPException(
+                status_code=400,
+                detail="NEYNAR_API_KEY no está configurado o es inválido"
+            )
+        
+        # Obtener custody address desde mnemonic
+        from eth_account import Account
+        Account.enable_unaudited_hdwallet_features()
+        account = Account.from_mnemonic(settings.neynar_app_mnemonic)
+        custody_address = account.address
+        
+        # Buscar FID usando Neynar API
+        lookup_url = f"https://api.neynar.com/v2/farcaster/user/by_custody_address"
+        params = {"custody_address": custody_address}
+        headers = {
+            "accept": "application/json",
+            "x-api-key": farcaster_toolbox.neynar_key
+        }
+        
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(lookup_url, params=params, headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                result = data.get("result", {})
+                fid = result.get("fid")
+                
+                if fid:
+                    return {
+                        "status": "success",
+                        "fid": fid,
+                        "custody_address": custody_address,
+                        "username": result.get("username"),
+                        "display_name": result.get("display_name"),
+                        "message": f"Tu NEYNAR_APP_FID es: {fid}"
+                    }
+                else:
+                    raise HTTPException(
+                        status_code=404,
+                        detail="No se encontró cuenta Farcaster para este mnemonic. Asegúrate de que la wallet tenga una cuenta Farcaster registrada."
+                    )
+            elif response.status_code == 404:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No se encontró cuenta Farcaster para este mnemonic. Necesitas crear una cuenta Farcaster primero."
+                )
+            else:
+                error_text = response.text
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Error obteniendo FID: {error_text}"
+                )
+                
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error obteniendo FID de la app: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error obteniendo FID: {exc}")
 
