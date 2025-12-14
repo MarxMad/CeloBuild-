@@ -1136,7 +1136,7 @@ class FarcasterToolbox:
         
         # Si no hay signer_uuid, buscar en el store de signers
         if not signer_uuid:
-            from .stores.signers import get_signer_store
+            from ..stores.signers import get_signer_store
             signer_store = get_signer_store()
             # Intentar buscar por FID primero
             signer_data = signer_store.get_signer(str(user_fid))
