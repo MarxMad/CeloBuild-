@@ -5,6 +5,7 @@ import { Loader2, Calendar, X, CheckCircle2, Clock, XCircle, Sparkles } from "lu
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getBackendUrl } from "@/lib/backend";
+import { useLanguage } from "@/components/language-provider";
 
 interface ScheduledCast {
   cast_id: string;
@@ -23,6 +24,7 @@ interface ScheduledCastsListProps {
 }
 
 export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
+  const { t, locale } = useLanguage();
   const [casts, setCasts] = useState<ScheduledCast[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
       );
 
       if (!response.ok) {
-        let errorMessage = "Error obteniendo casts programados";
+        let errorMessage = t("scheduled_error_loading");
         try {
           const error = await response.json();
           errorMessage = error.detail || error.message || errorMessage;
@@ -56,7 +58,7 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
       setCasts(data.casts || []);
     } catch (err: any) {
       console.error("Error cargando casts programados:", err);
-      setError(err.message || "Error cargando casts programados");
+      setError(err.message || t("scheduled_error_loading"));
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +75,7 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
     try {
       const backendUrl = getBackendUrl();
       if (!backendUrl) {
-        throw new Error("Backend no configurado. Verifica NEXT_PUBLIC_AGENT_SERVICE_URL");
+        throw new Error(t("scheduled_error_backend"));
       }
 
       const response = await fetch(`${backendUrl}/api/casts/cancel`, {
@@ -86,7 +88,7 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
       });
 
       if (!response.ok) {
-        let errorMessage = "Error cancelando cast";
+        let errorMessage = t("scheduled_error_cancelling");
         try {
           const error = await response.json();
           errorMessage = error.detail || error.message || errorMessage;
@@ -100,7 +102,7 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
       fetchCasts();
     } catch (err: any) {
       console.error("Error cancelando cast:", err);
-      alert(err.message || "Error cancelando cast");
+      alert(err.message || t("scheduled_error_cancelling"));
     }
   };
 
@@ -120,13 +122,13 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
   const getStatusText = (status: ScheduledCast["status"]) => {
     switch (status) {
       case "published":
-        return "Publicado";
+        return t("scheduled_status_published");
       case "scheduled":
-        return "Programado";
+        return t("scheduled_status_scheduled");
       case "cancelled":
-        return "Cancelado";
+        return t("scheduled_status_cancelled");
       case "failed":
-        return "Error";
+        return t("scheduled_status_failed");
     }
   };
 
@@ -172,9 +174,9 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <div className="font-semibold text-lg">No tienes casts programados</div>
+              <div className="font-semibold text-lg">{t("scheduled_empty_title")}</div>
               <div className="text-sm text-muted-foreground">
-                Genera un cast y programa su publicación para más tarde
+                {t("scheduled_empty_desc")}
               </div>
             </div>
           </div>
@@ -210,14 +212,14 @@ export function ScheduledCastsList({ userAddress }: ScheduledCastsListProps) {
             <CardDescription className="text-xs">
               <div className="flex items-center gap-2 mt-2">
                 <Calendar className="h-3 w-3" />
-                {new Date(cast.scheduled_time).toLocaleString()}
+                {new Date(cast.scheduled_time).toLocaleString(locale === 'es' ? 'es-ES' : 'en-US')}
               </div>
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm mb-4 leading-relaxed">{cast.cast_text}</p>
             <div className="flex items-center justify-between text-xs">
-              <div className="text-muted-foreground">Tema: <span className="font-semibold capitalize">{cast.topic}</span></div>
+              <div className="text-muted-foreground">{t("scheduled_topic")} <span className="font-semibold capitalize">{cast.topic}</span></div>
               {cast.xp_granted > 0 && (
                 <div className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
                   <Sparkles className="h-3 w-3" />

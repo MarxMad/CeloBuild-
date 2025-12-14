@@ -10,16 +10,18 @@ import { useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther, formatEther } from "viem";
 import { cn } from "@/lib/utils";
 import { getBackendUrl } from "@/lib/backend";
+import { useLanguage } from "@/components/language-provider";
 
-const TOPICS = {
-  tech: { name: "Tech", emoji: "💻", description: "Tecnología, blockchain, Web3" },
-  musica: { name: "Música", emoji: "🎵", description: "Música, artistas, canciones" },
-  motivacion: { name: "Motivación", emoji: "🚀", description: "Superación personal, crecimiento" },
-  chistes: { name: "Chistes", emoji: "😂", description: "Humor, memes, contenido divertido" },
-  frases_celebres: { name: "Frases Célebres", emoji: "💬", description: "Citas inspiradoras" },
-} as const;
+type Topic = "tech" | "musica" | "motivacion" | "chistes" | "frases_celebres";
 
-type Topic = keyof typeof TOPICS;
+// TOPICS se define dentro del componente para acceder a t()
+const getTopics = (t: (key: string) => string): Record<Topic, { name: string; emoji: string; description: string }> => ({
+  tech: { name: t("topic_tech"), emoji: "💻", description: t("topic_tech_desc") },
+  musica: { name: t("topic_musica"), emoji: "🎵", description: t("topic_musica_desc") },
+  motivacion: { name: t("topic_motivacion"), emoji: "🚀", description: t("topic_motivacion_desc") },
+  chistes: { name: t("topic_chistes"), emoji: "😂", description: t("topic_chistes_desc") },
+  frases_celebres: { name: t("topic_frases_celebres"), emoji: "💬", description: t("topic_frases_celebres_desc") },
+});
 
 interface CastGeneratorProps {
   userAddress: string;
@@ -27,6 +29,7 @@ interface CastGeneratorProps {
 }
 
 export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
+  const { t, locale } = useLanguage();
   const [selectedTopic, setSelectedTopic] = useState<Topic>("tech");
   const [generatedCast, setGeneratedCast] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -50,7 +53,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
       try {
         const backendUrl = getBackendUrl();
         if (!backendUrl) {
-          setPublishError("Backend no configurado. Verifica NEXT_PUBLIC_AGENT_SERVICE_URL");
+          setPublishError(t("cast_error_backend"));
           setIsLoadingAddress(false);
           return;
         }
@@ -58,7 +61,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
         const response = await fetch(`${backendUrl}/api/casts/agent-address`);
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`Error obteniendo dirección del agente: ${response.status} ${errorText}`);
+          throw new Error(`${t("cast_error_address")} ${response.status} ${errorText}`);
         }
         
         const data = await response.json();
@@ -66,7 +69,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
         setPublishError(null); // Limpiar error si se carga correctamente
       } catch (error: any) {
         console.error("Error obteniendo dirección del agente:", error);
-        setPublishError(error.message || "Error conectando con el backend");
+        setPublishError(error.message || t("cast_error_address"));
       } finally {
         setIsLoadingAddress(false);
       }
@@ -84,7 +87,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     try {
       const backendUrl = getBackendUrl();
       if (!backendUrl) {
-        throw new Error("Backend no configurado. Verifica NEXT_PUBLIC_AGENT_SERVICE_URL");
+        throw new Error(t("cast_error_backend"));
       }
 
       const response = await fetch(`${backendUrl}/api/casts/generate`, {
@@ -98,7 +101,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
       });
 
       if (!response.ok) {
-        let errorMessage = "Error generando cast";
+        let errorMessage = t("cast_error_generating");
         try {
           const error = await response.json();
           errorMessage = error.detail || error.message || errorMessage;
@@ -112,7 +115,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
       setGeneratedCast(data.cast_text || "");
     } catch (error: any) {
       console.error("Error generando cast:", error);
-      setPublishError(error.message || "Error generando cast");
+      setPublishError(error.message || t("cast_error_generating"));
     } finally {
       setIsGenerating(false);
     }
@@ -137,7 +140,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
         data: undefined, // No hay data, es una transferencia simple
       });
     } catch (error: any) {
-      setPublishError(error.message || "Error iniciando pago");
+      setPublishError(error.message || t("cast_error_payment"));
       setIsPublishing(false);
     }
   };
@@ -157,7 +160,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
         try {
           const backendUrl = getBackendUrl();
           if (!backendUrl) {
-            throw new Error("Backend no configurado. Verifica NEXT_PUBLIC_AGENT_SERVICE_URL");
+            throw new Error(t("cast_error_backend"));
           }
 
           const scheduledDateTime = scheduledTime 
@@ -178,7 +181,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
           });
 
           if (!response.ok) {
-            let errorMessage = "Error publicando cast";
+            let errorMessage = t("cast_error_publishing");
             try {
               const error = await response.json();
               errorMessage = error.detail || error.message || errorMessage;
@@ -200,7 +203,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
           }, 5000);
         } catch (error: any) {
           console.error("Error publicando cast:", error);
-          setPublishError(error.message || "Error publicando cast");
+          setPublishError(error.message || t("cast_error_publishing"));
           setPublishSuccess(false);
         } finally {
           setIsPublishing(false);
@@ -211,17 +214,19 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     }
   }, [isConfirmed, hash, generatedCast, publishSuccess]); // Solo ejecutar cuando se confirma la transacción
 
+  const TOPICS = getTopics(t);
+
   return (
     <div className="space-y-6">
       {/* Selección de Tema */}
       <Card className="border-white/5 bg-background/50 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-lg">Selecciona un Tema</CardTitle>
-          <CardDescription className="text-xs">Elige el tema para tu cast</CardDescription>
+          <CardTitle className="text-lg">{t("cast_select_topic")}</CardTitle>
+          <CardDescription className="text-xs">{t("cast_select_topic_desc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
-            {(Object.keys(TOPICS) as Topic[]).map((topic) => {
+            {(Object.keys(TOPICS) as Topic[]).map((topic: Topic) => {
               const topicInfo = TOPICS[topic];
               const isSelected = selectedTopic === topic;
               return (
@@ -255,9 +260,9 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
       {/* Generar Cast */}
       <Card className="border-white/5 bg-background/50 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-lg">Generar Cast con IA</CardTitle>
+          <CardTitle className="text-lg">{t("cast_generate_title")}</CardTitle>
           <CardDescription className="text-xs">
-            Usa inteligencia artificial para crear contenido viral
+            {t("cast_generate_desc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -270,12 +275,12 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Generando...
+                {t("cast_generating")}
               </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-5 w-5" />
-                Generar Cast
+                {t("cast_generate_btn")}
               </>
             )}
           </Button>
@@ -283,21 +288,21 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
           {generatedCast && (
             <div className="space-y-4">
               <div>
-                <Label>Cast Generado</Label>
+                <Label>{t("cast_generated")}</Label>
                 <Textarea
                   value={generatedCast}
                   readOnly
                   className="mt-2 min-h-[100px]"
                 />
                 <div className="text-xs text-muted-foreground mt-1">
-                  {generatedCast.length}/100 caracteres
+                  {generatedCast.length}/100 {t("cast_characters")}
                 </div>
               </div>
 
               {/* Programar Cast (Opcional) */}
               <div>
                 <Label htmlFor="scheduled-time">
-                  Programar para más tarde (Opcional)
+                  {t("cast_schedule_title")}
                 </Label>
                 <input
                   id="scheduled-time"
@@ -309,7 +314,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                 />
                 {scheduledTime && (
                   <div className="text-xs text-muted-foreground mt-1">
-                    Se publicará el {new Date(scheduledTime).toLocaleString()}
+                    {t("cast_schedule_will_publish")} {new Date(scheduledTime).toLocaleString(locale === 'es' ? 'es-ES' : 'en-US')}
                   </div>
                 )}
               </div>
@@ -324,12 +329,12 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                 {isPublishing || isPendingTx || isConfirming ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isPendingTx || isConfirming ? "Confirmando pago..." : "Publicando..."}
+                    {isPendingTx || isConfirming ? t("cast_confirming_payment") : t("cast_publishing")}
                   </>
                 ) : (
                   <>
                     <Send className="mr-2 h-4 w-4" />
-                    Publicar por 1 CELO
+                    {t("cast_publish_btn")}
                   </>
                 )}
               </Button>
@@ -338,7 +343,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                     <CheckCircle2 className="h-5 w-5" />
-                    <span>¡Cast publicado exitosamente! Ganaste 100 XP</span>
+                    <span>{t("cast_published_success")}</span>
                   </div>
                   {txHash && (
                     <div className="text-sm">
@@ -348,7 +353,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                         rel="noopener noreferrer"
                         className="text-primary hover:underline flex items-center gap-1"
                       >
-                        Ver transacción en CeloScan
+                        {t("cast_view_tx")}
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
@@ -380,14 +385,14 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
               </div>
             </div>
             <div className="space-y-1 flex-1">
-              <div className="font-semibold text-base">Precio: 1 CELO</div>
+              <div className="font-semibold text-base">{t("cast_price")}</div>
               <div className="text-sm text-muted-foreground">
-                Por cada cast publicado recibirás <span className="font-semibold text-primary">100 XP</span> como recompensa
+                {t("cast_price_desc")} <span className="font-semibold text-primary">{t("cast_price_xp")}</span> {t("cast_price_reward")}
               </div>
               {isLoadingAddress && (
                 <div className="text-xs text-muted-foreground flex items-center gap-2 mt-2">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Cargando dirección del agente...
+                  {t("cast_loading_address")}
                 </div>
               )}
             </div>

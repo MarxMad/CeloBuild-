@@ -7,8 +7,10 @@ import { useAccount } from "wagmi";
 import { useFarcasterUser } from "@/components/farcaster-provider";
 import { Sparkles, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/components/language-provider";
 
 export default function CastsPage() {
+  const { t } = useLanguage();
   const { address, isConnected } = useAccount();
   const farcasterUser = useFarcasterUser();
   const [activeTab, setActiveTab] = useState<"generate" | "scheduled">("generate");
@@ -24,9 +26,9 @@ export default function CastsPage() {
                 <Sparkles className="h-12 w-12 text-primary" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold">Generar Casts con IA</h1>
+            <h1 className="text-2xl font-bold">{t("cast_generate_title")}</h1>
             <p className="text-muted-foreground">
-              Conecta tu wallet para generar y programar casts en Farcaster
+              {t("cast_page_connect_wallet")}
             </p>
           </div>
         </div>
@@ -45,9 +47,9 @@ export default function CastsPage() {
                 <Sparkles className="h-12 w-12 text-primary" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold">Generar Casts con IA</h1>
+            <h1 className="text-2xl font-bold">{t("cast_generate_title")}</h1>
             <p className="text-muted-foreground">
-              Necesitas estar autenticado con Farcaster para generar casts
+              {t("cast_page_farcaster_required")}
             </p>
           </div>
         </div>
@@ -67,9 +69,9 @@ export default function CastsPage() {
                 <Sparkles className="h-10 w-10 text-primary" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold mb-2">Generar Casts con IA</h1>
+            <h1 className="text-2xl font-bold mb-2">{t("cast_generate_title")}</h1>
             <p className="text-sm text-muted-foreground">
-              Crea contenido viral para Farcaster. Paga 0.5 cUSD y gana 100 XP por cada cast publicado.
+              {t("cast_page_description")}
             </p>
           </div>
         </div>
@@ -88,7 +90,7 @@ export default function CastsPage() {
             )}
           >
             <Sparkles className="w-4 h-4" />
-            Generar
+            {t("cast_tab_generate")}
           </button>
           <button
             onClick={() => setActiveTab("scheduled")}
@@ -100,7 +102,7 @@ export default function CastsPage() {
             )}
           >
             <Calendar className="w-4 h-4" />
-            Programados
+            {t("cast_tab_scheduled")}
           </button>
         </div>
       </div>
