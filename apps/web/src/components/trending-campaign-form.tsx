@@ -576,7 +576,7 @@ export function TrendingCampaignForm() {
             <div className="p-1.5 rounded-lg bg-green-600/10 dark:bg-[#FCFF52]/10 ring-1 ring-green-600/20 dark:ring-[#FCFF52]/20">
               <Sparkles className="w-4 h-4 text-green-600 dark:text-[#FCFF52] animate-pulse" />
             </div>
-            Verificar Elegibilidad
+            {t("form_title")}
           </CardTitle>
           <CardDescription className="text-gray-500 dark:text-gray-400 text-sm">
             {t("hero_description")}
@@ -695,12 +695,12 @@ export function TrendingCampaignForm() {
                       </div>
 
                       <div>
-                        <h3 className="text-xl font-bold text-foreground">¡Sin Energía! 🔋</h3>
+                        <h3 className="text-xl font-bold text-foreground">{t("form_energy_empty")}</h3>
                         <p className="text-sm text-muted-foreground mt-2">
-                          Debes esperar <span className="font-mono font-bold text-amber-500">{formatTimeRemaining(energy.seconds * 1000)}</span> para el siguiente loot.
+                          {t("form_energy_desc")} <span className="font-mono font-bold text-amber-500">{formatTimeRemaining(energy.seconds * 1000)}</span>
                         </p>
                         <p className="text-sm font-medium text-foreground mt-4">
-                          ¿Quieres recargar instantáneamente?
+                          {t("form_energy_ask")}
                         </p>
                       </div>
 
@@ -711,7 +711,7 @@ export function TrendingCampaignForm() {
                           id="recharge-btn"
                         >
                           <TrendingUp className="w-4 h-4" />
-                          Compartir para Recargar
+                          {t("form_share_btn")}
                         </Button>
 
                         <Button
@@ -719,7 +719,7 @@ export function TrendingCampaignForm() {
                           className="w-full text-muted-foreground hover:text-foreground"
                           onClick={() => setShowRechargeModal(false)}
                         >
-                          Esperar
+                          {t("form_wait_btn")}
             </Button>
                       </div>
                     </div>
@@ -739,10 +739,10 @@ export function TrendingCampaignForm() {
                     </div>
                     <div className="space-y-2">
                       <h2 className="text-3xl font-black text-white tracking-tight">
-                        ¡Energía Recargada!
+                        {t("form_energy_recharged")}
                       </h2>
                       <p className="text-lg text-green-300 font-medium max-w-xs mx-auto">
-                        Gracias por compartir Premio.xyz
+                        {t("form_share_btn")}
                       </p>
                     </div>
                   </div>
@@ -764,24 +764,24 @@ export function TrendingCampaignForm() {
               <div className="flex items-center justify-center gap-2 text-amber-400 mb-3">
                 <Zap className="w-6 h-6 animate-pulse" />
                 <span className="text-base font-bold">
-                  ⚡ Rayo de Energía Consumido
+                  {t("form_energy_consumed")}
                 </span>
               </div>
               <p className="text-sm text-amber-300/90 mb-3 font-medium">
-                Has usado <strong className="text-[#FCFF52]">1 rayo</strong> de tus {energy.max} rayos para obtener esta recompensa
+                {t("form_energy_used")} <strong className="text-[#FCFF52]">{t("form_energy_ray")}</strong> {t("form_energy_of")} {energy.max} {t("form_energy_rays")} {t("form_energy_to_obtain")}
               </p>
               
               {/* Estado actual de rayos */}
               <div className="bg-black/40 rounded-lg p-3 mb-3 border border-amber-500/20">
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-xs text-amber-400/80">Rayos disponibles:</span>
+                  <span className="text-xs text-amber-400/80">{t("form_energy_available")}</span>
                   <span className="text-lg font-bold text-[#FCFF52]">{energy.current}/{energy.max}</span>
                 </div>
                 
                 {/* Mostrar cuenta regresiva de rayos consumidos */}
                 {energy.bolts && energy.bolts.some((b: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }) => !b.available) && (
                   <div className="mt-2 pt-2 border-t border-amber-500/20">
-                    <p className="text-[10px] text-amber-400/70 mb-2">Próximas recargas:</p>
+                    <p className="text-[10px] text-amber-400/70 mb-2">{t("form_energy_next_recharges")}</p>
                     <div className="flex flex-wrap items-center justify-center gap-2">
                       {energy.bolts
                         .filter((b: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }) => !b.available && b.seconds_to_refill > 0)
@@ -803,7 +803,7 @@ export function TrendingCampaignForm() {
               </div>
               
               <p className="text-[10px] text-amber-400/60 italic">
-                💡 Cada rayo se recarga automáticamente 60 minutos después de ser consumido
+                {t("form_energy_auto_recharge")}
               </p>
             </div>
           )}

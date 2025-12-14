@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Zap, Info } from "lucide-react";
+import { useLanguage } from "@/components/language-provider";
 
 interface BoltInfo {
   index: number;
@@ -18,6 +19,7 @@ interface EnergyDisplayProps {
 }
 
 export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts }: EnergyDisplayProps) {
+  const { t } = useLanguage();
   const [timeLeft, setTimeLeft] = useState(secondsToRefill);
   const [boltsState, setBoltsState] = useState<BoltInfo[]>(bolts || []);
   const [showInfo, setShowInfo] = useState(false);
@@ -104,7 +106,7 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
   }, [timeLeft]); // No agregar boltsState como dependencia - el intervalo usa el estado más reciente con setBoltsState(prev => ...)
 
   const formatTime = (seconds: number) => {
-    if (seconds <= 0) return "Listo";
+    if (seconds <= 0) return t("energy_ready");
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
@@ -125,7 +127,7 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-[#FCFF52]" />
             <span className="text-sm font-medium text-white">
-              Sistema de Energía: {currentEnergy}/{maxEnergy} Rayos
+              {t("energy_system")}: {currentEnergy}/{maxEnergy} {t("energy_rays")}
             </span>
           </div>
           <Info className={`w-4 h-4 text-gray-400 transition-transform ${showInfo ? 'rotate-180' : ''}`} />
@@ -133,12 +135,12 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
         
         {showInfo && (
           <div className="mt-2 p-3 bg-black/30 border border-white/10 rounded-lg text-xs text-gray-300 space-y-2 animate-in fade-in slide-in-from-top-2">
-            <p className="font-semibold text-[#FCFF52]">⚡ ¿Cómo funcionan los rayos?</p>
+            <p className="font-semibold text-[#FCFF52]">⚡ {t("energy_how_works")}</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>Tienes un máximo de <strong>{maxEnergy} rayos</strong> de energía</li>
-              <li>Cada vez que obtienes una recompensa, se consume <strong>1 rayo</strong></li>
-              <li>Cada rayo se recarga <strong>independientemente 60 minutos</strong> después de ser consumido</li>
-              <li>Si consumes los 3 rayos, se recargan uno por uno cada 60 minutos</li>
+              <li>{t("energy_max_bolts")} <strong>{maxEnergy} {t("energy_bolts")}</strong></li>
+              <li>{t("energy_consumes")} <strong>{t("energy_one_bolt")}</strong></li>
+              <li>{t("energy_recharges")} <strong>{t("energy_independently")}</strong> {t("energy_after_consumed")}</li>
+              <li>{t("energy_if_consume_all")}</li>
             </ul>
           </div>
         )}
@@ -178,7 +180,7 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
                   </div>
                 ) : isActive ? (
                   <div className="text-[9px] text-green-400 font-medium">
-                    Listo
+                    {t("energy_ready")}
                   </div>
                 ) : null}
               </div>
@@ -190,27 +192,27 @@ export function EnergyDisplay({ currentEnergy, maxEnergy, secondsToRefill, bolts
         <div className="text-center space-y-1">
           {currentEnergy === maxEnergy ? (
             <p className="text-sm text-green-400 font-bold">
-              ✅ Todos los rayos disponibles
+              ✅ {t("energy_all_available")}
             </p>
           ) : currentEnergy === 0 ? (
             <div className="space-y-1">
               <p className="text-sm text-amber-400 font-bold">
-              ⚠️ Sin rayos disponibles
+              ⚠️ {t("energy_none_available")}
             </p>
               {boltsState.some(b => !b.available && b.seconds_to_refill > 0) && (
                 <p className="text-xs text-amber-400/70">
-                  Próximo rayo en: {formatTime(boltsState.find(b => !b.available && b.seconds_to_refill > 0)?.seconds_to_refill || 0)}
+                  {t("form_energy_next_ray")} {formatTime(boltsState.find(b => !b.available && b.seconds_to_refill > 0)?.seconds_to_refill || 0)}
                 </p>
               )}
             </div>
           ) : (
             <div className="space-y-1">
               <p className="text-sm text-[#FCFF52] font-bold">
-              {currentEnergy} de {maxEnergy} rayos disponibles
+              {currentEnergy} {t("energy_available_count")} {maxEnergy} {t("energy_rays_available")}
             </p>
               {boltsState.some(b => !b.available && b.seconds_to_refill > 0) && (
                 <p className="text-xs text-amber-400/70">
-                  Próximo rayo en: {formatTime(boltsState.find(b => !b.available && b.seconds_to_refill > 0)?.seconds_to_refill || 0)}
+                  {t("form_energy_next_ray")} {formatTime(boltsState.find(b => !b.available && b.seconds_to_refill > 0)?.seconds_to_refill || 0)}
                 </p>
               )}
             </div>

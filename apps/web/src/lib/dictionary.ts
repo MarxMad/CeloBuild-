@@ -27,6 +27,7 @@ export const dictionary = {
         leaderboard_pending: "Pendiente",
 
         // Campaign Form
+        form_title: "Verificar Elegibilidad",
         form_action_placeholder: "Ingresa el enlace del cast de Farcaster...",
         form_verify_btn: "Verificar Requisitos",
         form_analyze_btn: "Analizar y Reclamar",
@@ -43,6 +44,17 @@ export const dictionary = {
         form_status_verify: "Verificando...",
         form_status_send: "Enviando...",
         form_status_done: "¡Completado!",
+        form_energy_recharged: "¡Energía Recargada!",
+        form_energy_consumed: "⚡ Rayo de Energía Consumido",
+        form_energy_used: "Has usado",
+        form_energy_ray: "1 rayo",
+        form_energy_of: "de tus",
+        form_energy_rays: "rayos",
+        form_energy_to_obtain: "para obtener esta recompensa",
+        form_energy_available: "Rayos disponibles:",
+        form_energy_next_recharges: "Próximas recargas:",
+        form_energy_next_ray: "Próximo rayo en:",
+        form_energy_auto_recharge: "💡 Cada rayo se recarga automáticamente 60 minutos después de ser consumido",
 
         // Reward Types
         reward_nft: "Loot NFT",
@@ -133,6 +145,40 @@ export const dictionary = {
         cast_card_description: "Crea contenido viral para Farcaster. Paga 1 CELO y gana 100 XP",
         cast_tab_generate: "Generar",
         cast_tab_scheduled: "Programados",
+
+        // Energy Display
+        energy_system: "Sistema de Energía",
+        energy_rays: "Rayos",
+        energy_ready: "Listo",
+        energy_all_available: "Todos los rayos disponibles",
+        energy_none_available: "Sin rayos disponibles",
+        energy_available_count: "de",
+        energy_rays_available: "rayos disponibles",
+        energy_how_works: "¿Cómo funcionan los rayos?",
+        energy_max_bolts: "Tienes un máximo de",
+        energy_bolts: "rayos",
+        energy_consumes: "Cada vez que obtienes una recompensa, se consume",
+        energy_one_bolt: "1 rayo",
+        energy_recharges: "Cada rayo se recarga",
+        energy_independently: "independientemente 60 minutos",
+        energy_after_consumed: "después de ser consumido",
+        energy_if_consume_all: "Si consumes los 3 rayos, se recargan uno por uno cada 60 minutos",
+
+        // Instructions / Guide
+        guide_title: "¿Cómo Funciona?",
+        guide_step1_title: "1. Sistema de Energía",
+        guide_step1_desc: "Tienes 3 rayos de energía. Cada análisis consume 1 rayo y se recarga cada 60 min. ¡Comparte tu victoria para recargar al instante!",
+        guide_step2_title: "2. Análisis de Casts",
+        guide_step2_desc: "Analizamos tu último cast y tu historial reciente. Cuanto más activo seas en tendencias, ¡más chances de premios!",
+        guide_step3_title: "3. Gana NFTs y XP",
+        guide_step3_desc: "Recibe un Loot Box NFT generado por IA y XP. ¡Entre más casts hagas sobre temas calientes, más recompensas ganarás!",
+        guide_usecases_title: "Casos de Uso",
+        guide_usecase1_title: "Campañas de Memes",
+        guide_usecase1_desc: "Premia automáticamente a los usuarios que crean memes virales sobre tu proyecto.",
+        guide_usecase2_title: "Builder Grants",
+        guide_usecase2_desc: "Envía micro-funding a desarrolladores que postean PRs o demos en canales técnicos.",
+        guide_usecase3_title: "Eventos POAP",
+        guide_usecase3_desc: "Distribuye NFTs conmemorativos a asistentes que comentan durante una conferencia.",
     },
     en: {
         // Navbar
@@ -160,6 +206,7 @@ export const dictionary = {
         leaderboard_pending: "Pending",
 
         // Campaign Form
+        form_title: "Verify Eligibility",
         form_action_placeholder: "Enter Farcaster cast link...",
         form_analyze_btn: "Analyze & Claim",
         form_analyzing: "Analyzing...",
@@ -177,6 +224,17 @@ export const dictionary = {
         form_energy_ask: "Want to recharge instantly?",
         form_share_btn: "Share to Recharge",
         form_wait_btn: "Wait",
+        form_energy_recharged: "Energy Recharged!",
+        form_energy_consumed: "⚡ Energy Bolt Consumed",
+        form_energy_used: "You used",
+        form_energy_ray: "1 bolt",
+        form_energy_of: "of your",
+        form_energy_rays: "bolts",
+        form_energy_to_obtain: "to obtain this reward",
+        form_energy_available: "Available bolts:",
+        form_energy_next_recharges: "Next recharges:",
+        form_energy_next_ray: "Next bolt in:",
+        form_energy_auto_recharge: "💡 Each bolt recharges automatically 60 minutes after being consumed",
 
         // Reward Types
         reward_nft: "Loot NFT",
@@ -267,6 +325,40 @@ export const dictionary = {
         cast_card_description: "Create viral content for Farcaster. Pay 1 CELO and earn 100 XP",
         cast_tab_generate: "Generate",
         cast_tab_scheduled: "Scheduled",
+
+        // Energy Display
+        energy_system: "Energy System",
+        energy_rays: "Bolts",
+        energy_ready: "Ready",
+        energy_all_available: "All bolts available",
+        energy_none_available: "No bolts available",
+        energy_available_count: "of",
+        energy_rays_available: "bolts available",
+        energy_how_works: "How do bolts work?",
+        energy_max_bolts: "You have a maximum of",
+        energy_bolts: "bolts",
+        energy_consumes: "Each time you get a reward, it consumes",
+        energy_one_bolt: "1 bolt",
+        energy_recharges: "Each bolt recharges",
+        energy_independently: "independently 60 minutes",
+        energy_after_consumed: "after being consumed",
+        energy_if_consume_all: "If you consume all 3 bolts, they recharge one by one every 60 minutes",
+
+        // Instructions / Guide
+        guide_title: "How It Works",
+        guide_step1_title: "1. Energy System",
+        guide_step1_desc: "You have 3 energy bolts. Each analysis consumes 1 bolt and recharges every 60 min. Share your victory to recharge instantly!",
+        guide_step2_title: "2. Cast Analysis",
+        guide_step2_desc: "We analyze your latest cast and recent history. The more active you are in trends, the more chances of rewards!",
+        guide_step3_title: "3. Earn NFTs and XP",
+        guide_step3_desc: "Receive an AI-generated Loot Box NFT and XP. The more casts you make about hot topics, the more rewards you'll earn!",
+        guide_usecases_title: "Use Cases",
+        guide_usecase1_title: "Meme Campaigns",
+        guide_usecase1_desc: "Automatically reward users who create viral memes about your project.",
+        guide_usecase2_title: "Builder Grants",
+        guide_usecase2_desc: "Send micro-funding to developers who post PRs or demos in technical channels.",
+        guide_usecase3_title: "POAP Events",
+        guide_usecase3_desc: "Distribute commemorative NFTs to attendees who comment during a conference.",
     }
 } as const;
 
