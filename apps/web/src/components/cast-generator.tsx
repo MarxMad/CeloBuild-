@@ -36,6 +36,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
 
   // Wagmi hooks para transacciones de CELO nativo
   const { sendTransaction, data: hash, isPending: isPendingTx } = useSendTransaction();
