@@ -249,10 +249,27 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
             // Si hay approval URL, mostrar mensaje especial
             if (approvalUrl) {
               setPublishError(
-                `${t("cast_error_signer_required")}\n\n${t("cast_approval_url")}: ${approvalUrl}`
+                `${t("cast_error_signer_required")}\n\n${t("cast_approval_note")}`
               );
-              // Abrir approval URL en nueva pestaña
-              window.open(approvalUrl, "_blank");
+              
+              // Intentar abrir con SDK de Farcaster si está disponible (mini-app)
+              // Si no, usar window.open como fallback
+              import("@farcaster/miniapp-sdk")
+                .then(({ sdk }) => {
+                  // Si estamos en un mini-app de Farcaster, usar SDK
+                  sdk.actions.openUrl(approvalUrl);
+                })
+                .catch(() => {
+                  // Fallback: abrir en nueva pestaña
+                  // Si es un deeplink (farcaster://), intentar abrir directamente
+                  if (approvalUrl.startsWith("farcaster://")) {
+                    // Intentar abrir deeplink directamente
+                    window.location.href = approvalUrl;
+                  } else {
+                    // URL web, abrir en nueva pestaña
+                    window.open(approvalUrl, "_blank");
+                  }
+                });
             } else {
               setPublishError(errorMessage);
             }

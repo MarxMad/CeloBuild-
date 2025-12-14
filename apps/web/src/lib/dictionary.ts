@@ -91,6 +91,9 @@ export const dictionary = {
         cast_error_publishing: "Error publicando cast",
         cast_error_payment: "Error iniciando pago",
         cast_error_address: "Error obteniendo dirección del agente:",
+        cast_error_signer_required: "Se requiere aprobar un signer para publicar casts. Por favor, aprueba el signer en Warpcast y luego vuelve a esta app.",
+        cast_approval_url: "Enlace de aprobación",
+        cast_approval_note: "Se abrirá Warpcast para que apruebes el signer. Después de aprobar, vuelve aquí para continuar.",
 
         // Scheduled Casts
         scheduled_title: "Casts Programados",
@@ -215,6 +218,9 @@ export const dictionary = {
         cast_error_publishing: "Error publishing cast",
         cast_error_payment: "Error initiating payment",
         cast_error_address: "Error getting agent address:",
+        cast_error_signer_required: "A signer approval is required to publish casts. Please approve the signer in Warpcast and then return to this app.",
+        cast_approval_url: "Approval URL",
+        cast_approval_note: "Warpcast will open for you to approve the signer. After approving, return here to continue.",
 
         // Scheduled Casts
         scheduled_title: "Scheduled Casts",
@@ -248,4 +254,7 @@ export const dictionary = {
         cast_tab_generate: "Generate",
         cast_tab_scheduled: "Scheduled",
     }
-};
+} as const;
+
+// Tipo para las claves del diccionario
+export type DictionaryKey = keyof typeof dictionary.es;

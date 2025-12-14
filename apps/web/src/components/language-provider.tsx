@@ -1,12 +1,12 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { dictionary, Locale } from '@/lib/dictionary';
+import { dictionary, Locale, DictionaryKey } from '@/lib/dictionary';
 
 type LanguageContextType = {
     locale: Locale;
     setLocale: (locale: Locale) => void;
-    t: (key: keyof typeof dictionary.es) => string;
+    t: (key: DictionaryKey) => string;
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -27,7 +27,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('app-locale', newLocale);
     };
 
-    const t = (key: keyof typeof dictionary.es) => {
+    const t = (key: DictionaryKey) => {
         return dictionary[locale][key] || key;
     };
 
