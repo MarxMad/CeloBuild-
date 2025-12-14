@@ -1528,10 +1528,13 @@ async def check_signer_endpoint(
         
         # Crear signer
         create_result = await farcaster_toolbox.create_signer()
+        logger.info(f"🔑 Resultado de create_signer: {create_result}")
         if create_result.get("status") != "success":
+            error_message = create_result.get("message", "Error desconocido")
+            logger.error(f"❌ Error creando signer: {error_message}. Resultado completo: {create_result}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Error creando signer: {create_result.get('message', 'Error desconocido')}"
+                detail=f"Error creando signer: {error_message}"
             )
         
         signer_uuid = create_result.get("signer_uuid")

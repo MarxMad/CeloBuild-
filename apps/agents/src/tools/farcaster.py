@@ -986,14 +986,36 @@ class FarcasterToolbox:
                 resp.raise_for_status()
                 result = resp.json()
                 
+                signer_uuid = result.get("signer_uuid")
+                public_key = result.get("public_key")
+                
+                if not signer_uuid or not public_key:
+                    logger.error(f"❌ Respuesta de Neynar incompleta: {result}")
+                    return {
+                        "status": "error",
+                        "message": f"Respuesta de Neynar incompleta: falta signer_uuid o public_key"
+                    }
+                
                 return {
                     "status": "success",
-                    "signer_uuid": result.get("signer_uuid"),
-                    "public_key": result.get("public_key"),
+                    "signer_uuid": signer_uuid,
+                    "public_key": public_key,
                     "status": result.get("status", "generated")
                 }
+            except httpx.HTTPStatusError as e:
+                error_detail = "Error desconocido"
+                try:
+                    error_body = e.response.json()
+                    error_detail = error_body.get("message", error_body.get("error", str(e)))
+                except:
+                    error_detail = f"HTTP {e.response.status_code}: {e.response.text[:200]}"
+                logger.error(f"❌ Error HTTP creando signer: {error_detail}", exc_info=True)
+                return {
+                    "status": "error",
+                    "message": f"Error creando signer: {error_detail}"
+                }
             except Exception as exc:
-                logger.error(f"Error creando signer: {exc}", exc_info=True)
+                logger.error(f"❌ Error creando signer: {exc}", exc_info=True)
                 return {
                     "status": "error",
                     "message": f"Error creando signer: {str(exc)}"
