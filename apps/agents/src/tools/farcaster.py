@@ -945,3 +945,57 @@ class FarcasterToolbox:
         if casts and len(casts) > 0:
             return casts[0]
         return None
+
+    async def publish_cast(
+        self,
+        user_fid: int,
+        cast_text: str,
+        parent_hash: str | None = None,
+        signer_uuid: str | None = None
+    ) -> dict[str, Any]:
+        """Publica un cast en Farcaster usando Neynar API.
+        
+        Args:
+            user_fid: FID del usuario que publica
+            cast_text: Texto del cast (máximo 320 caracteres)
+            parent_hash: Hash del cast padre si es una reply (opcional)
+            signer_uuid: UUID del signer del usuario (requerido para publicar)
+        
+        Returns:
+            {
+                "status": "success" | "error",
+                "cast_hash": str | None,
+                "message": str
+            }
+        
+        NOTA: Esta función requiere que el usuario tenga un signer configurado en Neynar.
+        Por ahora, retorna un error indicando que necesita implementación.
+        """
+        if not self.neynar_key or self.neynar_key == "NEYNAR_API_DOCS":
+            logger.warning("NEYNAR_API_KEY no configurada, no se pueden publicar casts")
+            return {
+                "status": "error",
+                "cast_hash": None,
+                "message": "NEYNAR_API_KEY no configurada"
+            }
+        
+        # Validar longitud
+        if len(cast_text) > 320:
+            return {
+                "status": "error",
+                "cast_hash": None,
+                "message": "Cast demasiado largo (máximo 320 caracteres)"
+            }
+        
+        # TODO: Implementar publicación real cuando tengamos signer_uuid
+        # Por ahora, retornamos un error indicando que necesita configuración
+        logger.warning(
+            "⚠️ Publicación de casts requiere signer_uuid del usuario. "
+            "Necesitamos implementar autenticación con Neynar Signers o usar Warpcast API."
+        )
+        
+        return {
+            "status": "error",
+            "cast_hash": None,
+            "message": "Publicación de casts requiere signer_uuid. Por favor, configura un signer en Neynar o usa Warpcast API."
+        }

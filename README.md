@@ -32,6 +32,9 @@ No claiming, no signing, no friction. Just participate and get rewarded.
 - **🖼️ Viral Frames:** Native Farcaster Frames for sharing victories and driving viral growth.
 - **🧠 AI Analysis:** Google Gemini AI analyzes sentiment and "viral score" to filter spam.
 - **🌍 Bilingual & Themed:** Full English/Spanish support and Dark/Light modes.
+- **✨ AI Cast Generation:** Generate viral Farcaster casts using AI (Gemini) with 5 different topics (Tech, Music, Motivation, Jokes, Famous Quotes).
+- **📅 Scheduled Casts:** Schedule up to 3 casts per day with specific date and time.
+- **💰 Pay-to-Post:** Users pay 0.5 cUSD to publish casts and receive 100 XP as reward.
 
 ---
 
@@ -89,6 +92,8 @@ graph TD
 
 ## 🔄 How it Works
 
+### **Flow 1: Viral Content Detection & Rewards**
+
 1.  **Detection**: The `TrendWatcher` agent constantly scans Farcaster for hashtags or keywords associated with active campaigns.
 2.  **Scoring**: User interactions are analyzed. A "Viral Score" (0-100) is calculated based on likes, recasts, replies, and user reputation (Power Badge).
 3.  **Reward**:
@@ -97,6 +102,14 @@ graph TD
     *   **Score < 60**: Awards **XP** (On-chain reputation) ⭐.
 4.  **Viral Loop**: Winners share their "Victory Frame" on Farcaster, which allows others to launch the MiniApp directly.
 5.  **Recharge**: Users can share their status to recharge their energy and play again.
+
+### **Flow 2: AI Cast Generation & Scheduling**
+
+1.  **Generate**: User selects a topic (Tech, Music, Motivation, Jokes, Famous Quotes) and AI generates a viral cast using Gemini.
+2.  **Preview**: User reviews the generated cast before publishing.
+3.  **Pay**: User pays 0.5 cUSD to the agent wallet to publish the cast.
+4.  **Schedule or Publish**: User can publish immediately or schedule the cast for a specific date/time (up to 3 scheduled casts per day).
+5.  **Reward**: When the cast is published, user receives 100 XP automatically.
 
 ### 📊 Simple Flow Diagram
 
@@ -124,6 +137,51 @@ flowchart LR
     style I fill:#FCFF52,stroke:#855DCD,stroke-width:2px,color:#000
 ```
 
+### 🔄 Complete App Flow Circle
+
+```mermaid
+flowchart TB
+    Start([🚀 Usuario Inicia]) --> Choice{¿Qué quiere hacer?}
+    
+    Choice -->|Detectar Tendencias| Flow1[📊 Flow 1:<br/>Detección Viral]
+    Choice -->|Generar Cast| Flow2[✨ Flow 2:<br/>Generación con IA]
+    
+    subgraph Flow1["📊 Flow 1: Detección Viral"]
+        F1A[👤 Usuario Postea<br/>en Farcaster] --> F1B[🤖 TrendWatcher<br/>Detecta Tendencia]
+        F1B --> F1C[📊 Eligibility<br/>Calcula Score]
+        F1C --> F1D{🎯 Score?}
+        F1D -->|>85| F1E[🎨 NFT]
+        F1D -->|>60| F1F[💵 cUSD]
+        F1D -->|<60| F1G[⭐ XP]
+        F1E --> F1H[✅ Recompensa<br/>Automática]
+        F1F --> F1H
+        F1G --> F1H
+        F1H --> F1I[📱 Wallet MiniPay]
+    end
+    
+    subgraph Flow2["✨ Flow 2: Generación con IA"]
+        F2A[🎨 Usuario Selecciona<br/>Tema] --> F2B[🤖 Gemini AI<br/>Genera Cast]
+        F2B --> F2C[👀 Preview<br/>del Cast]
+        F2C --> F2D[💰 Paga 0.5 cUSD<br/>al Agente]
+        F2D --> F2E{📅 ¿Programar?}
+        F2E -->|Sí| F2F[⏰ Scheduler<br/>Programa Cast]
+        F2E -->|No| F2G[📤 Publica<br/>Inmediatamente]
+        F2F --> F2H[⏳ Espera<br/>Fecha/Hora]
+        F2H --> F2G
+        F2G --> F2I[✅ Cast Publicado<br/>+100 XP]
+    end
+    
+    F1I --> Loop[🔄 Círculo Continúa]
+    F2I --> Loop
+    Loop --> Choice
+    
+    style Start fill:#855DCD,stroke:#FCFF52,stroke-width:3px,color:#fff
+    style Choice fill:#FCFF52,stroke:#855DCD,stroke-width:2px,color:#000
+    style Flow1 fill:#855DCD,stroke:#FCFF52,stroke-width:2px,color:#fff
+    style Flow2 fill:#00ff00,stroke:#855DCD,stroke-width:2px,color:#000
+    style Loop fill:#855DCD,stroke:#FCFF52,stroke-width:3px,color:#fff
+```
+
 ---
 
 ## 🛠 Tech Stack
@@ -142,6 +200,8 @@ flowchart LR
 *   **FastAPI**: REST API entrypoints.
 *   **Pydantic**: Data validation and typed settings.
 *   **AsyncIO**: High-concurrency task management.
+*   **APScheduler**: Scheduled task execution for cast publishing.
+*   **Gemini AI**: Content generation for viral casts.
 
 ### Contracts (Apps/Contracts)
 *   **Solidity 0.8.20**: Smart contract language.
@@ -195,6 +255,23 @@ pnpm dev
 ```
 
 Visit `http://localhost:3000` to see the app running.
+
+### 4. New Features: AI Cast Generation
+
+The app now includes AI-powered cast generation:
+
+- **Generate Casts**: Visit `/casts` to generate viral casts using AI
+- **5 Topics Available**: Tech, Music, Motivation, Jokes, Famous Quotes
+- **Schedule Casts**: Program up to 3 casts per day with specific date/time
+- **Pay-to-Post**: Pay 0.5 cUSD to publish and receive 100 XP as reward
+
+**API Endpoints:**
+- `GET /api/casts/topics` - Get available topics
+- `GET /api/casts/agent-address` - Get agent wallet address for payments
+- `POST /api/casts/generate` - Generate cast with AI (preview)
+- `POST /api/casts/publish` - Publish cast (requires payment)
+- `GET /api/casts/scheduled` - Get user's scheduled casts
+- `POST /api/casts/cancel` - Cancel scheduled cast
 
 ---
 

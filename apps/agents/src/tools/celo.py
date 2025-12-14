@@ -692,3 +692,118 @@ class CeloToolbox:
                 return tx_hash.hex()
             raise
 
+    def get_agent_address(self) -> str:
+        """Obtiene la dirección de la wallet del agente (derivada de private_key)."""
+        if not self.private_key:
+            raise ValueError("Private key requerida para obtener dirección del agente")
+        return self.account.address
+
+    def validate_payment(
+        self,
+        tx_hash: str,
+        expected_recipient: str,
+        expected_amount: int,
+        token_address: str
+    ) -> dict[str, Any]:
+        """Valida que una transacción de pago es válida.
+        
+        Args:
+            tx_hash: Hash de la transacción a validar
+            expected_recipient: Dirección que debe recibir el pago (wallet del agente)
+            expected_amount: Cantidad esperada en wei
+            token_address: Dirección del token ERC20 (cUSD)
+        
+        Returns:
+            {
+                "valid": bool,
+                "amount": int | None,
+                "recipient": str | None,
+                "sender": str | None,
+                "message": str
+            }
+        """
+        try:
+            # Obtener transacción
+            tx = self.web3.eth.get_transaction(tx_hash)
+            if not tx:
+                return {
+                    "valid": False,
+                    "amount": None,
+                    "recipient": None,
+                    "sender": None,
+                    "message": "Transacción no encontrada"
+                }
+            
+            # Verificar que es una transferencia de token (to debe ser el contrato del token)
+            if tx["to"].lower() != self.checksum(token_address).lower():
+                return {
+                    "valid": False,
+                    "amount": None,
+                    "recipient": None,
+                    "sender": tx["from"],
+                    "message": f"Transacción no es para el token correcto. Esperado: {token_address}, Recibido: {tx['to']}"
+                }
+            
+            # Obtener receipt para verificar que fue exitosa
+            receipt = self.web3.eth.get_transaction_receipt(tx_hash)
+            if receipt["status"] != 1:
+                return {
+                    "valid": False,
+                    "amount": None,
+                    "recipient": None,
+                    "sender": tx["from"],
+                    "message": "Transacción falló"
+                }
+            
+            # Decodificar logs para obtener la transferencia
+            # ABI del evento Transfer(address indexed from, address indexed to, uint256 value)
+            transfer_event_signature = self.web3.keccak(text="Transfer(address,address,uint256)").hex()
+            
+            for log in receipt["logs"]:
+                if log["topics"][0].hex() == transfer_event_signature:
+                    # Decodificar: topics[1] = from, topics[2] = to, data = amount
+                    from_address = "0x" + log["topics"][1].hex()[-40:]
+                    to_address = "0x" + log["topics"][2].hex()[-40:]
+                    amount = int(log["data"].hex(), 16)
+                    
+                    # Verificar que el destinatario es correcto
+                    if to_address.lower() != self.checksum(expected_recipient).lower():
+                        continue
+                    
+                    # Verificar que la cantidad es correcta (con margen de error del 1% por gas)
+                    if amount < expected_amount * 99 // 100:  # Permite 1% de diferencia
+                        return {
+                            "valid": False,
+                            "amount": amount,
+                            "recipient": to_address,
+                            "sender": from_address,
+                            "message": f"Cantidad insuficiente. Esperado: {expected_amount}, Recibido: {amount}"
+                        }
+                    
+                    logger.info(f"✅ Pago validado: {amount} wei de {from_address} a {to_address}")
+                    return {
+                        "valid": True,
+                        "amount": amount,
+                        "recipient": to_address,
+                        "sender": from_address,
+                        "message": "Pago válido"
+                    }
+            
+            return {
+                "valid": False,
+                "amount": None,
+                "recipient": None,
+                "sender": tx["from"],
+                "message": "No se encontró evento Transfer en la transacción"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error validando pago {tx_hash}: {e}")
+            return {
+                "valid": False,
+                "amount": None,
+                "recipient": None,
+                "sender": None,
+                "message": f"Error validando transacción: {str(e)}"
+            }
+

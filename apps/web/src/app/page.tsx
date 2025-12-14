@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, Info, PlayCircle } from "lucide-react";
+import { Zap, Info, PlayCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { UserBalance } from "@/components/user-balance";
 import { TrendingCampaignForm } from "@/components/trending-campaign-form";
 import { Dashboard } from "@/components/dashboard";
@@ -109,6 +110,28 @@ export default function Home() {
         {activeTab === "app" ? (
           <div className="space-y-8">
             <TrendingCampaignForm />
+
+            {/* Link to Cast Generator */}
+            <Link href="/casts">
+              <Card className="border-white/5 bg-background/50 backdrop-blur-sm hover:bg-background/70 transition-all cursor-pointer">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse" />
+                      <div className="relative h-12 w-12 bg-background/80 rounded-full border border-primary/30 flex items-center justify-center backdrop-blur-md">
+                        <Sparkles className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-base mb-1">Generar Casts con IA</div>
+                      <div className="text-sm text-muted-foreground">
+                        Crea contenido viral para Farcaster. Paga 0.5 cUSD y gana 100 XP
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
             <Leaderboard />
 

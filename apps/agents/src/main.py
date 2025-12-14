@@ -873,3 +873,202 @@ async def notify_energy_reminder():
         logger.error("Error en notificaciones de energía: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc))
 
+
+# ============================================================================
+# ENDPOINTS PARA GENERACIÓN Y PROGRAMACIÓN DE CASTS
+# ============================================================================
+
+from .services.cast_generator import CastGeneratorService
+from .services.cast_scheduler import CastSchedulerService
+from .tools.celo import CeloToolbox
+from datetime import datetime
+from web3 import Web3
+
+# Inicializar servicios
+cast_generator = CastGeneratorService(settings)
+celo_toolbox = CeloToolbox(
+    rpc_url=settings.celo_rpc_url,
+    private_key=settings.celo_private_key
+)
+cast_scheduler = CastSchedulerService(
+    farcaster_toolbox=farcaster_toolbox,
+    celo_toolbox=celo_toolbox,
+    registry_address=settings.registry_address
+)
+
+# Iniciar scheduler si no estamos en Vercel
+if not is_vercel:
+    cast_scheduler.start()
+
+
+class GenerateCastRequest(BaseModel):
+    topic: str = Field(..., description="Tema del cast: tech, musica, motivacion, chistes, frases_celebres")
+    user_address: str | None = Field(None, description="Dirección del usuario (opcional para preview)")
+    user_fid: int | None = Field(None, description="FID del usuario en Farcaster (opcional para preview)")
+
+
+class PublishCastRequest(BaseModel):
+    topic: str
+    cast_text: str = Field(..., max_length=320)
+    user_address: str
+    user_fid: int
+    payment_tx_hash: str
+    scheduled_time: str | None = Field(None, description="ISO 8601 datetime para programar, o null para publicar ahora")
+
+
+class CancelCastRequest(BaseModel):
+    cast_id: str
+    user_address: str
+
+
+@app.get("/api/casts/topics")
+async def get_available_topics():
+    """Obtiene todos los temas disponibles para generar casts."""
+    topics = CastGeneratorService.get_available_topics()
+    return {"topics": topics}
+
+
+@app.get("/api/casts/agent-address")
+async def get_agent_address():
+    """Obtiene la dirección de la wallet del agente para pagos."""
+    try:
+        address = celo_toolbox.get_agent_address()
+        return {
+            "agent_address": address,
+            "message": "Envía cUSD a esta dirección para pagar por publicar casts"
+        }
+    except Exception as exc:
+        logger.error("Error obteniendo dirección del agente: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/casts/generate")
+async def generate_cast(request: GenerateCastRequest):
+    """Genera un cast usando IA basado en el tema (sin publicar, solo preview)."""
+    try:
+        user_context = None
+        if request.user_fid:
+            # Obtener información del usuario si tenemos FID
+            user_info = await farcaster_toolbox.fetch_user_by_fid(request.user_fid)
+            if user_info:
+                user_context = {"username": user_info.get("username", "usuario")}
+        
+        result = await cast_generator.generate_cast(request.topic, user_context)
+        return result
+    except Exception as exc:
+        logger.error("Error generando cast: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/casts/publish")
+async def publish_cast(request: PublishCastRequest):
+    """Publica un cast después de validar el pago.
+    
+    Flujo:
+    1. Valida que el pago on-chain es correcto
+    2. Publica el cast (ahora o programado)
+    3. Otorga XP al usuario
+    """
+    try:
+        # Obtener dirección del agente
+        agent_address = celo_toolbox.get_agent_address()
+        
+        # Precio: 0.5 cUSD = 500000000000000000 wei (18 decimales)
+        PRICE_WEI = int(0.5 * 10**18)
+        
+        # Validar pago
+        payment_validation = celo_toolbox.validate_payment(
+            tx_hash=request.payment_tx_hash,
+            expected_recipient=agent_address,
+            expected_amount=PRICE_WEI,
+            token_address=settings.cusd_address
+        )
+        
+        if not payment_validation["valid"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Pago inválido: {payment_validation['message']}"
+            )
+        
+        # Verificar que el sender es el usuario
+        if payment_validation["sender"].lower() != request.user_address.lower():
+            raise HTTPException(
+                status_code=400,
+                detail="El pago no proviene de la dirección del usuario"
+            )
+        
+        logger.info(f"✅ Pago validado para usuario {request.user_address}: {payment_validation['amount']} wei")
+        
+        # Parsear scheduled_time si existe
+        scheduled_time = None
+        if request.scheduled_time:
+            try:
+                scheduled_time = datetime.fromisoformat(request.scheduled_time.replace("Z", "+00:00"))
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Formato de fecha inválido: {e}")
+        
+        # Publicar o programar
+        if scheduled_time is None:
+            # Publicar ahora
+            result = cast_scheduler.publish_now(
+                user_address=request.user_address,
+                user_fid=request.user_fid,
+                topic=request.topic,
+                cast_text=request.cast_text,
+                payment_tx_hash=request.payment_tx_hash
+            )
+        else:
+            # Programar
+            cast_id = cast_scheduler.schedule_cast(
+                user_address=request.user_address,
+                user_fid=request.user_fid,
+                topic=request.topic,
+                cast_text=request.cast_text,
+                scheduled_time=scheduled_time,
+                payment_tx_hash=request.payment_tx_hash
+            )
+            result = {
+                "cast_id": cast_id,
+                "status": "scheduled",
+                "scheduled_time": scheduled_time.isoformat()
+            }
+        
+        return {
+            "status": "success",
+            **result,
+            "xp_granted": 100,  # XP se otorgará cuando se publique
+            "message": "Cast publicado/programado exitosamente"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error publicando cast: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/casts/scheduled")
+async def get_scheduled_casts(user_address: str = Query(..., description="Dirección del usuario")):
+    """Obtiene todos los casts programados de un usuario."""
+    try:
+        casts = cast_scheduler.get_user_scheduled_casts(user_address)
+        return {"casts": casts}
+    except Exception as exc:
+        logger.error("Error obteniendo casts programados: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/casts/cancel")
+async def cancel_cast(request: CancelCastRequest):
+    """Cancela un cast programado."""
+    try:
+        success = cast_scheduler.cancel_cast(request.cast_id, request.user_address)
+        if not success:
+            raise HTTPException(status_code=404, detail="Cast no encontrado o no se puede cancelar")
+        return {"status": "success", "message": "Cast cancelado exitosamente"}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error cancelando cast: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
