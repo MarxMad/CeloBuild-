@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Sparkles, Calendar, Send, Wallet, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Sparkles, Calendar, Send, Wallet, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -40,6 +40,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Wagmi hooks para transacciones de CELO nativo
   const { sendTransaction, data: hash, isPending: isPendingTx } = useSendTransaction();
@@ -149,12 +150,17 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     }
   };
 
-  const handlePublish = async () => {
+  const handlePublish = () => {
     if (!generatedCast || !agentAddress) {
       console.warn("⚠️ [CastGenerator] No se puede publicar: cast o dirección del agente faltante");
       return;
     }
+    // Mostrar diálogo de confirmación antes de proceder
+    setShowConfirmDialog(true);
+  };
 
+  const handleConfirmPayment = async () => {
+    setShowConfirmDialog(false);
     console.log("💰 [CastGenerator] Iniciando pago de 1 CELO a:", agentAddress);
     setIsPublishing(true);
     setPublishError(null);
@@ -510,6 +516,52 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Confirmación de Pago */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-background border border-border w-full max-w-sm rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+            {/* Background FX */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
+
+            <div className="text-center space-y-4 relative z-10">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto border border-primary/20">
+                <AlertTriangle className="w-8 h-8 text-primary" />
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold text-foreground mb-2">{t("cast_confirm_title")}</h3>
+                <p className="text-sm text-foreground mb-3">
+                  {t("cast_confirm_message")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t("cast_confirm_details")}
+                </p>
+              </div>
+
+              <div className="pt-2 space-y-3">
+                <Button
+                  onClick={handleConfirmPayment}
+                  className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                  size="lg"
+                >
+                  <Wallet className="mr-2 h-5 w-5" />
+                  {t("cast_confirm_continue")}
+                </Button>
+                <Button
+                  onClick={() => setShowConfirmDialog(false)}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  {t("cast_confirm_cancel")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

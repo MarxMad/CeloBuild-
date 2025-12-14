@@ -94,6 +94,11 @@ export const dictionary = {
         cast_error_signer_required: "Se requiere aprobar un signer para publicar casts. Por favor, aprueba el signer en Warpcast y luego vuelve a esta app.",
         cast_approval_url: "Enlace de aprobación",
         cast_approval_note: "Se abrirá Warpcast para que apruebes el signer. Después de aprobar, vuelve aquí para continuar.",
+        cast_confirm_title: "Confirmar Pago",
+        cast_confirm_message: "Vas a pagar 1 CELO para publicar este cast en Farcaster.",
+        cast_confirm_details: "Al publicar exitosamente, recibirás 100 XP como recompensa.",
+        cast_confirm_continue: "Continuar y Pagar",
+        cast_confirm_cancel: "Cancelar",
 
         // Scheduled Casts
         scheduled_title: "Casts Programados",
@@ -223,6 +228,11 @@ export const dictionary = {
         cast_error_signer_required: "A signer approval is required to publish casts. Please approve the signer in Warpcast and then return to this app.",
         cast_approval_url: "Approval URL",
         cast_approval_note: "Warpcast will open for you to approve the signer. After approving, return here to continue.",
+        cast_confirm_title: "Confirm Payment",
+        cast_confirm_message: "You are about to pay 1 CELO to publish this cast on Farcaster.",
+        cast_confirm_details: "Upon successful publication, you will receive 100 XP as a reward.",
+        cast_confirm_continue: "Continue and Pay",
+        cast_confirm_cancel: "Cancel",
 
         // Scheduled Casts
         scheduled_title: "Scheduled Casts",
