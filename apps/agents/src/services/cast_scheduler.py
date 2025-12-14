@@ -207,7 +207,7 @@ class CastSchedulerService:
             logger.error(f"Excepción publicando cast: {e}", exc_info=True)
             return None
     
-    def publish_now(
+    async def publish_now(
         self,
         user_address: str,
         user_fid: int,
@@ -235,21 +235,30 @@ class CastSchedulerService:
             cast_text=cast_text,
             scheduled_time=datetime.now(timezone.utc),
             payment_tx_hash=payment_tx_hash,
-            status="published"  # Asumimos que se publica inmediatamente
+            status="publishing"
         )
         
         self.scheduled_casts[cast_id] = scheduled_cast
         
-        # Publicar inmediatamente (async)
-        import asyncio
-        asyncio.create_task(self._publish_scheduled_cast(cast_id))
+        # Publicar inmediatamente (await para esperar resultado)
+        await self._publish_scheduled_cast(cast_id)
         
-        return {
-            "cast_id": cast_id,
-            "published_cast_hash": None,  # Se actualizará cuando se publique
-            "xp_granted": 0,  # Se actualizará cuando se publique
-            "status": "publishing"
-        }
+        # Obtener el estado actualizado del cast
+        cast = self.scheduled_casts.get(cast_id)
+        if cast:
+            return {
+                "cast_id": cast_id,
+                "published_cast_hash": cast.published_cast_hash,
+                "xp_granted": cast.xp_granted,
+                "status": cast.status
+            }
+        else:
+            return {
+                "cast_id": cast_id,
+                "published_cast_hash": None,
+                "xp_granted": 0,
+                "status": "failed"
+            }
     
     def cancel_cast(self, cast_id: str, user_address: str) -> bool:
         """Cancela un cast programado."""

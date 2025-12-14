@@ -1024,8 +1024,8 @@ async def publish_cast(request: PublishCastRequest):
         
         # Publicar o programar
         if scheduled_time is None:
-            # Publicar ahora
-            result = cast_scheduler.publish_now(
+            # Publicar ahora (await porque ahora es async)
+            result = await cast_scheduler.publish_now(
                 user_address=request.user_address,
                 user_fid=request.user_fid,
                 topic=request.topic,

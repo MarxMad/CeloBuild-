@@ -132,12 +132,21 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
       sendTransaction({
         to: agentAddress as `0x${string}`,
         value: amount,
+        // Agregar descripción para que el wallet muestre claramente el monto
+        data: undefined, // No hay data, es una transferencia simple
       });
     } catch (error: any) {
       setPublishError(error.message || "Error iniciando pago");
       setIsPublishing(false);
     }
   };
+
+  // Guardar hash de la transacción cuando se confirma
+  useEffect(() => {
+    if (isConfirmed && hash) {
+      setTxHash(hash);
+    }
+  }, [isConfirmed, hash]);
 
   // Cuando la transacción se confirma, publicar el cast
   useEffect(() => {
@@ -181,12 +190,13 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
           const data = await response.json();
           setPublishSuccess(true);
           setPublishError(null);
-          // Limpiar después de 3 segundos para permitir ver el mensaje de éxito
+          // Limpiar después de 5 segundos para permitir ver el mensaje de éxito
           setTimeout(() => {
             setGeneratedCast("");
             setScheduledTime("");
             setPublishSuccess(false);
-          }, 3000);
+            setTxHash(null);
+          }, 5000);
         } catch (error: any) {
           console.error("Error publicando cast:", error);
           setPublishError(error.message || "Error publicando cast");
@@ -198,7 +208,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
 
       publishCast();
     }
-  }, [isConfirmed, hash]); // Solo ejecutar cuando se confirma la transacción
+  }, [isConfirmed, hash, generatedCast, publishSuccess]); // Solo ejecutar cuando se confirma la transacción
 
   return (
     <div className="space-y-6">
@@ -279,7 +289,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                   className="mt-2 min-h-[100px]"
                 />
                 <div className="text-xs text-muted-foreground mt-1">
-                  {generatedCast.length}/320 caracteres
+                  {generatedCast.length}/100 caracteres
                 </div>
               </div>
 
@@ -324,9 +334,26 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
               </Button>
 
               {publishSuccess && (
-                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <span>¡Cast publicado exitosamente! Ganaste 100 XP</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span>¡Cast publicado exitosamente! Ganaste 100 XP</span>
+                  </div>
+                  {txHash && (
+                    <div className="text-sm">
+                      <a
+                        href={`https://celoscan.io/tx/${txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1"
+                      >
+                        Ver transacción en CeloScan
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 

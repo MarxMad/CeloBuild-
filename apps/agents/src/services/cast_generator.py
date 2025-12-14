@@ -124,9 +124,24 @@ class CastGeneratorService:
             except json.JSONDecodeError:
                 cast_text = content
             
-            # Validar longitud (Farcaster tiene límite de 320 caracteres)
-            if len(cast_text) > 320:
-                cast_text = cast_text[:317] + "..."
+            # Remover emojis si los hay (por seguridad)
+            import re
+            # Patrón para emojis comunes
+            emoji_pattern = re.compile(
+                "["
+                "\U0001F600-\U0001F64F"  # emoticons
+                "\U0001F300-\U0001F5FF"  # symbols & pictographs
+                "\U0001F680-\U0001F6FF"  # transport & map symbols
+                "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                "\U00002702-\U000027B0"
+                "\U000024C2-\U0001F251"
+                "]+", flags=re.UNICODE
+            )
+            cast_text = emoji_pattern.sub('', cast_text).strip()
+            
+            # Validar longitud (máximo 100 caracteres)
+            if len(cast_text) > 100:
+                cast_text = cast_text[:97] + "..."
             
             logger.info(f"✅ Cast generado para tema '{topic}': {cast_text[:50]}...")
             
@@ -151,38 +166,38 @@ class CastGeneratorService:
         base_prompt = """Eres un experto en crear contenido viral para Farcaster.
 Genera un cast único, auténtico y engaging sobre el tema: {topic_name} ({topic_description}).
 
-Requisitos:
-- Máximo 280 caracteres (Farcaster tiene límite de 320, pero 280 es ideal)
-- Debe ser engaging y auténtico
-- Incluye emojis relevantes ({emoji})
-- NO uses hashtags a menos que sea absolutamente necesario
+Requisitos CRÍTICOS:
+- Máximo 100 caracteres (límite estricto)
+- NO uses emojis de ninguna clase
+- NO uses hashtags
 - El tono debe ser natural y conversacional
+- Debe ser conciso pero engaging
 - Debe invitar a la interacción (likes, replies, recasts)
 
-Responde SOLO con el texto del cast, sin explicaciones adicionales.
+Responde SOLO con el texto del cast, sin explicaciones adicionales, sin emojis, sin hashtags.
 """
         
-        # Prompts específicos por tema
+        # Prompts específicos por tema (SIN emojis en los ejemplos)
         topic_prompts = {
             "tech": """Enfócate en tecnología, blockchain, Web3, IA, innovación.
 Puedes mencionar: Celo, MiniPay, DeFi, NFTs, smart contracts, pero de forma natural.
-Ejemplo de tono: La tecnología blockchain está cambiando el mundo 🌍 ¿Cuál es tu proyecto Web3 favorito?""",
+Ejemplo de tono: La tecnología blockchain está cambiando el mundo. ¿Cuál es tu proyecto Web3 favorito?""",
             
             "musica": """Enfócate en música, artistas, canciones, playlists.
 Puedes mencionar: géneros, artistas, conciertos, pero de forma natural.
-Ejemplo de tono: La música es el lenguaje universal 🎵 ¿Qué canción te inspira hoy?""",
+Ejemplo de tono: La música es el lenguaje universal. ¿Qué canción te inspira hoy?""",
             
             "motivacion": """Enfócate en motivación, superación personal, crecimiento.
 Puedes incluir frases inspiradoras pero auténticas.
-Ejemplo de tono: Cada día es una nueva oportunidad para crecer 🚀 ¿Cuál es tu meta de hoy?""",
+Ejemplo de tono: Cada día es una nueva oportunidad para crecer. ¿Cuál es tu meta de hoy?""",
             
             "chistes": """Enfócate en humor, memes, chistes, contenido divertido.
 Debe ser gracioso pero apropiado para Farcaster.
-Ejemplo de tono: ¿Por qué los programadores prefieren el modo oscuro? Porque la luz atrae bugs 🐛😂""",
+Ejemplo de tono: ¿Por qué los programadores prefieren el modo oscuro? Porque la luz atrae bugs.""",
             
             "frases_celebres": """Enfócate en citas inspiradoras de personajes famosos.
 Puedes adaptar o parafrasear frases célebres de forma moderna.
-Ejemplo de tono: El único modo de hacer un gran trabajo es amar lo que haces - Steve Jobs 💬 ¿Con qué frase te identificas?"""
+Ejemplo de tono: El único modo de hacer un gran trabajo es amar lo que haces - Steve Jobs. ¿Con qué frase te identificas?"""
         }
         
         specific_prompt = topic_prompts.get(topic, "")
@@ -193,14 +208,18 @@ Ejemplo de tono: El único modo de hacer un gran trabajo es amar lo que haces - 
         """Genera un cast de fallback cuando Gemini no está disponible."""
         
         fallback_casts = {
-            "tech": "🚀 La tecnología blockchain está revolucionando el mundo. ¿Cuál es tu proyecto Web3 favorito? #Web3 #Blockchain",
-            "musica": "🎵 La música es el lenguaje del alma. ¿Qué canción te inspira hoy? #Música",
-            "motivacion": "💪 Cada día es una nueva oportunidad para crecer y mejorar. ¿Cuál es tu meta de hoy? #Motivación",
-            "chistes": "😂 ¿Sabías que los programadores prefieren el modo oscuro? ¡Porque la luz atrae bugs! #Humor #Tech",
-            "frases_celebres": "💬 El único modo de hacer un gran trabajo es amar lo que haces. - Steve Jobs #Inspiración"
+            "tech": "La tecnología blockchain está revolucionando el mundo. ¿Cuál es tu proyecto Web3 favorito?",
+            "musica": "La música es el lenguaje del alma. ¿Qué canción te inspira hoy?",
+            "motivacion": "Cada día es una nueva oportunidad para crecer y mejorar. ¿Cuál es tu meta?",
+            "chistes": "¿Sabías que los programadores prefieren el modo oscuro? Porque la luz atrae bugs.",
+            "frases_celebres": "El único modo de hacer un gran trabajo es amar lo que haces. - Steve Jobs"
         }
         
         cast_text = fallback_casts.get(topic, fallback_casts["tech"])
+        
+        # Asegurar que no exceda 100 caracteres
+        if len(cast_text) > 100:
+            cast_text = cast_text[:97] + "..."
         
         return {
             "cast_text": cast_text,
