@@ -167,14 +167,16 @@ class CastGeneratorService:
 Genera un cast único, auténtico y engaging sobre el tema: {topic_name} ({topic_description}).
 
 Requisitos CRÍTICOS:
-- Máximo 100 caracteres (límite estricto)
+- EXACTAMENTE entre 90-100 caracteres (objetivo: ~100 caracteres)
 - NO uses emojis de ninguna clase
 - NO uses hashtags
 - El tono debe ser natural y conversacional
 - Debe ser conciso pero engaging
 - Debe invitar a la interacción (likes, replies, recasts)
+- Aprovecha todo el espacio disponible (90-100 caracteres)
 
 Responde SOLO con el texto del cast, sin explicaciones adicionales, sin emojis, sin hashtags.
+El texto debe tener entre 90-100 caracteres exactamente.
 """
         
         # Prompts específicos por tema (SIN emojis en los ejemplos)

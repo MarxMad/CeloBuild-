@@ -47,28 +47,49 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     hash,
   });
 
+  // Logs de estado de transacción
+  useEffect(() => {
+    if (hash) {
+      console.log("📝 [CastGenerator] Hash de transacción:", hash);
+    }
+    if (isPendingTx) {
+      console.log("⏳ [CastGenerator] Transacción pendiente...");
+    }
+    if (isConfirming) {
+      console.log("⏳ [CastGenerator] Confirmando transacción...");
+    }
+    if (isConfirmed) {
+      console.log("✅ [CastGenerator] Transacción confirmada exitosamente");
+    }
+  }, [hash, isPendingTx, isConfirming, isConfirmed]);
+
   // Cargar dirección del agente al montar
   useEffect(() => {
     const fetchAgentAddress = async () => {
+      console.log("🔍 [CastGenerator] Cargando dirección del agente...");
       try {
         const backendUrl = getBackendUrl();
         if (!backendUrl) {
+          console.error("❌ [CastGenerator] Backend no configurado");
           setPublishError(t("cast_error_backend"));
           setIsLoadingAddress(false);
           return;
         }
 
+        console.log(`📡 [CastGenerator] Llamando a ${backendUrl}/api/casts/agent-address`);
         const response = await fetch(`${backendUrl}/api/casts/agent-address`);
         if (!response.ok) {
           const errorText = await response.text();
+          console.error(`❌ [CastGenerator] Error ${response.status}: ${errorText}`);
           throw new Error(`${t("cast_error_address")} ${response.status} ${errorText}`);
         }
         
         const data = await response.json();
+        console.log("✅ [CastGenerator] Dirección del agente obtenida:", data.agent_address);
         setAgentAddress(data.agent_address);
         setPublishError(null); // Limpiar error si se carga correctamente
       } catch (error: any) {
-        console.error("Error obteniendo dirección del agente:", error);
+        console.error("❌ [CastGenerator] Error obteniendo dirección del agente:", error);
         setPublishError(error.message || t("cast_error_address"));
       } finally {
         setIsLoadingAddress(false);
@@ -79,6 +100,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   }, []); // Solo ejecutar una vez al montar
 
   const handleGenerate = async () => {
+    console.log("🎨 [CastGenerator] Iniciando generación de cast para tema:", selectedTopic);
     setIsGenerating(true);
     setGeneratedCast("");
     setPublishError(null);
@@ -90,14 +112,17 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
         throw new Error(t("cast_error_backend"));
       }
 
+      const payload = {
+        topic: selectedTopic,
+        user_address: userAddress,
+        user_fid: userFid,
+      };
+      console.log("📤 [CastGenerator] Enviando request a /api/casts/generate:", payload);
+
       const response = await fetch(`${backendUrl}/api/casts/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic: selectedTopic,
-          user_address: userAddress,
-          user_fid: userFid,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -105,16 +130,19 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
         try {
           const error = await response.json();
           errorMessage = error.detail || error.message || errorMessage;
+          console.error("❌ [CastGenerator] Error del backend:", error);
         } catch {
           errorMessage = `Error ${response.status}: ${response.statusText}`;
+          console.error(`❌ [CastGenerator] Error ${response.status}: ${response.statusText}`);
         }
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      console.log("✅ [CastGenerator] Cast generado exitosamente:", data.cast_text?.substring(0, 50) + "...");
       setGeneratedCast(data.cast_text || "");
     } catch (error: any) {
-      console.error("Error generando cast:", error);
+      console.error("❌ [CastGenerator] Error generando cast:", error);
       setPublishError(error.message || t("cast_error_generating"));
     } finally {
       setIsGenerating(false);
@@ -122,8 +150,12 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   };
 
   const handlePublish = async () => {
-    if (!generatedCast || !agentAddress) return;
+    if (!generatedCast || !agentAddress) {
+      console.warn("⚠️ [CastGenerator] No se puede publicar: cast o dirección del agente faltante");
+      return;
+    }
 
+    console.log("💰 [CastGenerator] Iniciando pago de 1 CELO a:", agentAddress);
     setIsPublishing(true);
     setPublishError(null);
     setPublishSuccess(false);
@@ -131,6 +163,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     try {
       // Precio: 1 CELO nativo
       const amount = parseEther("1");
+      console.log("📝 [CastGenerator] Enviando transacción:", { to: agentAddress, value: amount.toString() });
 
       // Transferir CELO nativo al agente
       sendTransaction({
@@ -139,7 +172,9 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
         // Agregar descripción para que el wallet muestre claramente el monto
         data: undefined, // No hay data, es una transferencia simple
       });
+      console.log("✅ [CastGenerator] Transacción enviada, esperando confirmación...");
     } catch (error: any) {
+      console.error("❌ [CastGenerator] Error iniciando pago:", error);
       setPublishError(error.message || t("cast_error_payment"));
       setIsPublishing(false);
     }
@@ -148,6 +183,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   // Guardar hash de la transacción cuando se confirma
   useEffect(() => {
     if (isConfirmed && hash) {
+      console.log("✅ [CastGenerator] Transacción confirmada:", hash);
       setTxHash(hash);
     }
   }, [isConfirmed, hash]);
@@ -156,6 +192,8 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   useEffect(() => {
     if (isConfirmed && hash && generatedCast && !publishSuccess) {
       const publishCast = async () => {
+        console.log("📤 [CastGenerator] Transacción confirmada, publicando cast...");
+        console.log("📋 [CastGenerator] Datos:", { hash, castLength: generatedCast.length, scheduledTime });
         setIsPublishing(true);
         try {
           const backendUrl = getBackendUrl();
@@ -167,43 +205,80 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
             ? new Date(scheduledTime).toISOString()
             : null;
 
+          const payload = {
+            topic: selectedTopic,
+            cast_text: generatedCast,
+            user_address: userAddress,
+            user_fid: userFid,
+            payment_tx_hash: hash,
+            scheduled_time: scheduledDateTime,
+          };
+          console.log("📤 [CastGenerator] Enviando request a /api/casts/publish:", { ...payload, cast_text: generatedCast.substring(0, 50) + "..." });
+
           const response = await fetch(`${backendUrl}/api/casts/publish`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              topic: selectedTopic,
-              cast_text: generatedCast,
-              user_address: userAddress,
-              user_fid: userFid,
-              payment_tx_hash: hash,
-              scheduled_time: scheduledDateTime,
-            }),
+            body: JSON.stringify(payload),
           });
 
           if (!response.ok) {
             let errorMessage = t("cast_error_publishing");
+            let approvalUrl: string | null = null;
+            
             try {
               const error = await response.json();
               errorMessage = error.detail || error.message || errorMessage;
+              console.error("❌ [CastGenerator] Error del backend:", error);
+              
+              // Extraer approval URL si está en el mensaje
+              const approvalUrlMatch = errorMessage.match(/https?:\/\/[^\s]+/);
+              if (approvalUrlMatch) {
+                approvalUrl = approvalUrlMatch[0];
+              }
+              
+              // También verificar header
+              const headerApprovalUrl = response.headers.get("X-Approval-URL");
+              if (headerApprovalUrl) {
+                approvalUrl = headerApprovalUrl;
+              }
             } catch {
               errorMessage = `Error ${response.status}: ${response.statusText}`;
+              console.error(`❌ [CastGenerator] Error ${response.status}: ${response.statusText}`);
             }
+            
+            // Si hay approval URL, mostrar mensaje especial
+            if (approvalUrl) {
+              setPublishError(
+                `${t("cast_error_signer_required")}\n\n${t("cast_approval_url")}: ${approvalUrl}`
+              );
+              // Abrir approval URL en nueva pestaña
+              window.open(approvalUrl, "_blank");
+            } else {
+              setPublishError(errorMessage);
+            }
+            
             throw new Error(errorMessage);
           }
 
           const data = await response.json();
+          console.log("✅ [CastGenerator] Respuesta del backend:", data);
           
           // Mostrar mensaje de éxito con XP otorgado
           const xpGranted = data.xp_granted || 0;
+          console.log(`🎉 [CastGenerator] XP otorgado: ${xpGranted}, Estado: ${data.status}`);
+          
           if (xpGranted > 0) {
+            console.log("✅ [CastGenerator] Cast publicado exitosamente con XP");
             setPublishSuccess(true);
             setPublishError(null);
           } else {
             // Si no se otorgó XP, puede ser que esté programado o haya un error
             if (data.status === "scheduled") {
+              console.log("📅 [CastGenerator] Cast programado exitosamente");
               setPublishSuccess(true);
               setPublishError(null);
             } else {
+              console.warn("⚠️ [CastGenerator] Cast publicado pero sin XP:", data);
               setPublishError(data.message || t("cast_error_publishing"));
               setPublishSuccess(false);
             }
@@ -211,13 +286,14 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
           
           // Limpiar después de 5 segundos para permitir ver el mensaje de éxito
           setTimeout(() => {
+            console.log("🧹 [CastGenerator] Limpiando estado...");
             setGeneratedCast("");
             setScheduledTime("");
             setPublishSuccess(false);
             setTxHash(null);
           }, 5000);
         } catch (error: any) {
-          console.error("Error publicando cast:", error);
+          console.error("❌ [CastGenerator] Error publicando cast:", error);
           setPublishError(error.message || t("cast_error_publishing"));
           setPublishSuccess(false);
         } finally {
@@ -307,7 +383,12 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                 <Textarea
                   value={generatedCast}
                   readOnly
-                  className="mt-2 min-h-[100px]"
+                  className="mt-2 min-h-[80px] max-h-[200px] overflow-y-auto"
+                  style={{
+                    height: 'auto',
+                    minHeight: '80px',
+                  }}
+                  rows={Math.max(3, Math.ceil(generatedCast.length / 50))}
                 />
                 <div className="text-xs text-muted-foreground mt-1">
                   {generatedCast.length}/100 {t("cast_characters")}
