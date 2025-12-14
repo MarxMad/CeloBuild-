@@ -124,6 +124,8 @@ export const dictionary = {
         cast_page_connect_wallet: "Conecta tu wallet para generar y programar casts en Farcaster",
         cast_page_farcaster_required: "Necesitas estar autenticado con Farcaster para generar casts",
         cast_page_description: "Crea contenido viral para Farcaster. Paga 1 CELO y gana 100 XP por cada cast publicado.",
+        cast_card_title: "Generar Casts con IA",
+        cast_card_description: "Crea contenido viral para Farcaster. Paga 1 CELO y gana 100 XP",
         cast_tab_generate: "Generar",
         cast_tab_scheduled: "Programados",
     },
@@ -251,6 +253,8 @@ export const dictionary = {
         cast_page_connect_wallet: "Connect your wallet to generate and schedule casts on Farcaster",
         cast_page_farcaster_required: "You need to be authenticated with Farcaster to generate casts",
         cast_page_description: "Create viral content for Farcaster. Pay 1 CELO and earn 100 XP for each published cast.",
+        cast_card_title: "Generate Casts with AI",
+        cast_card_description: "Create viral content for Farcaster. Pay 1 CELO and earn 100 XP",
         cast_tab_generate: "Generate",
         cast_tab_scheduled: "Scheduled",
     }

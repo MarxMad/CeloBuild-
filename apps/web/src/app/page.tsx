@@ -123,9 +123,9 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-base mb-1">Generar Casts con IA</div>
+                      <div className="font-semibold text-base mb-1">{t("cast_card_title")}</div>
                       <div className="text-sm text-muted-foreground">
-                        Crea contenido viral para Farcaster. Paga 0.5 cUSD y gana 100 XP
+                        {t("cast_card_description")}
                       </div>
                     </div>
                   </div>
