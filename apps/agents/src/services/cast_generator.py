@@ -139,9 +139,19 @@ class CastGeneratorService:
             )
             cast_text = emoji_pattern.sub('', cast_text).strip()
             
-            # Validar longitud (máximo 100 caracteres)
+            # Validar y ajustar longitud (objetivo: ~100 caracteres)
             if len(cast_text) > 100:
-                cast_text = cast_text[:97] + "..."
+                # Si excede, cortar en un punto lógico (espacio o punto)
+                cast_text = cast_text[:100]
+                # Intentar cortar en el último espacio antes de 100
+                last_space = cast_text.rfind(' ')
+                if last_space > 80:  # Si hay un espacio razonable cerca del final
+                    cast_text = cast_text[:last_space]
+                else:
+                    cast_text = cast_text[:97] + "..."
+            elif len(cast_text) < 80:
+                # Si es muy corto, loguear pero aceptar
+                logger.warning(f"⚠️ Cast generado muy corto ({len(cast_text)} caracteres), pero se acepta")
             
             logger.info(f"✅ Cast generado para tema '{topic}': {cast_text[:50]}...")
             

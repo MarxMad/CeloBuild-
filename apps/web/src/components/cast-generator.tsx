@@ -380,16 +380,11 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
             <div className="space-y-4">
               <div>
                 <Label>{t("cast_generated")}</Label>
-                <Textarea
-                  value={generatedCast}
-                  readOnly
-                  className="mt-2 min-h-[80px] max-h-[200px] overflow-y-auto"
-                  style={{
-                    height: 'auto',
-                    minHeight: '80px',
-                  }}
-                  rows={Math.max(3, Math.ceil(generatedCast.length / 50))}
-                />
+                <div className="mt-2 p-4 rounded-lg border-2 border-primary/50 bg-background/80 backdrop-blur-sm min-h-[80px]">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                    {generatedCast}
+                  </p>
+                </div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {generatedCast.length}/100 {t("cast_characters")}
                 </div>
