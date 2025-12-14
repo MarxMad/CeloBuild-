@@ -15,13 +15,13 @@ import { useLanguage } from "@/components/language-provider";
 type Topic = "tech" | "musica" | "motivacion" | "chistes" | "frases_celebres";
 
 // TOPICS se define dentro del componente para acceder a t()
-const getTopics = (t: (key: string) => string): Record<Topic, { name: string; emoji: string; description: string }> => ({
+const getTopics = (t: (key: string) => string) => ({
   tech: { name: t("topic_tech"), emoji: "💻", description: t("topic_tech_desc") },
   musica: { name: t("topic_musica"), emoji: "🎵", description: t("topic_musica_desc") },
   motivacion: { name: t("topic_motivacion"), emoji: "🚀", description: t("topic_motivacion_desc") },
   chistes: { name: t("topic_chistes"), emoji: "😂", description: t("topic_chistes_desc") },
   frases_celebres: { name: t("topic_frases_celebres"), emoji: "💬", description: t("topic_frases_celebres_desc") },
-});
+} as const);
 
 interface CastGeneratorProps {
   userAddress: string;
