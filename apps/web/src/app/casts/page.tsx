@@ -1,19 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { CastGenerator } from "@/components/cast-generator";
-import { ScheduledCastsList } from "@/components/scheduled-casts-list";
 import { useAccount } from "wagmi";
 import { useFarcasterUser } from "@/components/farcaster-provider";
-import { Sparkles, Calendar } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Sparkles } from "lucide-react";
 import { useLanguage } from "@/components/language-provider";
 
 export default function CastsPage() {
   const { t } = useLanguage();
   const { address, isConnected } = useAccount();
   const farcasterUser = useFarcasterUser();
-  const [activeTab, setActiveTab] = useState<"generate" | "scheduled">("generate");
 
   if (!isConnected || !address) {
     return (
@@ -77,46 +73,12 @@ export default function CastsPage() {
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="container px-4 mx-auto max-w-md mt-6 mb-6">
-        <div className="grid grid-cols-2 p-1 bg-muted rounded-xl">
-          <button
-            onClick={() => setActiveTab("generate")}
-            className={cn(
-              "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
-              activeTab === "generate"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Sparkles className="w-4 h-4" />
-            {t("cast_tab_generate")}
-          </button>
-          <button
-            onClick={() => setActiveTab("scheduled")}
-            className={cn(
-              "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
-              activeTab === "scheduled"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Calendar className="w-4 h-4" />
-            {t("cast_tab_scheduled")}
-          </button>
-        </div>
-      </div>
-
       {/* Content */}
       <div className="container px-4 mx-auto max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {activeTab === "generate" ? (
-          <CastGenerator 
-            userAddress={address}
-            userFid={farcasterUser.fid}
-          />
-        ) : (
-          <ScheduledCastsList userAddress={address} />
-        )}
+        <CastGenerator 
+          userAddress={address}
+          userFid={farcasterUser.fid}
+        />
       </div>
     </main>
   );

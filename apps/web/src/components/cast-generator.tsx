@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Sparkles, Calendar, Send, Wallet, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { Loader2, Sparkles, Send, Wallet, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -35,7 +35,6 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [agentAddress, setAgentAddress] = useState<string>("");
   const [isLoadingAddress, setIsLoadingAddress] = useState(true);
-  const [scheduledTime, setScheduledTime] = useState<string>("");
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
@@ -382,26 +381,6 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
                 <div className="text-xs text-muted-foreground mt-1">
                   {generatedCast.length}/150 {t("cast_characters")}
                 </div>
-              </div>
-
-              {/* Programar Cast (Opcional) */}
-              <div>
-                <Label htmlFor="scheduled-time">
-                  {t("cast_schedule_title")}
-                </Label>
-                <input
-                  id="scheduled-time"
-                  type="datetime-local"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  min={new Date().toISOString().slice(0, 16)}
-                  className="mt-2 w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                />
-                {scheduledTime && (
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {t("cast_schedule_will_publish")} {new Date(scheduledTime).toLocaleString(locale === 'es' ? 'es-ES' : 'en-US')}
-                  </div>
-                )}
               </div>
 
               {/* Publicar */}
