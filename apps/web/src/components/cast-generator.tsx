@@ -258,6 +258,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
             topic: selectedTopic,
             user_address: userAddress,
             user_fid: userFid,
+            language: locale, // 'es' o 'en'
           };
           console.log("📤 [CastGenerator] Enviando request a /api/casts/generate:", payload);
 

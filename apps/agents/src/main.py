@@ -930,6 +930,7 @@ class GenerateCastRequest(BaseModel):
     topic: str = Field(..., description="Tema del cast: tech, musica, motivacion, chistes, frases_celebres")
     user_address: str | None = Field(None, description="Dirección del usuario (opcional para preview)")
     user_fid: int | None = Field(None, description="FID del usuario en Farcaster (opcional para preview)")
+    language: str = Field("es", description="Idioma para generar el cast: 'es' para español, 'en' para inglés")
 
 
 class PublishCastRequest(BaseModel):
@@ -987,7 +988,11 @@ async def generate_cast(request: GenerateCastRequest):
             if user_info:
                 user_context = {"username": user_info.get("username", "usuario")}
         
-        result = await cast_generator.generate_cast(request.topic, user_context)
+        result = await cast_generator.generate_cast(
+            request.topic, 
+            user_context,
+            language=request.language
+        )
         return result
     except Exception as exc:
         logger.error("Error generando cast: %s", exc, exc_info=True)
