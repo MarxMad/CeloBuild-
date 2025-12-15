@@ -125,48 +125,56 @@ class EligibilityAgent:
                         engagement_weight
                     )
                 else:
-                    # Usuario no encontrado por FID - esto no debería pasar si el FID es válido
+                    # Usuario no encontrado por FID - intentar buscar por dirección si está disponible
                     logger.warning("❌ Usuario no encontrado en Farcaster para FID: %d", target_fid)
                     
-                    # Modo demo: permitir usuarios sin Farcaster con score reducido
-                    if self.settings.demo_mode and target_address:
-                        logger.info("🎭 MODO DEMO: Permitiendo usuario sin Farcaster para demostración")
-                        target_checksum = self.celo_tool.checksum(target_address)
-                        
-                        # Crear usuario demo con score reducido
-                        demo_score = trend_score * 100 * 0.3  # 30% del score normal
-                        rankings.append({
-                            "fid": None,
-                            "username": f"demo-{target_checksum[:8]}",
-                            "address": target_checksum,
-                            "score": round(demo_score, 2),
-                            "reasons": ["Modo demo: usuario sin Farcaster"],
-                            "follower_count": 0,
-                            "power_badge": False,
-                            "participation": {
-                                "directly_participated": False,
-                                "related_casts": [],
-                                "total_engagement": 0.0,
-                            },
-                        })
-                        logger.info("✅ Usuario demo agregado: %s (score: %.2f)", target_checksum, demo_score)
+                    # Si hay target_address, intentar buscar por dirección antes de retornar error
+                    if target_address:
+                        logger.info("🔄 Intentando buscar usuario por dirección como fallback...")
+                        # No retornar error aquí, dejar que el código continúe a la sección de búsqueda por dirección
                     else:
-                        return {
-                            "recipients": [],
-                            "rankings": [],
-                            "eligible": False,
-                            "reason": "user_not_found",
-                            "message": f"Usuario con FID {target_fid} no encontrado en Farcaster. Verifica tu conexión.",
-                        }
+                        # Modo demo: permitir usuarios sin Farcaster con score reducido
+                        if self.settings.demo_mode:
+                            logger.info("🎭 MODO DEMO: Permitiendo usuario sin Farcaster para demostración")
+                            # Crear usuario demo con score reducido (sin address, solo FID)
+                            demo_score = trend_score * 100 * 0.3  # 30% del score normal
+                            rankings.append({
+                                "fid": target_fid,
+                                "username": f"demo-fid-{target_fid}",
+                                "address": None,
+                                "score": round(demo_score, 2),
+                                "reasons": ["Modo demo: usuario sin Farcaster"],
+                                "follower_count": 0,
+                                "power_badge": False,
+                                "participation": {
+                                    "directly_participated": False,
+                                    "related_casts": [],
+                                    "total_engagement": 0.0,
+                                },
+                            })
+                            logger.info("✅ Usuario demo agregado: FID %d (score: %.2f)", target_fid, demo_score)
+                        else:
+                            return {
+                                "recipients": [],
+                                "rankings": [],
+                                "eligible": False,
+                                "reason": "user_not_found",
+                                "message": f"Usuario con FID {target_fid} no encontrado en Farcaster. Verifica tu conexión.",
+                            }
             except Exception as exc:  # noqa: BLE001
                 logger.error("❌ Error analizando usuario por FID %d: %s", target_fid, exc, exc_info=True)
-                return {
-                    "recipients": [],
-                    "rankings": [],
-                    "eligible": False,
-                    "reason": "api_error",
-                    "message": f"Error consultando Farcaster API: {str(exc)}",
-                }
+                # Si hay target_address, intentar buscar por dirección como fallback
+                if target_address:
+                    logger.info("🔄 Error al buscar por FID, intentando buscar por dirección como fallback...")
+                    # No retornar error aquí, dejar que el código continúe a la sección de búsqueda por dirección
+                else:
+                    return {
+                        "recipients": [],
+                        "rankings": [],
+                        "eligible": False,
+                        "reason": "api_error",
+                        "message": f"Error consultando Farcaster API: {str(exc)}",
+                    }
 
         # PRIORIDAD 2: Si hay target_address (y no se encontró por FID), analizar específicamente a ese usuario
         if target_address and not rankings:
