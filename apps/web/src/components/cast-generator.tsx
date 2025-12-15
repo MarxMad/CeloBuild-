@@ -169,14 +169,14 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
 
   const handleConfirmPayment = async () => {
     setShowConfirmDialog(false);
-    console.log("💰 [CastGenerator] Iniciando pago de 1 CELO a:", agentAddress);
+    console.log("💰 [CastGenerator] Iniciando pago de 0.5 CELO a:", agentAddress);
     setIsPublishing(true);
     setPublishError(null);
     setPublishSuccess(false);
 
     try {
-      // Precio: 1 CELO nativo
-      const amount = parseEther("1");
+      // Precio: 0.5 CELO nativo
+      const amount = parseEther("0.5");
       console.log("📝 [CastGenerator] Enviando transacción:", { to: agentAddress, value: amount.toString() });
 
       // Transferir CELO nativo al agente
@@ -472,12 +472,12 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
 
                     {/* Detalles de Transacciones */}
                     <div className="space-y-2">
-                      {/* Pago de 1 CELO */}
+                      {/* Pago de 0.5 CELO */}
                       {txHash && (
                         <div className="flex items-center justify-between bg-black/40 rounded-lg p-3 border border-white/10">
                           <div className="flex items-center gap-2">
                             <Wallet className="w-4 h-4 text-primary" />
-                            <span className="text-xs font-medium text-muted-foreground">Pago de 1 CELO</span>
+                            <span className="text-xs font-medium text-muted-foreground">Pago de 0.5 CELO</span>
                           </div>
                           <a
                             href={`https://celoscan.io/tx/${txHash}`}

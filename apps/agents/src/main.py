@@ -1004,8 +1004,8 @@ async def publish_cast(request: PublishCastRequest):
         # Obtener dirección del agente
         agent_address = celo_toolbox.get_agent_address()
         
-        # Precio: 1 CELO nativo = 1000000000000000000 wei (18 decimales)
-        PRICE_WEI = int(1.0 * 10**18)
+        # Precio: 0.5 CELO nativo = 500000000000000000 wei (18 decimales)
+        PRICE_WEI = int(0.5 * 10**18)
         
         # Validar pago en CELO nativo
         payment_validation = celo_toolbox.validate_native_payment(
@@ -1282,8 +1282,8 @@ async def verify_publication(request: VerifyPublicationRequest):
         # Obtener dirección del agente
         agent_address = celo_toolbox.get_agent_address()
         
-        # Precio: 1 CELO nativo = 1000000000000000000 wei (18 decimales)
-        PRICE_WEI = int(1.0 * 10**18)
+        # Precio: 0.5 CELO nativo = 500000000000000000 wei (18 decimales)
+        PRICE_WEI = int(0.5 * 10**18)
         
         # Validar pago en CELO nativo
         payment_validation = celo_toolbox.validate_native_payment(
