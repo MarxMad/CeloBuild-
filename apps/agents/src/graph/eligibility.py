@@ -293,10 +293,30 @@ class EligibilityAgent:
                     # Usuario no encontrado en Farcaster (user_info es None)
                     logger.warning("❌ Usuario no encontrado en Farcaster para address: %s (normalized: %s)", 
                                  target_checksum, target_normalized)
-                    logger.warning("   Esto significa que la wallet no está vinculada a una cuenta de Farcaster")
                     
-                    # Modo demo: permitir usuarios sin Farcaster con score reducido
-                    if self.settings.demo_mode:
+                    # Si hay un FID válido, el usuario SÍ tiene cuenta de Farcaster, solo que la API no lo encuentra
+                    # Permitir participar con score reducido
+                    if target_fid:
+                        logger.info("⚠️ Usuario con FID %d no encontrado en API, pero FID es válido. Permitiendo con score reducido.", target_fid)
+                        # Crear usuario con score reducido (asumiendo que tiene Farcaster pero API no responde)
+                        reduced_score = trend_score * 100 * 0.5  # 50% del score normal
+                        rankings.append({
+                            "fid": target_fid,
+                            "username": f"user-{target_fid}",
+                            "address": target_checksum,
+                            "score": round(reduced_score, 2),
+                            "reasons": ["Usuario de Farcaster (no encontrado en API temporalmente)"],
+                            "follower_count": 0,
+                            "power_badge": False,
+                            "participation": {
+                                "directly_participated": False,
+                                "related_casts": [],
+                                "total_engagement": 0.0,
+                            },
+                        })
+                        logger.info("✅ Usuario agregado con score reducido: FID %d, address %s (score: %.2f)", 
+                                  target_fid, target_checksum, reduced_score)
+                    elif self.settings.demo_mode:
                         logger.info("🎭 MODO DEMO: Permitiendo usuario sin Farcaster para demostración")
                         
                         # Crear usuario demo con score reducido
@@ -317,7 +337,7 @@ class EligibilityAgent:
                         })
                         logger.info("✅ Usuario demo agregado: %s (score: %.2f)", target_checksum, demo_score)
                     else:
-                        # NO ES ELEGIBLE (modo normal)
+                        # NO ES ELEGIBLE (modo normal, sin FID ni demo mode)
                         logger.warning("   NO ES ELEGIBLE para recompensas (solo usuarios de Farcaster)")
                         return {
                             "recipients": [],
