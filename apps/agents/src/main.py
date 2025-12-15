@@ -1286,10 +1286,11 @@ async def grant_xp_for_publish(request: GrantXpRequest):
     try:
         xp_amount = 25
         
-        # Otorgar XP
+        # Otorgar XP (usar "demo-campaign" para que se acumule con el resto del XP de la app)
+        campaign_id = "demo-campaign"
         tx_hash = celo_toolbox.grant_xp(
             registry_address=settings.registry_address,
-            campaign_id=settings.campaign_id,
+            campaign_id=campaign_id,
             participant=request.user_address,
             amount=xp_amount
         )
