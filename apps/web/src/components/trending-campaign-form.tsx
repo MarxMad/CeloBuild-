@@ -596,43 +596,6 @@ export function TrendingCampaignForm() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Info Panel - Only show if not loading or if result is ready */}
-              {!isLoading && !result && (
-                <div className="rounded-xl bg-white/50 dark:bg-black/40 border border-neutral-200 dark:border-white/10 overflow-hidden">
-                  {/* Wallet Row */}
-                  <div className="p-3 border-b border-neutral-200 dark:border-white/5 flex items-center justify-between group/item hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 rounded-md bg-blue-500/10 text-blue-400">
-                        <Wallet className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Wallet</span>
-                    </div>
-                    <span className="font-mono text-green-700 dark:text-[#FCFF52] bg-green-600/10 dark:bg-[#FCFF52]/10 px-2 py-0.5 rounded-full text-[10px] border border-green-600/20 dark:border-[#FCFF52]/20 shadow-sm dark:shadow-[0_0_10px_rgba(252,255,82,0.1)]">
-                      {address?.slice(0, 6)}...{address?.slice(-4)}
-                    </span>
-                  </div>
-
-                  {/* Farcaster Row */}
-                  {farcasterUser.username && (
-                    <div className="p-3 flex items-center justify-between group/item hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1 rounded-md bg-purple-500/10 text-purple-400">
-                          <TrendingUp className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-xs text-gray-400 font-medium">Farcaster</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-medium text-neutral-900 dark:text-white">@{farcasterUser.username}</span>
-                        {farcasterUser.fid && (
-                          <span className="text-[9px] text-gray-400 bg-white/10 px-1.5 py-px rounded-full border border-white/10">
-                            FID: {farcasterUser.fid}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Loader Steps */}
               {isLoading && renderLoaderStep()}

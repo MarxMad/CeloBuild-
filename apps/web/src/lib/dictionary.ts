@@ -146,6 +146,7 @@ export const dictionary = {
         cast_page_description: "Crea contenido viral para Farcaster. Paga 0.5 CELO y gana 100 XP por cada cast publicado.",
         cast_card_title: "Generar Casts con IA",
         cast_card_description: "Crea contenido viral para Farcaster. Paga 0.5 CELO y gana 100 XP",
+        cast_card_features: "• Generación instantánea con IA\n• 5 temas disponibles\n• Publicación directa en Warpcast\n• Gana 25 XP al publicar",
         cast_tab_generate: "Generar",
         cast_tab_scheduled: "Programados",
 
@@ -329,6 +330,7 @@ export const dictionary = {
         cast_page_description: "Create viral content for Farcaster. Pay 0.5 CELO and earn 100 XP for each published cast.",
         cast_card_title: "Generate Casts with AI",
         cast_card_description: "Create viral content for Farcaster. Pay 0.5 CELO and earn 100 XP",
+        cast_card_features: "• Instant AI generation\n• 5 topics available\n• Direct Warpcast publishing\n• Earn 25 XP when publishing",
         cast_tab_generate: "Generate",
         cast_tab_scheduled: "Scheduled",
 
