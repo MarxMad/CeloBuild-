@@ -100,9 +100,22 @@ class SupervisorOrchestrator:
                 return RunResult(
                     thread_id=thread_id,
                     summary=f"Sin energía. Recarga en {minutes}m {seconds}s.",
+                    tx_hash=None,
+                    explorer_url=None,
                     mode="no_energy",
+                    reward_type=None,
+                    user_analysis=None,
+                    trend_info=None,
+                    eligible=False,
                     eligibility_message=f"¡Te has quedado sin energía! ⚡\nTu próximo rayo se recargará en {minutes}m {seconds}s.",
-                    eligible=False
+                    error=None,
+                    nft_images=None,
+                    best_cast=None,
+                    cast_text=None,
+                    cast_hash=None,
+                    xp_granted=0,
+                    trace_logs=[],
+                    energy_status=status,  # Incluir estado de energía incluso cuando no hay energía
                 )
             
             # Log después de consumir y guardar estado para incluir en respuesta
@@ -173,6 +186,14 @@ class SupervisorOrchestrator:
                 } if trend_context.get("status") == "trend_detected" or trend_context.get("status") == "trend_below_threshold" else None,
                 eligible=False,
                 eligibility_message=eligible_users.get("message"),
+                error=None,
+                nft_images=None,
+                best_cast=None,
+                cast_text=None,
+                cast_hash=None,
+                xp_granted=0,
+                trace_logs=[],
+                energy_status=energy_status_after_consume,  # Incluir estado de energía incluso cuando no es elegible (ya se consumió)
             )
         
         distribution = await self.distributor.handle(eligible_users)
