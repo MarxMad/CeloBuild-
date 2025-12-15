@@ -242,6 +242,61 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     }
   }, [isConfirmed, hash]);
 
+  // Cuando la transacción se confirma, generar el cast automáticamente
+  useEffect(() => {
+    if (isConfirmed && hash && !generatedCast && isGenerating) {
+      const generateCastAfterPayment = async () => {
+        console.log("✅ [CastGenerator] Transacción confirmada, generando cast...");
+        
+        try {
+          const backendUrl = getBackendUrl();
+          if (!backendUrl) {
+            throw new Error(t("cast_error_backend"));
+          }
+
+          const payload = {
+            topic: selectedTopic,
+            user_address: userAddress,
+            user_fid: userFid,
+          };
+          console.log("📤 [CastGenerator] Enviando request a /api/casts/generate:", payload);
+
+          const response = await fetch(`${backendUrl}/api/casts/generate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            let errorMessage = t("cast_error_generating");
+            try {
+              const error = await response.json();
+              errorMessage = error.detail || error.message || errorMessage;
+              console.error("❌ [CastGenerator] Error del backend:", error);
+            } catch {
+              errorMessage = `Error ${response.status}: ${response.statusText}`;
+              console.error(`❌ [CastGenerator] Error ${response.status}: ${response.statusText}`);
+            }
+            throw new Error(errorMessage);
+          }
+
+          const data = await response.json();
+          console.log("✅ [CastGenerator] Cast generado exitosamente");
+          setGeneratedCast(data.cast_text || "");
+          setIsGenerating(false);
+          setIsPublishing(false);
+        } catch (error: any) {
+          console.error("❌ [CastGenerator] Error generando cast:", error);
+          setPublishError(error.message || t("cast_error_generating"));
+          setIsGenerating(false);
+          setIsPublishing(false);
+        }
+      };
+
+      generateCastAfterPayment();
+    }
+  }, [isConfirmed, hash, generatedCast, isGenerating, selectedTopic, userAddress, userFid]);
+
 
   const TOPICS = getTopics(t as (key: string) => string);
 
