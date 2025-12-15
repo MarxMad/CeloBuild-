@@ -1272,6 +1272,40 @@ async def cancel_cast(request: CancelCastRequest):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@app.post("/api/casts/grant-xp")
+async def grant_xp_for_publish(request: GrantXpRequest):
+    """Otorga 25 XP al usuario cuando presiona 'Publicar'.
+    
+    El usuario ya pagó al generar el cast, así que solo otorgamos XP sin validar nada.
+    """
+    try:
+        xp_amount = 25
+        
+        # Otorgar XP
+        tx_hash = celo_toolbox.grant_xp(
+            registry_address=settings.registry_address,
+            campaign_id=settings.campaign_id,
+            participant=request.user_address,
+            amount=xp_amount
+        )
+        
+        logger.info(f"✅ XP otorgado: {xp_amount} XP a {request.user_address}, tx: {tx_hash}")
+        return {
+            "success": True,
+            "xp_granted": xp_amount,
+            "tx_hash": tx_hash,
+            "message": f"Se otorgaron {xp_amount} XP exitosamente"
+        }
+        
+    except Exception as exc:
+        logger.error("Error otorgando XP: %s", exc, exc_info=True)
+        return {
+            "success": False,
+            "xp_granted": 0,
+            "message": f"Error interno: {str(exc)}"
+        }
+
+
 @app.post("/api/casts/verify-publication")
 async def verify_publication(request: VerifyPublicationRequest):
     """Verifica si el usuario publicó el cast en Farcaster y otorga XP si es así.
