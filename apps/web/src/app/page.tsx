@@ -10,7 +10,6 @@ import { UserBalance } from "@/components/user-balance";
 import { TrendingCampaignForm } from "@/components/trending-campaign-form";
 import { Dashboard } from "@/components/dashboard";
 import { Instructions } from "@/components/instructions";
-import { AgentVis } from "@/components/agent-vis";
 import { Leaderboard } from "@/components/leaderboard";
 import { cn } from "@/lib/utils";
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -55,7 +54,7 @@ export default function Home() {
             />
           </div>
           <div className="flex items-center justify-center gap-2 mb-6 opacity-80">
-            <span className="text-gray-400 text-sm">{t("powered_by")}</span>
+            <span className="text-gray-400 text-sm">{t("powered_by UTONOMA")}</span>
             <img
               src="/utonoma-full-logo.svg"
               alt="Utonoma"
@@ -63,13 +62,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Agent Vis - Compact for Mobile */}
-          <div className="relative mx-auto w-full h-[280px] mb-4">
-            <AgentVis />
-            <div className="absolute bottom-0 left-0 right-0 text-center text-[10px] text-muted-foreground/60 uppercase tracking-widest">
-              System Online
-            </div>
-          </div>
 
           <UserBalance />
         </div>
@@ -115,17 +107,20 @@ export default function Home() {
             <Link href="/casts">
               <Card className="border-white/5 bg-background/50 backdrop-blur-sm hover:bg-background/70 transition-all cursor-pointer">
                 <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
+                  <div className="flex items-start gap-4">
+                    <div className="relative flex-shrink-0">
                       <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse" />
                       <div className="relative h-12 w-12 bg-background/80 rounded-full border border-primary/30 flex items-center justify-center backdrop-blur-md">
                         <Sparkles className="h-6 w-6 text-primary" />
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-base mb-1">{t("cast_card_title")}</div>
-                      <div className="text-sm text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-base mb-1.5">{t("cast_card_title")}</div>
+                      <div className="text-sm text-muted-foreground mb-2">
                         {t("cast_card_description")}
+                      </div>
+                      <div className="text-xs text-muted-foreground/80 whitespace-pre-line leading-relaxed">
+                        {t("cast_card_features")}
                       </div>
                     </div>
                   </div>
