@@ -945,6 +945,12 @@ class CancelCastRequest(BaseModel):
     cast_id: str
     user_address: str
 
+class VerifyPublicationRequest(BaseModel):
+    user_fid: int
+    user_address: str
+    cast_text: str
+    payment_tx_hash: str
+
 
 @app.get("/api/casts/topics")
 async def get_available_topics():
@@ -1261,6 +1267,99 @@ async def cancel_cast(request: CancelCastRequest):
     except Exception as exc:
         logger.error("Error cancelando cast: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/casts/verify-publication")
+async def verify_publication(request: VerifyPublicationRequest):
+    """Verifica si el usuario publicó el cast en Farcaster y otorga XP si es así.
+    
+    Flujo:
+    1. Valida que el pago on-chain es correcto
+    2. Busca el cast en los casts recientes del usuario
+    3. Si encuentra el cast, otorga XP
+    """
+    try:
+        # Obtener dirección del agente
+        agent_address = celo_toolbox.get_agent_address()
+        
+        # Precio: 1 CELO nativo = 1000000000000000000 wei (18 decimales)
+        PRICE_WEI = int(1.0 * 10**18)
+        
+        # Validar pago en CELO nativo
+        payment_validation = celo_toolbox.validate_native_payment(
+            tx_hash=request.payment_tx_hash,
+            expected_recipient=agent_address,
+            expected_amount=PRICE_WEI
+        )
+        
+        if not payment_validation["valid"]:
+            return {
+                "verified": False,
+                "message": f"Pago inválido: {payment_validation['message']}"
+            }
+        
+        # Verificar que el sender es el usuario
+        if payment_validation["sender"].lower() != request.user_address.lower():
+            return {
+                "verified": False,
+                "message": "El pago no proviene de la dirección del usuario"
+            }
+        
+        logger.info(f"✅ Pago validado para usuario {request.user_address}")
+        
+        # Buscar el cast en los casts recientes del usuario
+        casts = await farcaster_toolbox.fetch_user_recent_casts(request.user_fid, limit=5)
+        
+        # Normalizar el texto del cast para comparación (sin espacios extra, lowercase)
+        cast_text_normalized = " ".join(request.cast_text.split()).lower()
+        
+        verified = False
+        cast_hash = None
+        
+        for cast in casts:
+            cast_text = cast.get("text", "")
+            cast_text_normalized_check = " ".join(cast_text.split()).lower()
+            
+            # Comparar textos normalizados (permitir variaciones menores)
+            if cast_text_normalized in cast_text_normalized_check or cast_text_normalized_check in cast_text_normalized:
+                verified = True
+                cast_hash = cast.get("hash")
+                logger.info(f"✅ Cast encontrado: {cast_hash}")
+                break
+        
+        if verified:
+            # Otorgar XP
+            xp_amount = 100
+            xp_result = celo_toolbox.grant_xp(request.user_address, xp_amount)
+            
+            if xp_result.get("success"):
+                logger.info(f"✅ XP otorgado: {xp_amount} XP a {request.user_address}")
+                return {
+                    "verified": True,
+                    "xp_granted": xp_amount,
+                    "cast_hash": cast_hash,
+                    "message": f"Cast verificado exitosamente. Ganaste {xp_amount} XP"
+                }
+            else:
+                logger.warning(f"⚠️ No se pudo otorgar XP: {xp_result.get('message')}")
+                return {
+                    "verified": True,
+                    "xp_granted": 0,
+                    "cast_hash": cast_hash,
+                    "message": "Cast verificado, pero no se pudo otorgar XP"
+                }
+        else:
+            return {
+                "verified": False,
+                "message": "No se encontró el cast en tus publicaciones recientes. Asegúrate de haber publicado el cast en Warpcast."
+            }
+        
+    except Exception as exc:
+        logger.error("Error verificando publicación: %s", exc, exc_info=True)
+        return {
+            "verified": False,
+            "message": f"Error interno: {str(exc)}"
+        }
 
 
 # ============================================================================

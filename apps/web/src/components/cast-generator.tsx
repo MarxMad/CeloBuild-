@@ -43,6 +43,8 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [xpGranted, setXpGranted] = useState<number>(0);
   const [publishedCastHash, setPublishedCastHash] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
 
   // Wagmi hooks para transacciones de CELO nativo
   const { sendTransaction, data: hash, isPending: isPendingTx } = useSendTransaction();
@@ -161,88 +163,8 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
       return;
     }
     
-    // Verificar/crear signer ANTES de mostrar el diálogo de confirmación
-    console.log("🔑 [CastGenerator] Verificando signer antes del pago...");
-    setIsPublishing(true);
-    setPublishError(null);
-    
-    try {
-      const backendUrl = getBackendUrl();
-      if (!backendUrl) {
-        throw new Error(t("cast_error_backend"));
-      }
-
-      // Llamar al endpoint de verificación de signer
-      const response = await fetch(
-        `${backendUrl}/api/casts/signer/check?user_fid=${userFid}&user_address=${userAddress}`
-      );
-
-      if (!response.ok) {
-        let errorMessage = "Error verificando signer";
-        try {
-          const error = await response.json();
-          console.error("❌ [CastGenerator] Error del backend:", error);
-          errorMessage = error.detail || error.message || error.error || errorMessage;
-          
-          // Si hay más información en el error, incluirla
-          if (error.details) {
-            errorMessage += `: ${JSON.stringify(error.details)}`;
-          }
-        } catch (parseError) {
-          const errorText = await response.text().catch(() => response.statusText);
-          console.error("❌ [CastGenerator] Error parseando respuesta:", errorText);
-          errorMessage = `Error ${response.status}: ${errorText.substring(0, 200)}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const signerData = await response.json();
-      console.log("✅ [CastGenerator] Estado del signer:", signerData);
-
-      // Si el signer está pendiente de aprobación, mostrar approval_url
-      if (signerData.status === "pending_approval" && signerData.approval_url) {
-        const approvalUrl = signerData.approval_url;
-        console.log("🔑 [CastGenerator] Signer pendiente de aprobación. Approval URL:", approvalUrl);
-        
-        setPublishError(
-          `${t("cast_error_signer_required")}\n\n${t("cast_approval_note")}`
-        );
-        
-        // Abrir approval URL
-        import("@farcaster/miniapp-sdk")
-          .then(({ sdk }) => {
-            sdk.actions.openUrl(approvalUrl);
-          })
-          .catch(() => {
-            if (approvalUrl.startsWith("farcaster://")) {
-              window.location.href = approvalUrl;
-            } else {
-              window.open(approvalUrl, "_blank");
-            }
-          });
-        
-        setIsPublishing(false);
-        return; // No continuar con el pago
-      }
-
-      // Si el signer está aprobado, continuar con el flujo normal
-      if (signerData.status === "approved") {
-        console.log("✅ [CastGenerator] Signer aprobado. Continuando con el pago...");
-        setIsPublishing(false);
-        setPublishError(null);
-        // Mostrar diálogo de confirmación
-        setShowConfirmDialog(true);
-        return;
-      }
-
-      // Si hay algún otro estado, mostrar error
-      throw new Error(signerData.message || "Estado de signer desconocido");
-      
-    } catch (error: any) {
-      console.error("❌ [CastGenerator] Error verificando signer:", error);
-      setPublishError(error.message || "Error verificando signer");
-      setIsPublishing(false);
-    }
+    // Mostrar diálogo de confirmación directamente (sin verificar signer)
+    setShowConfirmDialog(true);
   };
 
   const handleConfirmPayment = async () => {
@@ -280,139 +202,110 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     }
   }, [isConfirmed, hash]);
 
-  // Cuando la transacción se confirma, publicar el cast
-  useEffect(() => {
-    if (isConfirmed && hash && generatedCast && !publishSuccess) {
-      const publishCast = async () => {
-        console.log("📤 [CastGenerator] Transacción confirmada, publicando cast...");
-        console.log("📋 [CastGenerator] Datos:", { hash, castLength: generatedCast.length, scheduledTime });
-        setIsPublishing(true);
+  // Función para verificar si el cast fue publicado
+  const verifyPublication = async () => {
+    if (!generatedCast || !userFid) {
+      console.warn("⚠️ [CastGenerator] No se puede verificar: cast o FID faltante");
+      return;
+    }
+
+    setIsVerifying(true);
+    setPublishError(null);
+    setVerificationAttempts(0);
+
+    const verifyWithRetry = async (attempts = 10, delay = 3000) => {
+      for (let i = 0; i < attempts; i++) {
+        setVerificationAttempts(i + 1);
+        console.log(`🔍 [CastGenerator] Verificando publicación (${i + 1}/${attempts})...`);
+
         try {
+          await new Promise(r => setTimeout(r, delay));
+
           const backendUrl = getBackendUrl();
           if (!backendUrl) {
             throw new Error(t("cast_error_backend"));
           }
 
-          const scheduledDateTime = scheduledTime 
-            ? new Date(scheduledTime).toISOString()
-            : null;
-
-          const payload = {
-            topic: selectedTopic,
-            cast_text: generatedCast,
-            user_address: userAddress,
-            user_fid: userFid,
-            payment_tx_hash: hash,
-            scheduled_time: scheduledDateTime,
-          };
-          console.log("📤 [CastGenerator] Enviando request a /api/casts/publish:", { ...payload, cast_text: generatedCast.substring(0, 50) + "..." });
-
-          const response = await fetch(`${backendUrl}/api/casts/publish`, {
+          const response = await fetch(`${backendUrl}/api/casts/verify-publication`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({
+              user_fid: userFid,
+              user_address: userAddress,
+              cast_text: generatedCast,
+              payment_tx_hash: hash,
+            }),
           });
 
           if (!response.ok) {
-            let errorMessage = t("cast_error_publishing");
-            let approvalUrl: string | null = null;
-            
-            try {
-              const error = await response.json();
-              errorMessage = error.detail || error.message || errorMessage;
-              console.error("❌ [CastGenerator] Error del backend:", error);
-              
-              // Extraer approval URL si está en el mensaje
-              const approvalUrlMatch = errorMessage.match(/https?:\/\/[^\s]+/);
-              if (approvalUrlMatch) {
-                approvalUrl = approvalUrlMatch[0];
-              }
-              
-              // También verificar header
-              const headerApprovalUrl = response.headers.get("X-Approval-URL");
-              if (headerApprovalUrl) {
-                approvalUrl = headerApprovalUrl;
-              }
-            } catch {
-              errorMessage = `Error ${response.status}: ${response.statusText}`;
-              console.error(`❌ [CastGenerator] Error ${response.status}: ${response.statusText}`);
-            }
-            
-            // Si hay approval URL, mostrar mensaje especial
-            if (approvalUrl) {
-              setPublishError(
-                `${t("cast_error_signer_required")}\n\n${t("cast_approval_note")}`
-              );
-              
-              // Intentar abrir con SDK de Farcaster si está disponible (mini-app)
-              // Si no, usar window.open como fallback
-              import("@farcaster/miniapp-sdk")
-                .then(({ sdk }) => {
-                  // Si estamos en un mini-app de Farcaster, usar SDK
-                  sdk.actions.openUrl(approvalUrl);
-                })
-                .catch(() => {
-                  // Fallback: abrir en nueva pestaña
-                  // Si es un deeplink (farcaster://), intentar abrir directamente
-                  if (approvalUrl.startsWith("farcaster://")) {
-                    // Intentar abrir deeplink directamente
-                    window.location.href = approvalUrl;
-                  } else {
-                    // URL web, abrir en nueva pestaña
-                    window.open(approvalUrl, "_blank");
-                  }
-                });
-            } else {
-              setPublishError(errorMessage);
-            }
-            
-            throw new Error(errorMessage);
+            const error = await response.json().catch(() => ({ detail: response.statusText }));
+            throw new Error(error.detail || "Error verificando publicación");
           }
 
           const data = await response.json();
-          console.log("✅ [CastGenerator] Respuesta del backend:", data);
-          
-          // Guardar datos del comprobante
-          const xpGrantedValue = data.xp_granted || 0;
-          const castHash = data.published_cast_hash || null;
-          
-          console.log(`🎉 [CastGenerator] XP otorgado: ${xpGrantedValue}, Estado: ${data.status}, Cast Hash: ${castHash}`);
-          
-          // Guardar datos para el comprobante
-          setXpGranted(xpGrantedValue);
-          setPublishedCastHash(castHash);
-          
-          if (xpGrantedValue > 0 || data.status === "published") {
-            console.log("✅ [CastGenerator] Cast publicado exitosamente");
+
+          if (data.verified) {
+            console.log("✅ [CastGenerator] Cast verificado exitosamente!");
+            setXpGranted(data.xp_granted || 100);
+            setPublishedCastHash(data.cast_hash || null);
             setPublishSuccess(true);
             setPublishError(null);
             
             // Disparar evento para refrescar XP en el dashboard
             window.dispatchEvent(new Event('refresh-xp'));
+            
+            setIsVerifying(false);
+            return true;
           } else {
-            // Si no se otorgó XP, puede ser que esté programado o haya un error
-            if (data.status === "scheduled") {
-              console.log("📅 [CastGenerator] Cast programado exitosamente");
-              setPublishSuccess(true);
-              setPublishError(null);
-            } else {
-              console.warn("⚠️ [CastGenerator] Cast publicado pero sin XP:", data);
-              setPublishError(data.message || t("cast_error_publishing"));
-              setPublishSuccess(false);
+            console.log(`⏳ [CastGenerator] Cast aún no publicado (intento ${i + 1}/${attempts})`);
+            if (i === attempts - 1) {
+              // Último intento fallido
+              setPublishError(
+                data.message || t("cast_verification_failed") || "No se pudo verificar la publicación. Asegúrate de haber publicado el cast en Warpcast."
+              );
             }
           }
         } catch (error: any) {
-          console.error("❌ [CastGenerator] Error publicando cast:", error);
-          setPublishError(error.message || t("cast_error_publishing"));
-          setPublishSuccess(false);
-        } finally {
-          setIsPublishing(false);
+          console.error(`❌ [CastGenerator] Error en verificación (intento ${i + 1}):`, error);
+          if (i === attempts - 1) {
+            setPublishError(error.message || "Error verificando publicación");
+          }
         }
+      }
+      
+      setIsVerifying(false);
+      return false;
+    };
+
+    verifyWithRetry();
+  };
+
+  // Cuando la transacción se confirma, abrir Warpcast composer
+  useEffect(() => {
+    if (isConfirmed && hash && generatedCast && !publishSuccess && !isVerifying) {
+      const openWarpcastComposer = async () => {
+        console.log("✅ [CastGenerator] Transacción confirmada, abriendo Warpcast composer...");
+        
+        // Abrir Warpcast composer con el texto del cast
+        const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(generatedCast)}`;
+
+        try {
+          const { sdk } = await import("@farcaster/miniapp-sdk");
+          sdk.actions.openUrl(warpcastUrl);
+        } catch (e) {
+          // Fallback para web
+          window.open(warpcastUrl, "_blank");
+        }
+
+        // Iniciar verificación automática después de un breve delay
+        setTimeout(() => {
+          verifyPublication();
+        }, 3000); // Esperar 3 segundos antes de empezar a verificar
       };
 
-      publishCast();
+      openWarpcastComposer();
     }
-  }, [isConfirmed, hash, generatedCast, publishSuccess]); // Solo ejecutar cuando se confirma la transacción
+  }, [isConfirmed, hash, generatedCast, publishSuccess, isVerifying]);
 
   const TOPICS = getTopics(t as (key: string) => string);
 
@@ -522,11 +415,16 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
               {/* Publicar */}
               <Button
                 onClick={handlePublish}
-                disabled={isPublishing || isPendingTx || isConfirming || !agentAddress}
+                disabled={isPublishing || isPendingTx || isConfirming || isVerifying || !agentAddress}
                 className="w-full"
                 size="lg"
               >
-                {isPublishing || isPendingTx || isConfirming ? (
+                {isVerifying ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t("cast_verifying")} ({verificationAttempts}/10)
+                  </>
+                ) : isPublishing || isPendingTx || isConfirming ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {isPendingTx || isConfirming ? t("cast_confirming_payment") : t("cast_publishing")}
