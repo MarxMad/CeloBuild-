@@ -1279,12 +1279,12 @@ async def cancel_cast(request: CancelCastRequest):
 
 @app.post("/api/casts/grant-xp")
 async def grant_xp_for_publish(request: GrantXpRequest):
-    """Otorga 25 XP al usuario cuando presiona 'Publicar'.
+    """Otorga 100 XP al usuario cuando presiona 'Publicar'.
     
     El usuario ya pagó al generar el cast, así que solo otorgamos XP sin validar nada.
     """
     try:
-        xp_amount = 25
+        xp_amount = 100
         
         # Otorgar XP (usar "demo-campaign" para que se acumule con el resto del XP de la app)
         campaign_id = "demo-campaign"

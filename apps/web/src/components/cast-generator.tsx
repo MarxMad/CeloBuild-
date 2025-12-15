@@ -189,7 +189,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
       
       if (data.success) {
         console.log("✅ [CastGenerator] XP otorgado exitosamente:", data.xp_granted);
-        setXpGranted(data.xp_granted || 25);
+        setXpGranted(data.xp_granted || 100);
         setPublishSuccess(true);
         setPublishError(null);
         
