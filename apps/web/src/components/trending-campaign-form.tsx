@@ -610,7 +610,7 @@ export function TrendingCampaignForm() {
                 <>
                   <div className="mb-4 flex flex-col items-center gap-3">
                     <EnergyDisplay
-                      key={`energy-${energy.current}-${energy.bolts?.map(b => `${b.index}-${b.available}`).join('-') || 'none'}`}
+                      key={`energy-${energy.current}-${energy.bolts?.map((b: { index: number; available: boolean }) => `${b.index}-${b.available}`).join('-') || 'none'}`}
                       currentEnergy={energy.current}
                       maxEnergy={energy.max}
                       secondsToRefill={energy.seconds}
@@ -782,7 +782,7 @@ export function TrendingCampaignForm() {
           {result.eligible !== false && result.mode !== "failed" && (
             <div className="mb-4">
               <EnergyDisplay
-                key={`energy-result-${energy.current}-${energy.bolts?.map(b => `${b.index}-${b.available}`).join('-') || 'none'}`}
+                key={`energy-result-${energy.current}-${energy.bolts?.map((b: { index: number; available: boolean }) => `${b.index}-${b.available}`).join('-') || 'none'}`}
                 currentEnergy={energy.current}
                 maxEnergy={energy.max}
                 secondsToRefill={energy.seconds}
