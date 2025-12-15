@@ -178,8 +178,22 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
       );
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new Error(error.detail || "Error verificando signer");
+        let errorMessage = "Error verificando signer";
+        try {
+          const error = await response.json();
+          console.error("❌ [CastGenerator] Error del backend:", error);
+          errorMessage = error.detail || error.message || error.error || errorMessage;
+          
+          // Si hay más información en el error, incluirla
+          if (error.details) {
+            errorMessage += `: ${JSON.stringify(error.details)}`;
+          }
+        } catch (parseError) {
+          const errorText = await response.text().catch(() => response.statusText);
+          console.error("❌ [CastGenerator] Error parseando respuesta:", errorText);
+          errorMessage = `Error ${response.status}: ${errorText.substring(0, 200)}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const signerData = await response.json();
