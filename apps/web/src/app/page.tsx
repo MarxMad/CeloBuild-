@@ -54,7 +54,7 @@ export default function Home() {
             />
           </div>
           <div className="flex items-center justify-center gap-2 mb-6 opacity-80">
-            <span className="text-gray-400 text-sm">{t("powered_by UTONOMA")}</span>
+            <span className="text-gray-400 text-sm">{t("powered_by")}</span>
             <img
               src="/utonoma-full-logo.svg"
               alt="Utonoma"
