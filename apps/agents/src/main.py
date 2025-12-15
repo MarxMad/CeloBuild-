@@ -951,6 +951,9 @@ class VerifyPublicationRequest(BaseModel):
     cast_text: str
     payment_tx_hash: str
 
+class GrantXpRequest(BaseModel):
+    user_address: str
+
 
 @app.get("/api/casts/topics")
 async def get_available_topics():

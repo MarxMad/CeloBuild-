@@ -43,8 +43,6 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [xpGranted, setXpGranted] = useState<number>(0);
   const [publishedCastHash, setPublishedCastHash] = useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationAttempts, setVerificationAttempts] = useState(0);
 
   // Wagmi hooks para transacciones de CELO nativo
   const { sendTransaction, data: hash, isPending: isPendingTx } = useSendTransaction();
@@ -105,66 +103,108 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
   }, []); // Solo ejecutar una vez al montar
 
   const handleGenerate = async () => {
-    console.log("🎨 [CastGenerator] Iniciando generación de cast para tema:", selectedTopic);
+    if (!agentAddress) {
+      console.warn("⚠️ [CastGenerator] No se puede generar: dirección del agente faltante");
+      setPublishError(t("cast_error_address"));
+      return;
+    }
+    
+    // Mostrar diálogo de confirmación de pago antes de generar
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmPaymentAndGenerate = async () => {
+    setShowConfirmDialog(false);
+    console.log("💰 [CastGenerator] Iniciando pago de 0.5 CELO para generar cast...");
     setIsGenerating(true);
-    setGeneratedCast("");
+    setIsPublishing(true);
     setPublishError(null);
     setPublishSuccess(false);
+    setGeneratedCast("");
     setXpGranted(0);
     setPublishedCastHash(null);
     setTxHash(null);
 
     try {
+      // Precio: 0.5 CELO nativo
+      const amount = parseEther("0.5");
+      
+      console.log("📝 [CastGenerator] Enviando transacción:", { to: agentAddress, value: amount.toString() });
+      
+      sendTransaction({
+        to: agentAddress as `0x${string}`,
+        value: amount,
+      });
+      
+      console.log("✅ [CastGenerator] Transacción enviada, esperando confirmación...");
+    } catch (error: any) {
+      console.error("❌ [CastGenerator] Error iniciando pago:", error);
+      setPublishError(error.message || t("cast_error_payment"));
+      setIsGenerating(false);
+      setIsPublishing(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!generatedCast) {
+      console.warn("⚠️ [CastGenerator] No se puede publicar: cast faltante");
+      return;
+    }
+    
+    console.log("📤 [CastGenerator] Abriendo Warpcast composer y otorgando XP...");
+    setIsPublishing(true);
+    setPublishError(null);
+    
+    try {
+      // Abrir Warpcast composer con el texto del cast
+      const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(generatedCast)}`;
+
+      try {
+        const { sdk } = await import("@farcaster/miniapp-sdk");
+        sdk.actions.openUrl(warpcastUrl);
+      } catch (e) {
+        // Fallback para web
+        window.open(warpcastUrl, "_blank");
+      }
+
+      // Otorgar XP directamente (sin verificar publicación)
       const backendUrl = getBackendUrl();
       if (!backendUrl) {
         throw new Error(t("cast_error_backend"));
       }
 
-      const payload = {
-        topic: selectedTopic,
-        user_address: userAddress,
-        user_fid: userFid,
-      };
-      console.log("📤 [CastGenerator] Enviando request a /api/casts/generate:", payload);
-
-      const response = await fetch(`${backendUrl}/api/casts/generate`, {
+      const response = await fetch(`${backendUrl}/api/casts/grant-xp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          user_address: userAddress,
+        }),
       });
 
       if (!response.ok) {
-        let errorMessage = t("cast_error_generating");
-        try {
-          const error = await response.json();
-          errorMessage = error.detail || error.message || errorMessage;
-          console.error("❌ [CastGenerator] Error del backend:", error);
-        } catch {
-          errorMessage = `Error ${response.status}: ${response.statusText}`;
-          console.error(`❌ [CastGenerator] Error ${response.status}: ${response.statusText}`);
-        }
-        throw new Error(errorMessage);
+        const error = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(error.message || "Error otorgando XP");
       }
 
       const data = await response.json();
-      console.log("✅ [CastGenerator] Cast generado exitosamente:", data.cast_text?.substring(0, 50) + "...");
-      setGeneratedCast(data.cast_text || "");
+      
+      if (data.success) {
+        console.log("✅ [CastGenerator] XP otorgado exitosamente:", data.xp_granted);
+        setXpGranted(data.xp_granted || 25);
+        setPublishSuccess(true);
+        setPublishError(null);
+        
+        // Disparar evento para refrescar XP en el dashboard
+        window.dispatchEvent(new Event('refresh-xp'));
+      } else {
+        throw new Error(data.message || "Error otorgando XP");
+      }
     } catch (error: any) {
-      console.error("❌ [CastGenerator] Error generando cast:", error);
-      setPublishError(error.message || t("cast_error_generating"));
+      console.error("❌ [CastGenerator] Error publicando:", error);
+      setPublishError(error.message || "Error al publicar");
     } finally {
-      setIsGenerating(false);
+      setIsPublishing(false);
     }
-  };
-
-  const handlePublish = async () => {
-    if (!generatedCast || !agentAddress) {
-      console.warn("⚠️ [CastGenerator] No se puede publicar: cast o dirección del agente faltante");
-      return;
-    }
-    
-    // Mostrar diálogo de confirmación directamente (sin verificar signer)
-    setShowConfirmDialog(true);
   };
 
   const handleConfirmPayment = async () => {
@@ -202,110 +242,6 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     }
   }, [isConfirmed, hash]);
 
-  // Función para verificar si el cast fue publicado
-  const verifyPublication = async () => {
-    if (!generatedCast || !userFid) {
-      console.warn("⚠️ [CastGenerator] No se puede verificar: cast o FID faltante");
-      return;
-    }
-
-    setIsVerifying(true);
-    setPublishError(null);
-    setVerificationAttempts(0);
-
-    const verifyWithRetry = async (attempts = 10, delay = 3000) => {
-      for (let i = 0; i < attempts; i++) {
-        setVerificationAttempts(i + 1);
-        console.log(`🔍 [CastGenerator] Verificando publicación (${i + 1}/${attempts})...`);
-
-        try {
-          await new Promise(r => setTimeout(r, delay));
-
-          const backendUrl = getBackendUrl();
-          if (!backendUrl) {
-            throw new Error(t("cast_error_backend"));
-          }
-
-          const response = await fetch(`${backendUrl}/api/casts/verify-publication`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              user_fid: userFid,
-              user_address: userAddress,
-              cast_text: generatedCast,
-              payment_tx_hash: hash,
-            }),
-          });
-
-          if (!response.ok) {
-            const error = await response.json().catch(() => ({ detail: response.statusText }));
-            throw new Error(error.detail || "Error verificando publicación");
-          }
-
-          const data = await response.json();
-
-          if (data.verified) {
-            console.log("✅ [CastGenerator] Cast verificado exitosamente!");
-            setXpGranted(data.xp_granted || 100);
-            setPublishedCastHash(data.cast_hash || null);
-            setPublishSuccess(true);
-            setPublishError(null);
-            
-            // Disparar evento para refrescar XP en el dashboard
-            window.dispatchEvent(new Event('refresh-xp'));
-            
-            setIsVerifying(false);
-            return true;
-          } else {
-            console.log(`⏳ [CastGenerator] Cast aún no publicado (intento ${i + 1}/${attempts})`);
-            if (i === attempts - 1) {
-              // Último intento fallido
-              setPublishError(
-                data.message || t("cast_verification_failed") || "No se pudo verificar la publicación. Asegúrate de haber publicado el cast en Warpcast."
-              );
-            }
-          }
-        } catch (error: any) {
-          console.error(`❌ [CastGenerator] Error en verificación (intento ${i + 1}):`, error);
-          if (i === attempts - 1) {
-            setPublishError(error.message || "Error verificando publicación");
-          }
-        }
-      }
-      
-      setIsVerifying(false);
-      return false;
-    };
-
-    verifyWithRetry();
-  };
-
-  // Cuando la transacción se confirma, abrir Warpcast composer
-  useEffect(() => {
-    if (isConfirmed && hash && generatedCast && !publishSuccess && !isVerifying) {
-      const openWarpcastComposer = async () => {
-        console.log("✅ [CastGenerator] Transacción confirmada, abriendo Warpcast composer...");
-        
-        // Abrir Warpcast composer con el texto del cast
-        const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(generatedCast)}`;
-
-        try {
-          const { sdk } = await import("@farcaster/miniapp-sdk");
-          sdk.actions.openUrl(warpcastUrl);
-        } catch (e) {
-          // Fallback para web
-          window.open(warpcastUrl, "_blank");
-        }
-
-        // Iniciar verificación automática después de un breve delay
-        setTimeout(() => {
-          verifyPublication();
-        }, 3000); // Esperar 3 segundos antes de empezar a verificar
-      };
-
-      openWarpcastComposer();
-    }
-  }, [isConfirmed, hash, generatedCast, publishSuccess, isVerifying]);
 
   const TOPICS = getTopics(t as (key: string) => string);
 
@@ -361,14 +297,14 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
         <CardContent className="space-y-4">
           <Button
             onClick={handleGenerate}
-            disabled={isGenerating}
+            disabled={isGenerating || isPendingTx || isConfirming || !agentAddress}
             className="w-full h-12 text-base font-semibold"
             size="lg"
           >
-            {isGenerating ? (
+            {isGenerating || isPendingTx || isConfirming ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {t("cast_generating")}
+                {isPendingTx || isConfirming ? t("cast_confirming_payment") : t("cast_generating")}
               </>
             ) : (
               <>
@@ -382,7 +318,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
             <div className="space-y-4">
               <div>
                 <Label>{t("cast_generated")}</Label>
-                <div className="mt-2 p-4 rounded-lg border-2 border-primary/50 bg-background/80 backdrop-blur-sm min-h-[80px]">
+                <div className="mt-2 p-4 rounded-lg border-2 border-primary/50 bg-background/80 backdrop-blur-sm">
                   <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                     {generatedCast}
                   </p>
@@ -415,19 +351,14 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
               {/* Publicar */}
               <Button
                 onClick={handlePublish}
-                disabled={isPublishing || isPendingTx || isConfirming || isVerifying || !agentAddress}
+                disabled={isPublishing || !generatedCast}
                 className="w-full"
                 size="lg"
               >
-                {isVerifying ? (
+                {isPublishing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("cast_verifying")} ({verificationAttempts}/10)
-                  </>
-                ) : isPublishing || isPendingTx || isConfirming ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isPendingTx || isConfirming ? t("cast_confirming_payment") : t("cast_publishing")}
+                    {t("cast_publishing")}
                   </>
                 ) : (
                   <>
@@ -563,7 +494,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
               <div>
                 <h3 className="text-xl font-bold text-foreground mb-2">{t("cast_confirm_title")}</h3>
                 <p className="text-sm text-foreground mb-3">
-                  {t("cast_confirm_message")}
+                  {t("cast_confirm_message_generate") || "Vas a pagar 0.5 CELO para generar este cast con IA."}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {t("cast_confirm_details")}
@@ -572,7 +503,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
 
               <div className="pt-2 space-y-3">
                 <Button
-                  onClick={handleConfirmPayment}
+                  onClick={handleConfirmPaymentAndGenerate}
                   className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
                   size="lg"
                 >
