@@ -1529,16 +1529,33 @@ async def check_signer_endpoint(
         # Crear signer
         create_result = await farcaster_toolbox.create_signer()
         logger.info(f"🔑 Resultado de create_signer: {create_result}")
-        if create_result.get("status") != "success":
-            error_message = create_result.get("message", "Error desconocido")
+        
+        # Verificar que el signer se creó correctamente
+        # Neynar devuelve status: 'generated' cuando se crea exitosamente, no 'success'
+        signer_uuid = create_result.get("signer_uuid")
+        public_key = create_result.get("public_key")
+        result_status = create_result.get("status")
+        
+        # Validar que tenemos los datos necesarios
+        if not signer_uuid or not public_key:
+            error_message = create_result.get("message", "Respuesta incompleta: falta signer_uuid o public_key")
+            logger.error(f"❌ Respuesta de create_signer incompleta: signer_uuid={signer_uuid}, public_key={'presente' if public_key else 'ausente'}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error creando signer: {error_message}"
+            )
+        
+        # Verificar que el status no sea 'error'
+        if result_status == "error":
+            error_message = create_result.get("message", "Error desconocido al crear signer")
             logger.error(f"❌ Error creando signer: {error_message}. Resultado completo: {create_result}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Error creando signer: {error_message}"
             )
         
-        signer_uuid = create_result.get("signer_uuid")
-        public_key = create_result.get("public_key")
+        # Si llegamos aquí, el signer se creó exitosamente (status puede ser 'generated' o 'success')
+        logger.info(f"✅ Signer creado exitosamente: {signer_uuid[:8]}...")
         
         # Guardar en store
         signer_store.add_signer(
