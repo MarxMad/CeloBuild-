@@ -435,12 +435,17 @@ export function TrendingCampaignForm() {
           
           console.log(`⚡ [Energy] Actualizando desde respuesta: ${oldEnergy} -> ${newEnergy}`);
           
+          // Crear un nuevo array de bolts para asegurar que React detecte el cambio
+          const newBolts = energyStatus.bolts ? [...energyStatus.bolts] : [];
+          console.log(`⚡ [Energy] Bolts recibidos:`, newBolts.map(b => ({ index: b.index, available: b.available, seconds_to_refill: b.seconds_to_refill })));
+          
           // Actualizar estado de energía directamente desde la respuesta
+          // Usar spread operator para crear un nuevo objeto y array, forzando re-render
           setEnergy({
             current: newEnergy,
             max: energyStatus.max_energy || 3,
             seconds: energyStatus.seconds_to_refill || 0,
-            bolts: energyStatus.bolts || []
+            bolts: newBolts
           });
           
           // Marcar que tenemos energía de la respuesta (para evitar sobrescribir con consultas)
@@ -455,11 +460,12 @@ export function TrendingCampaignForm() {
           // Cualquier llamada a fetchEnergy en los próximos 30s será ignorada
           
           // Log para debugging
-          console.log(`⚡ [Energy] Estado guardado desde respuesta: ${newEnergy}/${energyStatus.max_energy || 3}, bolts:`, energyStatus.bolts?.length || 0);
+          console.log(`⚡ [Energy] Estado guardado desde respuesta: ${newEnergy}/${energyStatus.max_energy || 3}, bolts:`, newBolts.length);
+          console.log(`⚡ [Energy] Detalles de bolts:`, newBolts);
           
           // Detectar si se consumió energía
           if (oldEnergy > newEnergy && oldEnergy > 0) {
-            console.log(`⚡ [Energy] Energía consumida detectada: ${oldEnergy} -> ${newEnergy}`);
+            console.log(`⚡ [Energy] ⚡⚡⚡ ENERGÍA CONSUMIDA DETECTADA: ${oldEnergy} -> ${newEnergy} ⚡⚡⚡`);
             setEnergyConsumed(true);
             setPreviousEnergy(oldEnergy);
           }
@@ -604,6 +610,7 @@ export function TrendingCampaignForm() {
                 <>
                   <div className="mb-4 flex flex-col items-center gap-3">
                     <EnergyDisplay
+                      key={`energy-${energy.current}-${energy.bolts?.map(b => `${b.index}-${b.available}`).join('-') || 'none'}`}
                       currentEnergy={energy.current}
                       maxEnergy={energy.max}
                       secondsToRefill={energy.seconds}
@@ -775,6 +782,7 @@ export function TrendingCampaignForm() {
           {result.eligible !== false && result.mode !== "failed" && (
             <div className="mb-4">
               <EnergyDisplay
+                key={`energy-result-${energy.current}-${energy.bolts?.map(b => `${b.index}-${b.available}`).join('-') || 'none'}`}
                 currentEnergy={energy.current}
                 maxEnergy={energy.max}
                 secondsToRefill={energy.seconds}
