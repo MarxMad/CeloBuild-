@@ -728,69 +728,6 @@ export function TrendingCampaignForm() {
       {/* Result Display */}
       {result && (
         <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          {/* Mensaje de energía consumida después de obtener recompensa - SIEMPRE visible cuando hay resultado exitoso */}
-          {result.eligible !== false && result.mode !== "failed" && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-gradient-to-br from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/40 rounded-xl px-4 py-4 text-center mb-4 shadow-lg shadow-amber-500/20">
-              <div className="flex items-center justify-center gap-2 text-amber-400 mb-3">
-                <Zap className="w-6 h-6 animate-pulse" />
-                <span className="text-base font-bold">
-                  {t("form_energy_consumed")}
-                </span>
-              </div>
-              <p className="text-sm text-amber-300/90 mb-3 font-medium">
-                {t("form_energy_used")} <strong className="text-[#FCFF52]">{t("form_energy_ray")}</strong> {t("form_energy_of")} {energy.max} {t("form_energy_rays")} {t("form_energy_to_obtain")}
-              </p>
-              
-              {/* Estado actual de rayos */}
-              <div className="bg-black/40 rounded-lg p-3 mb-3 border border-amber-500/20">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-xs text-amber-400/80">{t("form_energy_available")}</span>
-                  <span className="text-lg font-bold text-[#FCFF52]">{energy.current}/{energy.max}</span>
-                </div>
-                
-                {/* Mostrar cuenta regresiva de rayos consumidos */}
-                {energy.bolts && energy.bolts.some((b: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }) => !b.available) && (
-                  <div className="mt-2 pt-2 border-t border-amber-500/20">
-                    <p className="text-[10px] text-amber-400/70 mb-2">{t("form_energy_next_recharges")}</p>
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      {energy.bolts
-                        .filter((b: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }) => !b.available && b.seconds_to_refill > 0)
-                        .map((bolt: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }, idx: number) => {
-                          const minutes = Math.floor(bolt.seconds_to_refill / 60);
-                          const seconds = bolt.seconds_to_refill % 60;
-                          return (
-                            <div key={idx} className="flex items-center gap-1 text-[10px] bg-black/60 px-2 py-1 rounded border border-amber-500/30">
-                              <Zap className="w-3 h-3 text-gray-500" />
-                              <span className="text-amber-300 font-mono">
-                                {minutes}m {seconds.toString().padStart(2, '0')}s
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <p className="text-[10px] text-amber-400/60 italic">
-                {t("form_energy_auto_recharge")}
-              </p>
-            </div>
-          )}
-          
-          {/* Mostrar display de energía actualizado después de consumir - SIEMPRE visible cuando hay resultado exitoso */}
-          {result.eligible !== false && result.mode !== "failed" && (
-            <div className="mb-4">
-              <EnergyDisplay
-                key={`energy-result-${energy.current}-${energy.bolts?.map((b: { index: number; available: boolean }) => `${b.index}-${b.available}`).join('-') || 'none'}`}
-                currentEnergy={energy.current}
-                maxEnergy={energy.max}
-                secondsToRefill={energy.seconds}
-                bolts={energy.bolts}
-              />
-            </div>
-          )}
-
           {/* Success Card - PREMIUM REDESIGN */}
           {result.eligible !== false && result.mode !== "failed" && result.mode !== "analysis_only" && (
             <div className="relative rounded-3xl overflow-hidden p-1 p-gradient-to-br from-green-500/50 via-[#FCFF52]/50 to-green-900/50 shadow-2xl shadow-green-900/40 group/card">
@@ -900,6 +837,69 @@ export function TrendingCampaignForm() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Mensaje de energía consumida después de obtener recompensa - SIEMPRE visible cuando hay resultado exitoso */}
+          {result.eligible !== false && result.mode !== "failed" && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-gradient-to-br from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/40 rounded-xl px-4 py-4 text-center mb-4 shadow-lg shadow-amber-500/20">
+              <div className="flex items-center justify-center gap-2 text-amber-400 mb-3">
+                <Zap className="w-6 h-6 animate-pulse" />
+                <span className="text-base font-bold">
+                  {t("form_energy_consumed")}
+                </span>
+              </div>
+              <p className="text-sm text-amber-300/90 mb-3 font-medium">
+                {t("form_energy_used")} <strong className="text-[#FCFF52]">{t("form_energy_ray")}</strong> {t("form_energy_of")} {energy.max} {t("form_energy_rays")} {t("form_energy_to_obtain")}
+              </p>
+              
+              {/* Estado actual de rayos */}
+              <div className="bg-black/40 rounded-lg p-3 mb-3 border border-amber-500/20">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <span className="text-xs text-amber-400/80">{t("form_energy_available")}</span>
+                  <span className="text-lg font-bold text-[#FCFF52]">{energy.current}/{energy.max}</span>
+                </div>
+                
+                {/* Mostrar cuenta regresiva de rayos consumidos */}
+                {energy.bolts && energy.bolts.some((b: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }) => !b.available) && (
+                  <div className="mt-2 pt-2 border-t border-amber-500/20">
+                    <p className="text-[10px] text-amber-400/70 mb-2">{t("form_energy_next_recharges")}</p>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {energy.bolts
+                        .filter((b: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }) => !b.available && b.seconds_to_refill > 0)
+                        .map((bolt: { index: number; available: boolean; seconds_to_refill: number; refill_at: number | null }, idx: number) => {
+                          const minutes = Math.floor(bolt.seconds_to_refill / 60);
+                          const seconds = bolt.seconds_to_refill % 60;
+                          return (
+                            <div key={idx} className="flex items-center gap-1 text-[10px] bg-black/60 px-2 py-1 rounded border border-amber-500/30">
+                              <Zap className="w-3 h-3 text-gray-500" />
+                              <span className="text-amber-300 font-mono">
+                                {minutes}m {seconds.toString().padStart(2, '0')}s
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <p className="text-[10px] text-amber-400/60 italic">
+                {t("form_energy_auto_recharge")}
+              </p>
+            </div>
+          )}
+          
+          {/* Mostrar display de energía actualizado después de consumir - SIEMPRE visible cuando hay resultado exitoso */}
+          {result.eligible !== false && result.mode !== "failed" && (
+            <div className="mb-4">
+              <EnergyDisplay
+                key={`energy-result-${energy.current}-${energy.bolts?.map((b: { index: number; available: boolean }) => `${b.index}-${b.available}`).join('-') || 'none'}`}
+                currentEnergy={energy.current}
+                maxEnergy={energy.max}
+                secondsToRefill={energy.seconds}
+                bolts={energy.bolts}
+              />
             </div>
           )}
 
