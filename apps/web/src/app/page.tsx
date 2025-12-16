@@ -109,7 +109,6 @@ export default function Home() {
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Sparkles className="w-4 h-4" />
             {t("nav_casts")}
           </button>
           <button
