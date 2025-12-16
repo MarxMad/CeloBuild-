@@ -5,6 +5,7 @@ export const dictionary = {
         // Navbar
         nav_home: "Inicio",
         nav_guide: "Guía",
+        nav_casts: "Generar Cast",
         nav_connect: "Conectar",
 
         // Page
@@ -188,6 +189,7 @@ export const dictionary = {
         // Navbar
         nav_home: "Home",
         nav_guide: "Guide",
+        nav_casts: "Generate Cast",
         nav_connect: "Connect",
 
         // Page
@@ -371,4 +373,5 @@ export const dictionary = {
 } as const;
 
 // Tipo para las claves del diccionario
+// Extraemos el tipo de las claves del diccionario español (asumiendo que ambos tienen las mismas claves)
 export type DictionaryKey = keyof typeof dictionary.es;
