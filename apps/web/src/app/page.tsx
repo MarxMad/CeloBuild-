@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, Info, PlayCircle, Sparkles } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { Zap, Info, PlayCircle, Sparkles, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserBalance } from "@/components/user-balance";
@@ -17,7 +18,18 @@ import { useLanguage } from "@/components/language-provider";
 
 export default function Home() {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"app" | "guide">("app");
+  const router = useRouter();
+  const pathname = usePathname();
+  const [activeTab, setActiveTab] = useState<"app" | "guide" | "casts">("app");
+
+  // Sincronizar activeTab con la ruta actual
+  useEffect(() => {
+    if (pathname === "/casts") {
+      setActiveTab("casts");
+    } else if (pathname === "/") {
+      setActiveTab("app");
+    }
+  }, [pathname]);
 
   // Asegurar que ready() se llama cuando el contenido está completamente renderizado
   useEffect(() => {
@@ -69,9 +81,12 @@ export default function Home() {
 
       {/* Tab Navigation (Segmented Control) */}
       <div className="container px-4 mx-auto max-w-md mt-6 mb-6">
-        <div className="grid grid-cols-2 p-1 bg-muted rounded-xl">
+        <div className="grid grid-cols-3 p-1 bg-muted rounded-xl">
           <button
-            onClick={() => setActiveTab("app")}
+            onClick={() => {
+              setActiveTab("app");
+              router.push("/");
+            }}
             className={cn(
               "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
               activeTab === "app"
@@ -83,7 +98,25 @@ export default function Home() {
             {t("nav_home")}
           </button>
           <button
-            onClick={() => setActiveTab("guide")}
+            onClick={() => {
+              setActiveTab("casts");
+              router.push("/casts");
+            }}
+            className={cn(
+              "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
+              activeTab === "casts"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Sparkles className="w-4 h-4" />
+            {t("nav_casts")}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("guide");
+              // No navegar, solo cambiar el tab para mostrar la guía en la misma página
+            }}
             className={cn(
               "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
               activeTab === "guide"

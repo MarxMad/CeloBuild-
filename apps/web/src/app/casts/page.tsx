@@ -1,19 +1,94 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { CastGenerator } from "@/components/cast-generator";
 import { useAccount } from "wagmi";
 import { useFarcasterUser } from "@/components/farcaster-provider";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Info, PlayCircle } from "lucide-react";
 import { useLanguage } from "@/components/language-provider";
+import { cn } from "@/lib/utils";
 
 export default function CastsPage() {
   const { t } = useLanguage();
+  const router = useRouter();
+  const pathname = usePathname();
   const { address, isConnected } = useAccount();
   const farcasterUser = useFarcasterUser();
+  const [activeTab, setActiveTab] = useState<"app" | "guide" | "casts">("casts");
+
+  // Sincronizar activeTab con la ruta actual
+  useEffect(() => {
+    if (pathname === "/casts") {
+      setActiveTab("casts");
+    } else if (pathname === "/") {
+      setActiveTab("app");
+    }
+  }, [pathname]);
+
+  // Componente de navegación compartido
+  const NavigationTabs = () => (
+    <div className="container px-4 mx-auto max-w-md mt-6 mb-6">
+      <div className="grid grid-cols-3 p-1 bg-muted rounded-xl">
+        <button
+          onClick={() => {
+            setActiveTab("app");
+            router.push("/");
+          }}
+          className={cn(
+            "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
+            activeTab === "app"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <PlayCircle className="w-4 h-4" />
+          {t("nav_home")}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab("casts");
+            router.push("/casts");
+          }}
+          className={cn(
+            "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
+            activeTab === "casts"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Sparkles className="w-4 h-4" />
+          {t("nav_casts")}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab("guide");
+            router.push("/");
+            setTimeout(() => {
+              const guideElement = document.getElementById("guide-section");
+              if (guideElement) {
+                guideElement.scrollIntoView({ behavior: "smooth" });
+              }
+            }, 100);
+          }}
+          className={cn(
+            "flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
+            activeTab === "guide"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Info className="w-4 h-4" />
+          {t("nav_guide")}
+        </button>
+      </div>
+    </div>
+  );
 
   if (!isConnected || !address) {
     return (
       <main className="flex-1 bg-background min-h-screen pb-20">
+        <NavigationTabs />
         <div className="container px-4 mx-auto max-w-md py-12">
           <div className="text-center space-y-4">
             <div className="relative h-24 w-24 mx-auto mb-6">
@@ -35,6 +110,7 @@ export default function CastsPage() {
   if (!farcasterUser?.fid) {
     return (
       <main className="flex-1 bg-background min-h-screen pb-20">
+        <NavigationTabs />
         <div className="container px-4 mx-auto max-w-md py-12">
           <div className="text-center space-y-4">
             <div className="relative h-24 w-24 mx-auto mb-6">
@@ -72,6 +148,9 @@ export default function CastsPage() {
           </div>
         </div>
       </div>
+
+      {/* Tab Navigation (Segmented Control) */}
+      <NavigationTabs />
 
       {/* Content */}
       <div className="container px-4 mx-auto max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
