@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
               seconds_to_refill: i === data.current_energy ? (data.seconds_to_refill || 0) : 0,
               refill_at: i === data.current_energy && data.next_refill_at ? data.next_refill_at : null
             });
-          }
+        }
           data.bolts = bolts;
         }
         

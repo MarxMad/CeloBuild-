@@ -26,7 +26,7 @@ export async function generateMetadata(
     const description = locale === 'es' 
         ? `¡${user} ganó ${reward} en Premio.xyz! 🏆 Únete y reclama tus recompensas en Celo.`
         : `${user} won ${reward} on Premio.xyz! 🏆 Join and claim your rewards on Celo.`;
-    
+
     return {
         title: `Victory: ${user} won ${reward}!`,
         description: description,
@@ -118,7 +118,7 @@ export default function VictoryPage({ searchParams }: Props) {
                             🚀 Jugar Ahora
                         </a>
                     </div>
-                </div>
             </div>
+        </div>
     );
 }

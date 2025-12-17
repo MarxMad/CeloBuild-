@@ -1,4 +1,5 @@
 "use client";
+// VERSIÓN 2.0 - Precio actualizado a 0.1 CELO (17/12/2024)
 
 import { useState, useEffect } from "react";
 import { Loader2, Sparkles, Send, Wallet, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
@@ -114,7 +115,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
 
   const handleConfirmPaymentAndGenerate = async () => {
     setShowConfirmDialog(false);
-    console.log("💰 [CastGenerator] Iniciando pago de 0.5 CELO para generar cast...");
+    console.log("💰 [CastGenerator] Iniciando pago de 0.1 CELO para generar cast...");
     setIsGenerating(true);
     setIsPublishing(true);
     setPublishError(null);
@@ -125,8 +126,8 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
     setTxHash(null);
 
     try {
-      // Precio: 0.5 CELO nativo
-      const amount = parseEther("0.5");
+      // Precio: 0.1 CELO nativo
+      const amount = parseEther("0.1");
       
       console.log("📝 [CastGenerator] Enviando transacción:", { to: agentAddress, value: amount.toString() });
       
@@ -208,14 +209,14 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
 
   const handleConfirmPayment = async () => {
     setShowConfirmDialog(false);
-    console.log("💰 [CastGenerator] Iniciando pago de 0.5 CELO a:", agentAddress);
+    console.log("💰 [CastGenerator] Iniciando pago de 0.1 CELO a:", agentAddress);
     setIsPublishing(true);
     setPublishError(null);
     setPublishSuccess(false);
 
     try {
-      // Precio: 0.5 CELO nativo
-      const amount = parseEther("0.5");
+      // Precio: 0.1 CELO nativo
+      const amount = parseEther("0.1");
       console.log("📝 [CastGenerator] Enviando transacción:", { to: agentAddress, value: amount.toString() });
 
       // Transferir CELO nativo al agente
@@ -438,12 +439,12 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
 
                     {/* Detalles de Transacciones */}
                     <div className="space-y-2">
-                      {/* Pago de 0.5 CELO */}
+                      {/* Pago de 0.1 CELO */}
                       {txHash && (
                         <div className="flex items-center justify-between bg-black/40 rounded-lg p-3 border border-white/10">
                           <div className="flex items-center gap-2">
                             <Wallet className="w-4 h-4 text-primary" />
-                            <span className="text-xs font-medium text-muted-foreground">Pago de 0.5 CELO</span>
+                            <span className="text-xs font-medium text-muted-foreground">Pago de 0.1 CELO</span>
                           </div>
                           <a
                             href={`https://celoscan.io/tx/${txHash}`}
@@ -529,7 +530,7 @@ export function CastGenerator({ userAddress, userFid }: CastGeneratorProps) {
               <div>
                 <h3 className="text-xl font-bold text-foreground mb-2">{t("cast_confirm_title")}</h3>
                 <p className="text-sm text-foreground mb-3">
-                  {t("cast_confirm_message_generate") || "Vas a pagar 0.5 CELO para generar este cast con IA."}
+                  {t("cast_confirm_message_generate") || "Vas a pagar 0.1 CELO para generar este cast con IA."}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {t("cast_confirm_details")}
